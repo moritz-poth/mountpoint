@@ -1,0 +1,87 @@
+/* Oberfläche */
+"Add a folder to mount it as its own volume – e.g. the folder that contains “Avid MediaFiles”." = "Füge einen Ordner hinzu, um ihn als eigenes Volume einzuhängen – z. B. den Ordner, in dem „Avid MediaFiles“ liegt.";
+"Add workspace…" = "Workspace hinzufügen…";
+"New project…" = "Neues Projekt…";
+"Launch at login" = "Beim Anmelden starten";
+"Dark appearance" = "Dunkles Erscheinungsbild";
+"Quit Mountpoint" = "Mountpoint beenden";
+"AT LAUNCH" = "BEIM START";
+"Mount at app launch" = "Beim App-Start einhängen";
+"Rename…" = "Umbenennen…";
+"Delete project…" = "Projekt löschen…";
+"No workspaces yet." = "Noch keine Workspaces.";
+"Move to project" = "In Projekt verschieben";
+"No project" = "Ohne Projekt";
+"Show in Finder" = "Im Finder zeigen";
+"Remove workspace…" = "Workspace entfernen…";
+"Mounting…" = "Hänge ein…";
+"Eject" = "Auswerfen";
+"Mount" = "Einhängen";
+"Workspaces" = "Workspaces";
+"Settings" = "Einstellungen";
+
+/* Dialoge */
+"New project" = "Neues Projekt";
+"Rename project" = "Projekt umbenennen";
+"Delete project “%@”?" = "Projekt „%@“ löschen?";
+"Delete" = "Löschen";
+"Remove workspace “%@”?" = "Workspace „%@“ entfernen?";
+"The volume is ejected. The folder and its files are not touched." = "Das Volume wird ausgeworfen. Der Ordner und seine Dateien werden nicht angefasst.";
+"Remove" = "Entfernen";
+"No “Avid MediaFiles” folder in “%@”." = "Kein Ordner „Avid MediaFiles“ in „%@“.";
+"Cancel" = "Abbrechen";
+"OK" = "OK";
+"Choose the folder that contains “Avid MediaFiles”." = "Wähle den Ordner, in dem „Avid MediaFiles“ liegt.";
+"Launch at login could not be changed." = "„Beim Anmelden starten“ konnte nicht geändert werden.";
+"Workspaces could not be saved." = "Die Workspaces konnten nicht gespeichert werden.";
+
+/* Einhängen */
+"macFUSE is not installed." = "macFUSE ist nicht installiert.";
+"A volume named “%@” already exists." = "Es gibt schon ein Volume namens „%@“.";
+"“%@” could not be mounted." = "„%@“ konnte nicht eingehängt werden.";
+"“%@” is in use. Quit Media Composer and try again." = "„%@“ wird noch benutzt. Beende Media Composer und versuche es erneut.";
+"Folder not found: %@" = "Ordner nicht gefunden: %@";
+"Could not connect to %@ (error %@)." = "Keine Verbindung zu %@ (Fehler %@).";
+
+/* Projekt löschen */
+"Create" = "Anlegen";
+"Also remove its workspaces" = "Workspaces auch entfernen";
+"Its volumes are ejected and its workspaces removed. No files are touched." = "Die Volumes werden ausgeworfen und die Workspaces entfernt. Dateien werden nicht angefasst.";
+"Its workspaces stay and move to “No project”. No files are touched." = "Die Workspaces bleiben erhalten und landen unter „Ohne Projekt“. Dateien werden nicht angefasst.";
+
+/* Ordnerauswahl */
+"Back" = "Zurück";
+"Choose a folder" = "Ordner wählen";
+"Loading…" = "Lade…";
+"No folders here." = "Hier gibt es keine Ordner.";
+"Connect" = "Verbinden";
+"Connecting…" = "Verbinde…";
+"Connect a NAS, e.g. smb://nas/Archive" = "NAS verbinden, z. B. smb://nas/Archiv";
+"Choose “%@”" = "„%@“ wählen";
+"Contains “Avid MediaFiles”" = "Enthält „Avid MediaFiles“";
+"Enter an address like smb://nas/Archive." = "Gib eine Adresse wie smb://nas/Archiv ein.";
+
+/* Einstellungen im Panel, Ordner anlegen */
+"Done" = "Fertig";
+"Add only" = "Nur hinzufügen";
+"Avid only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?" = "Avid findet Medien nur, wenn „Avid MediaFiles“ direkt im eingehängten Ordner liegt. „Avid MediaFiles/MXF“ darin anlegen?";
+"“Avid MediaFiles” could not be created: %@" = "„Avid MediaFiles“ konnte nicht angelegt werden: %@";
+"New folder…" = "Neuer Ordner…";
+"Folder name" = "Ordnername";
+"With “Avid MediaFiles/MXF” inside" = "Mit „Avid MediaFiles/MXF“ darin";
+"Folder names cannot contain “/” or start with a dot." = "Ordnernamen dürfen kein „/“ enthalten und nicht mit einem Punkt beginnen.";
+"“%@” already exists here." = "„%@“ gibt es hier schon.";
+
+/* Geschützte Volumes */
+"Protected volumes" = "Geschützte Volumes";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink.";
+"Add volume…" = "Volume hinzufügen…";
+"Remove %@" = "%@ entfernen";
+"Avid is writing to “%@”" = "Avid schreibt auf „%@“";
+"An “Avid MediaFiles” folder was created on this volume. Check your import or render target." = "Auf diesem Volume wurde ein Ordner „Avid MediaFiles“ angelegt. Prüfe das Ziel deines Imports oder Renderings.";
+"Snooze alert…" = "Hinweis pausieren…";
+"%lld minutes" = "%lld Minuten";
+"1 hour" = "1 Stunde";
+"%lld hours" = "%lld Stunden";
+"Rest of the day" = "Rest des Tages";
+"Language" = "Sprache";
