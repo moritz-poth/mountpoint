@@ -199,7 +199,32 @@ static int m_unlink(const char *p) {
     TRY(unlink(r));
 }
 
-static int m_rmdir(const char *p) { REAL(p); TRY(rmdir(r)); }
+// Ordner: Leere Ordner wandern selbst in den Papierkorb. Bei Ordnern mit Inhalt liegen die Dateien schon im
+// Zwischenordner (der Finder löscht sie vorher einzeln) – dort steht der Ordner also bereits, hier nur entfernen.
+static int stage_dir(const char *p, const char *r) {
+    pthread_mutex_lock(&trash_lock);
+    trash_paths();
+    char dest[PATH_MAX], parent[PATH_MAX];
+    snprintf(dest, sizeof dest, "%s%s", staging, p);
+    snprintf(parent, sizeof parent, "%s", dest);
+    char *slash = strrchr(parent, '/');
+    if (slash) *slash = 0;
+    struct stat st;
+    int rc;
+    if (stat(dest, &st) == 0 && S_ISDIR(st.st_mode)) rc = rmdir(r);
+    else rc = mkdirs(parent, 0700) == 0 ? rename(r, dest) : -1;
+    int err = errno;
+    last_delete = time(NULL);
+    pthread_mutex_unlock(&trash_lock);
+    errno = err;
+    return rc;
+}
+
+static int m_rmdir(const char *p) {
+    REAL(p);
+    if (from_finder()) TRY(stage_dir(p, r));
+    TRY(rmdir(r));
+}
 static int m_symlink(const char *to, const char *p) { REAL(p); TRY(symlink(to, r)); }
 static int m_rename(const char *from, const char *to) {
     char a[PATH_MAX], b[PATH_MAX];
