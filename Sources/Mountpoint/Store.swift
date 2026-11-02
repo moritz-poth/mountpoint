@@ -13,6 +13,10 @@ final class Store: ObservableObject {
     @Published private(set) var busy: Set<UUID> = []
     @Published var errors: [UUID: String] = [:]
     @Published private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
+    /// Als Netzlaufwerk einbinden (Standard): Avid-Zusammenarbeit mit "<Rechnername>.1"-Ordnern
+    @Published var network = UserDefaults.standard.object(forKey: "network") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(network, forKey: "network") }
+    }
     @Published var dark = UserDefaults.standard.object(forKey: "dark") as? Bool ?? true {
         didSet { UserDefaults.standard.set(dark, forKey: "dark"); applyAppearance() }
     }
@@ -83,9 +87,10 @@ final class Store: ObservableObject {
         }
         busy.insert(w.id)
         errors[w.id] = nil
+        let network = self.network
         Task.detached {
             let message: String?
-            do { try Mounter.mount(w, helper: helper); message = nil } catch { message = error.localizedDescription }
+            do { try Mounter.mount(w, helper: helper, network: network); message = nil } catch { message = error.localizedDescription }
             await MainActor.run {
                 self.busy.remove(w.id)
                 self.errors[w.id] = message

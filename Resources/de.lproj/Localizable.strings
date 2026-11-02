@@ -97,3 +97,7 @@
 "JetBrains Mono font – SIL Open Font License 1.1" = "Schrift JetBrains Mono – SIL Open Font License 1.1";
 "Requires macFUSE, which is not included and has its own license." = "Benötigt macFUSE; es ist nicht enthalten und hat eine eigene Lizenz.";
 "Avid and Media Composer are trademarks of Avid Technology, Inc. LucidLink is a trademark of LucidLink Corp. Mountpoint is not affiliated with either." = "Avid und Media Composer sind Marken von Avid Technology, Inc. LucidLink ist eine Marke von LucidLink Corp. Mountpoint steht mit keinem der beiden in Verbindung.";
+
+/* Netzlaufwerk */
+"Mount as network drive" = "Als Netzlaufwerk einbinden";
+"For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted." = "Für die Zusammenarbeit mit Media Composer Enterprise: Avid legt dann einen Ordner „<Rechnername>.1“ statt „1“ an. In Avids Media-Creation-Einstellungen das Ausfiltern von Netzlaufwerken ausschalten. Gilt beim nächsten Einhängen eines Workspaces.";

@@ -114,6 +114,12 @@ struct Panel: View {
             Checkbox(title: "Launch at login", on: store.launchAtLogin, theme: t) {
                 store.setLaunchAtLogin(!store.launchAtLogin)
             }
+            Checkbox(title: "Mount as network drive", on: store.network, theme: t) { store.network.toggle() }
+            Text("For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 23)
             Checkbox(title: "Dark appearance", on: store.dark, theme: t) { store.dark.toggle() }
             HStack(spacing: 10) {
                 Text("Language").font(.mono()).foregroundColor(t.text)

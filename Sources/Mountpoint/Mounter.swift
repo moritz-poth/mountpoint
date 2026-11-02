@@ -18,7 +18,9 @@ enum Mounter {
         return on == path && type.hasPrefix("macfuse")
     }
 
-    static func mount(_ w: Workspace, helper: String) throws {
+    /// `network`: ohne das macFUSE-Flag `local` meldet macOS das Volume als Netzlaufwerk; Media Composer Enterprise
+    /// legt dann wie auf geteiltem Speicher einen Ordner "<Rechnername>.1" statt "1" an (getestet mit MC 2026.8).
+    static func mount(_ w: Workspace, helper: String, network: Bool = true) throws {
         if isMounted(w.volumePath) { return }
         guard FileManager.default.fileExists(atPath: macFUSE) else {
             throw MountError(message: String(localized: "macFUSE is not installed."))
@@ -31,7 +33,7 @@ enum Mounter {
         }
 
         // Der Helfer kehrt zurück, sobald das Volume steht, und läuft dann im Hintergrund weiter.
-        let (status, msg) = try run(helper, [source, w.volumePath, "-o", "volname=\(fuseEscape(w.name)),local"])
+        let (status, msg) = try run(helper, [source, w.volumePath, "-o", "volname=\(fuseEscape(w.name))" + (network ? "" : ",local")])
         guard status == 0, isMounted(w.volumePath) else {
             throw MountError(message: msg.isEmpty ? String(localized: "“\(w.name)” could not be mounted.") : msg)
         }

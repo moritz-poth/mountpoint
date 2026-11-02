@@ -5,6 +5,7 @@ Mac-only menu bar app (own `NSStatusItem` + `NSPopover` with SwiftUI, `LSUIEleme
 ## Fixed rules
 - Never delete, move or overwrite files. Removing a workspace = remove the entry + eject.
 - Never force-eject (`/sbin/umount` without `-f`); "busy" → tell the user to quit Media Composer.
+- Default: mount as network drive (no macFUSE `local` flag → macOS reports non-local, DiskArbitration network=1). Media Composer Enterprise (tested 2026.8) then creates "<computer name>.1" instead of "1". Setting `Store.network`; `local` only when switched off.
 - Volume name = folder name, mount point `/Volumes/<name>`. An existing, non-empty entry there blocks mounting.
 - Eject via `/sbin/umount`, not `unmount(2)`: only then does macOS remove the mount point folder (`/Volumes` is owned by root).
 - NAS: when adding, store `volumeURLForRemounting` + subpath; when mounting, connect the share via NetFS.

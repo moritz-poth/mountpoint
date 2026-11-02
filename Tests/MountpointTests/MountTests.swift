@@ -15,6 +15,8 @@ struct MountTests {
 
         try Mounter.mount(w, helper: Self.helper)
         #expect(Mounter.isMounted(w.volumePath))
+        // Standard: Netzlaufwerk (für Avid-Zusammenarbeit)
+        #expect(try URL(fileURLWithPath: w.volumePath).resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal == false)
         let file = w.volumePath + "/Avid MediaFiles/MXF/1/a.mxf"
         try Data("x".utf8).write(to: URL(fileURLWithPath: file))
         #expect(FileManager.default.fileExists(atPath: src.path + "/Avid MediaFiles/MXF/1/a.mxf"))
@@ -40,6 +42,18 @@ struct MountTests {
 }
 
 extension MountTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
+    func localMountWhenNetworkIsOff() throws {
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("MPLocal\(getpid())")
+        try FileManager.default.createDirectory(at: src, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: src) }
+        let w = Workspace(path: src.path)
+        try Mounter.mount(w, helper: Self.helper, network: false)
+        #expect(try URL(fileURLWithPath: w.volumePath).resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal == true)
+        Thread.sleep(forTimeInterval: 2)
+        try Mounter.unmount(w)
+    }
+
     /// Ein leerer Restordner in /Volumes (gehört root, die App kann ihn nicht löschen) darf das Einhängen nicht blockieren.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
     func leftoverFolder() throws {

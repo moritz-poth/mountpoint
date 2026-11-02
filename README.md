@@ -16,6 +16,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Projects** – group workspaces, mount or eject a whole project with one click, and mount projects automatically when the app starts.
 - **NAS without Finder** – Mountpoint remembers the network share of a workspace and connects it itself when needed (credentials from the Keychain). The folder picker can also connect to a share directly (`smb://nas/Archive`).
 - **Create folders** – create new workspace folders, with `Avid MediaFiles/MXF` inside, directly from the folder picker.
+- **Avid collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Avid's Media Creation settings. Can be switched off in the settings.
 - **Protected volumes** – get an alert as soon as Avid creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink). Alerts can be snoozed per volume (5 min … rest of the day).
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
 - English and German, light and dark appearance, launch at login.
