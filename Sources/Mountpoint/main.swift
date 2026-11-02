@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Icon N01 (assets/icon-varianten/N01-menu.svg) als Vorlage für die Menüleiste; eingehängt = Laufwerk gefüllt.
+/// Icon N01 (assets/menubar.svg) als Vorlage für die Menüleiste; eingehängt = Laufwerk gefüllt.
 func menuBarIcon(mounted: Bool) -> NSImage {
     let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
         // Raster wie im SVG: viewBox 4 6 92 92 → 18 pt

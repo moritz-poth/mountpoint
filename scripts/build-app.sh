@@ -21,6 +21,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/universal/Mountpoint .build/helper/mirror "$APP/Contents/MacOS/"
 cp -R Resources/fonts Resources/*.lproj "$APP/Contents/Resources/"
+cp LICENSE "$APP/Contents/Resources/LICENSE.txt"   # GPL text ships with the app
 
 ICONSET=$(mktemp -d)/AppIcon.iconset
 mkdir -p "$ICONSET"
@@ -40,6 +41,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>io.github.moritz-poth.mountpoint</string>
   <key>CFBundleVersion</key><string>$BUILD</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>MountpointRelease</key><string>$RELEASE</string>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Moritz Poth. GPL-3.0-or-later.</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleDevelopmentRegion</key><string>en</string>

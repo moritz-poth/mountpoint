@@ -85,3 +85,15 @@
 "%lld hours" = "%lld Stunden";
 "Rest of the day" = "Rest des Tages";
 "Language" = "Sprache";
+
+/* Über */
+"About Mountpoint" = "Über Mountpoint";
+"Version %@" = "Version %@";
+"Mountpoint is free software: you can redistribute and modify it under the terms of the GNU General Public License, version 3 or later." = "Mountpoint ist freie Software: Du darfst sie unter den Bedingungen der GNU General Public License, Version 3 oder neuer, weitergeben und verändern.";
+"It comes with ABSOLUTELY NO WARRANTY – use at your own risk." = "Sie wird OHNE JEDE GEWÄHRLEISTUNG bereitgestellt – Nutzung auf eigenes Risiko.";
+"Source code" = "Quellcode";
+"License" = "Lizenz";
+"Third-party" = "Drittanbieter";
+"JetBrains Mono font – SIL Open Font License 1.1" = "Schrift JetBrains Mono – SIL Open Font License 1.1";
+"Requires macFUSE, which is not included and has its own license." = "Benötigt macFUSE; es ist nicht enthalten und hat eine eigene Lizenz.";
+"Avid and Media Composer are trademarks of Avid Technology, Inc. LucidLink is a trademark of LucidLink Corp. Mountpoint is not affiliated with either." = "Avid und Media Composer sind Marken von Avid Technology, Inc. LucidLink ist eine Marke von LucidLink Corp. Mountpoint steht mit keinem der beiden in Verbindung.";

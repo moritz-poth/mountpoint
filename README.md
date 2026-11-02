@@ -81,7 +81,7 @@ The UI is written in English (the default). To add a language:
 
 ## License
 
-GPL-3.0 or later – see [LICENSE](LICENSE). Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (SIL Open Font License, `Resources/fonts/OFL.txt`). macFUSE is a separate product with its own license and is not included.
+Copyright © 2026 Moritz Poth. Mountpoint is free software under the GNU General Public License v3.0 or later – see [LICENSE](LICENSE). It comes with no warranty. Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (SIL Open Font License, `Resources/fonts/OFL.txt`). macFUSE is a separate product with its own license and is not included.
 
 Sister project of MediaFiles Ferry.
 

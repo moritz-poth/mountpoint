@@ -21,6 +21,7 @@ struct Panel: View {
     /// Ordnerauswahl offen; Wert = Zielprojekt
     @State private var picking: UUID?? = nil
     @State private var settings = false
+    @State private var about = false
     @State private var text = ""
     @State private var flag = true
     @FocusState private var focused: Bool
@@ -36,8 +37,8 @@ struct Panel: View {
                     .tracking(2.5)
                     .foregroundColor(t.text)
                 Spacer()
-                Button { settings.toggle(); picking = nil } label: {
-                    Image(systemName: settings ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
+                Button { settings = !(settings || about); about = false; picking = nil } label: {
+                    Image(systemName: settings || about ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
                         .frame(width: 26, height: 26).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -47,7 +48,9 @@ struct Panel: View {
                 .accessibilityLabel(Text("Settings"))
             }
 
-            if settings {
+            if about {
+                AboutView(theme: t) { about = false }
+            } else if settings {
                 settingsContent(t)
             } else if let target = picking {
                 // startet dort, wo zuletzt gewählt wurde: mehrere Workspaces liegen meist nebeneinander
@@ -166,6 +169,8 @@ struct Panel: View {
         }
         Rectangle().fill(t.line).frame(height: 1)
         HStack {
+            Button("About Mountpoint") { settings = false; about = true }
+                .buttonStyle(FerryButtonStyle(theme: t))
             Spacer()
             Button("Done") { settings = false }
                 .buttonStyle(FerryButtonStyle(theme: t, primary: true))
