@@ -11,6 +11,9 @@ Mac-only menu bar app (own `NSStatusItem` + `NSPopover` with SwiftUI, `LSUIEleme
 - NAS: when adding, store `volumeURLForRemounting` + subpath; when mounting, connect the share via NetFS.
 - Protected volumes (`Guard.swift`): never scan. kqueue on the volume root (`O_EVTONLY`, does not block eject) + mount notifications + 60 s safety net. Snooze is per volume and persisted; alert again after the snooze; "OK" = only again when the folder is created anew.
 - Always decode `Library` with `decodeIfPresent`: old files without new fields must still load.
+- An unreadable `library.json` is set aside (`library-unreadable-<time>.json`) with a notice – never continue silently with an empty list (the next save would overwrite it).
+- Errors must say what happened and what to do, in plain words (EN + DE); technical output goes after "Details:". Per-workspace errors show in the row, app-wide ones in `Store.notice` (banner in the panel; menu bar icon gets a dot). No `NSAlert` while the panel is open; on quit, an alert lists volumes that stay mounted.
+- Volume icon: `scripts/make-volume-icon.swift` → `VolumeIcon.icns`, passed to the helper as `volicon` (otherwise Finder shows macFUSE's "FUSE" drive).
 
 ## UI
 - No `MenuBarExtra` and no `NSAlert` in the panel: both close the panel. Questions are `Dialog` cards in the panel (Panel.swift), the folder picker is `FolderBrowser` in the panel (no `NSOpenPanel`). Anything open outside the panel (NAS password) keeps it open via `hold(true)`.

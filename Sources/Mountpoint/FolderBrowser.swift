@@ -19,6 +19,7 @@ struct FolderBrowser: View {
     @State private var current: URL?
     @State private var items: [Item] = []
     @State private var loading = false
+    @State private var readError: String?
     @State private var server = "smb://"
     @State private var connecting = false
     @State private var error: String?
@@ -66,7 +67,12 @@ struct FolderBrowser: View {
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             .overlay {
                 if loading || items.isEmpty {
-                    Text(loading ? "Loading…" : "No folders here.").font(.mono(12)).foregroundColor(t.faint)
+                    if let readError, !loading {
+                        Text(readError).font(.mono(11)).foregroundColor(t.error)
+                            .multilineTextAlignment(.center).padding(14).fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text(loading ? "Loading…" : "No folders here.").font(.mono(12)).foregroundColor(t.faint)
+                    }
                 }
             }
 
@@ -198,19 +204,32 @@ struct FolderBrowser: View {
     private func load() async {
         loading = true
         let dir = current
-        let found = await Task.detached { FolderBrowser.list(dir) }.value
+        let (found, problem) = await Task.detached { FolderBrowser.read(dir) }.value
         guard dir == current else { return }
         items = found
+        readError = problem
         loading = false
     }
 
     /// Unterordner (ohne versteckte und Pakete) bzw. eingehängte Laufwerke ohne die eigenen Spiegel-Volumes.
-    nonisolated static func list(_ dir: URL?) -> [Item] {
+    nonisolated static func list(_ dir: URL?) -> [Item] { read(dir).0 }
+
+    /// Wie `list`, zusätzlich eine verständliche Meldung, wenn der Ordner nicht gelesen werden kann.
+    nonisolated static func read(_ dir: URL?) -> ([Item], String?) {
         let fm = FileManager.default
         let urls: [URL]
         if let dir {
             let keys: [URLResourceKey] = [.isDirectoryKey, .isPackageKey]
-            urls = ((try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])) ?? [])
+            let entries: [URL]
+            do {
+                entries = try fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])
+            } catch let e as NSError {
+                let denied = e.code == NSFileReadNoPermissionError || (e.userInfo[NSUnderlyingErrorKey] as? NSError)?.code == Int(EPERM)
+                return ([], denied
+                    ? String(localized: "Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access).")
+                    : String(localized: "This folder cannot be read: \(e.localizedDescription)"))
+            }
+            urls = entries
                 .filter { u in
                     let v = try? u.resourceValues(forKeys: Set(keys))
                     return v?.isDirectory == true && v?.isPackage != true
@@ -219,11 +238,12 @@ struct FolderBrowser: View {
             urls = (fm.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? [])
                 .filter { !Mounter.isMounted($0.path) }
         }
-        return urls.map { u in
+        let items: [Item] = urls.map { (u: URL) -> Item in
             let name = u.path == "/" ? ((try? u.resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "/") : u.lastPathComponent
             return Item(url: u, name: name, avid: fm.fileExists(atPath: u.appendingPathComponent("Avid MediaFiles").path))
         }
-        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        .sorted { (a: Item, b: Item) in a.name.localizedStandardCompare(b.name) == .orderedAscending }
+        return (items, nil)
     }
 
     private func connect() {

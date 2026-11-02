@@ -32,16 +32,10 @@
 "Cancel" = "Abbrechen";
 "OK" = "OK";
 "Choose the folder that contains “Avid MediaFiles”." = "Wähle den Ordner, in dem „Avid MediaFiles“ liegt.";
-"Launch at login could not be changed." = "„Beim Anmelden starten“ konnte nicht geändert werden.";
-"Workspaces could not be saved." = "Die Workspaces konnten nicht gespeichert werden.";
 
 /* Einhängen */
-"macFUSE is not installed." = "macFUSE ist nicht installiert.";
-"A volume named “%@” already exists." = "Es gibt schon ein Volume namens „%@“.";
 "“%@” could not be mounted." = "„%@“ konnte nicht eingehängt werden.";
 "“%@” is in use. Quit Media Composer and try again." = "„%@“ wird noch benutzt. Beende Media Composer und versuche es erneut.";
-"Folder not found: %@" = "Ordner nicht gefunden: %@";
-"Could not connect to %@ (error %@)." = "Keine Verbindung zu %@ (Fehler %@).";
 
 /* Projekt löschen */
 "Create" = "Anlegen";
@@ -101,3 +95,32 @@
 /* Netzlaufwerk */
 "Mount as network drive" = "Als Netzlaufwerk einbinden";
 "For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted." = "Für die Zusammenarbeit mit Media Composer Enterprise: Avid legt dann einen Ordner „<Rechnername>.1“ statt „1“ an. In Avids Media-Creation-Einstellungen das Ausfiltern von Netzlaufwerken ausschalten. Gilt beim nächsten Einhängen eines Workspaces.";
+
+/* Verständliche Fehlermeldungen */
+"macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again." = "macFUSE ist nicht installiert. Installiere es von macfuse.github.io (Mimiq installiert es auch mit) und versuche es erneut.";
+"Another drive named “%@” is already connected. Eject it first – two volumes cannot have the same name." = "Es ist schon ein Laufwerk namens „%@“ angeschlossen. Wirf es zuerst aus – zwei Volumes können nicht gleich heißen.";
+"macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again." = "macFUSE konnte nicht geladen werden. Erlaube die Systemerweiterung unter Systemeinstellungen → Datenschutz & Sicherheit, starte den Mac neu und versuche es erneut.";
+"Mountpoint is not allowed to read the folder of “%@”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders." = "Mountpoint darf den Ordner von „%@“ nicht lesen. Prüfe die Zugriffsrechte des Ordners oder erlaube Mountpoint unter Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner.";
+"Details: %@" = "Details: %@";
+"“%@” could not be ejected." = "„%@“ konnte nicht ausgeworfen werden.";
+"Mountpoint’s helper program could not be started. Please reinstall Mountpoint." = "Das Hilfsprogramm von Mountpoint konnte nicht gestartet werden. Bitte installiere Mountpoint neu.";
+"The folder “%@” was not found on the NAS share %@%@. It may have been moved or renamed." = "Der Ordner „%@“ wurde auf der NAS-Freigabe %@%@ nicht gefunden. Vielleicht wurde er verschoben oder umbenannt.";
+"The drive “%@” is not connected. Connect it and try again." = "Das Laufwerk „%@“ ist nicht angeschlossen. Schließe es an und versuche es erneut.";
+"The folder “%@” no longer exists. It may have been moved or renamed: %@" = "Den Ordner „%@“ gibt es nicht mehr. Vielleicht wurde er verschoben oder umbenannt: %@";
+"Connecting to “%@” was cancelled." = "Die Verbindung zu „%@“ wurde abgebrochen.";
+"The NAS “%@” rejected the login. Check user name and password – Mountpoint uses the ones saved in the Keychain." = "Das NAS „%@“ hat die Anmeldung abgelehnt. Prüfe Benutzername und Passwort – Mountpoint nutzt die im Schlüsselbund gespeicherten.";
+"The share “%@” does not exist on “%@”." = "Die Freigabe „%@“ gibt es auf „%@“ nicht.";
+"The NAS “%@” cannot be reached. Check the network connection and whether the NAS is switched on." = "Das NAS „%@“ ist nicht erreichbar. Prüfe die Netzwerkverbindung und ob das NAS eingeschaltet ist.";
+"Could not connect to “%@” (error %@)." = "Keine Verbindung zu „%@“ (Fehler %@).";
+"Your workspace list could not be read and was set aside as “%@” (in ~/Library/Application Support/Mountpoint). Mountpoint started with an empty list." = "Deine Workspace-Liste konnte nicht gelesen werden und wurde als „%@“ beiseitegelegt (in ~/Library/Application Support/Mountpoint). Mountpoint startet mit einer leeren Liste.";
+"Mountpoint is incomplete (its helper program is missing). Please reinstall Mountpoint." = "Mountpoint ist unvollständig (das Hilfsprogramm fehlt). Bitte installiere Mountpoint neu.";
+"Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again." = "„Beim Anmelden starten“ ließ sich nicht einschalten. Lege Mountpoint in den Ordner „Programme“ und versuche es erneut.";
+"Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items." = "„Beim Anmelden starten“ ließ sich nicht ausschalten. Entferne Mountpoint unter Systemeinstellungen → Allgemein → Anmeldeobjekte.";
+"macOS asks you to approve Mountpoint: System Settings → General → Login Items." = "macOS möchte, dass du Mountpoint erlaubst: Systemeinstellungen → Allgemein → Anmeldeobjekte.";
+"The language changes the next time Mountpoint starts. Please quit and reopen it." = "Die Sprache wechselt beim nächsten Start von Mountpoint. Bitte beende Mountpoint und öffne es erneut.";
+"Your changes could not be saved. Check the free space on your Mac." = "Deine Änderungen konnten nicht gespeichert werden. Prüfe den freien Speicherplatz auf deinem Mac.";
+"Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access)." = "Mountpoint darf diesen Ordner nicht öffnen. Erlaube den Zugriff unter Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner (oder Festplattenvollzugriff).";
+"This folder cannot be read: %@" = "Dieser Ordner kann nicht gelesen werden: %@";
+"Close" = "Schließen";
+"Some volumes stay mounted" = "Einige Volumes bleiben eingehängt";
+"These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Diese Volumes werden noch benutzt und bleiben eingehängt: %@. Beende Media Composer und wirf sie im Finder aus.";

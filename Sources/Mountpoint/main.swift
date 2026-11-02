@@ -26,8 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.target = self
         item.button?.action = #selector(togglePanel)
         item.button?.setAccessibilityLabel("Mountpoint")
-        watch = store.$mounted.sink { [weak self] m in
-            self?.item.button?.image = menuBarIcon(mounted: !m.isEmpty)
+        // Symbol zeigt eingehängt (gefüllt) und Probleme (Punkt) – auch Fehler beim automatischen Einhängen, wenn das Panel zu ist
+        watch = store.$mounted.combineLatest(store.$errors, store.$notice).sink { [weak self] m, e, n in
+            self?.item.button?.image = menuBarIcon(mounted: !m.isEmpty, problem: !e.isEmpty || n != nil)
         }
         store.mountAtLaunch()
         VolumeGuard.shared.start()
@@ -36,8 +37,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Beim Neustart wegen Sprachwechsel bleiben die Volumes eingehängt.
     static var relaunching = false
 
-    func applicationWillTerminate(_ notification: Notification) {
-        if !AppDelegate.relaunching { Store.shared.unmountAllOnQuit() }
+    /// Beim Beenden auswerfen; was noch benutzt wird, bleibt eingehängt – und das sagen wir.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !AppDelegate.relaunching else { return .terminateNow }
+        let still = Store.shared.unmountAllOnQuit()
+        if !still.isEmpty {
+            NSApp.activate(ignoringOtherApps: true)
+            let a = NSAlert()
+            a.icon = NSApp.applicationIconImage
+            a.messageText = String(localized: "Some volumes stay mounted")
+            a.informativeText = String(localized: "These volumes are still in use and stay mounted: \(still.joined(separator: ", ")). Quit Media Composer and eject them in the Finder.")
+            a.runModal()
+        }
+        return .terminateNow
     }
 
     @objc private func togglePanel() {
@@ -59,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// Icon N01 (assets/menubar.svg) als Vorlage für die Menüleiste; eingehängt = Laufwerk gefüllt.
-func menuBarIcon(mounted: Bool) -> NSImage {
+func menuBarIcon(mounted: Bool, problem: Bool = false) -> NSImage {
     let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
         // Raster wie im SVG: viewBox 4 6 92 92 → 18 pt
         let s = 18.0 / 92.0
@@ -93,6 +105,10 @@ func menuBarIcon(mounted: Bool) -> NSImage {
             drive.lineWidth = 7
             drive.stroke()
             led.fill()
+        }
+        if problem {
+            // Warnpunkt oben rechts
+            NSBezierPath(ovalIn: NSRect(x: 76, y: 6, width: 18, height: 18)).fill()
         }
         return true
     }

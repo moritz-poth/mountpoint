@@ -20,23 +20,40 @@ enum Mounter {
 
     /// `network`: ohne das macFUSE-Flag `local` meldet macOS das Volume als Netzlaufwerk; Media Composer Enterprise
     /// legt dann wie auf geteiltem Speicher einen Ordner "<Rechnername>.1" statt "1" an (getestet mit MC 2026.8).
-    static func mount(_ w: Workspace, helper: String, network: Bool = true) throws {
+    /// `icon`: Volume-Symbol im Finder (sonst zeigt macFUSE sein „FUSE“-Laufwerk).
+    static func mount(_ w: Workspace, helper: String, network: Bool = true, icon: String? = nil) throws {
         if isMounted(w.volumePath) { return }
         guard FileManager.default.fileExists(atPath: macFUSE) else {
-            throw MountError(message: String(localized: "macFUSE is not installed."))
+            throw MountError(message: String(localized: "macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again."))
         }
         let source = try resolveSource(w)
         // Ein leerer Ordner ohne Mount ist nur ein Rest (z. B. nach einem Absturz); darüber darf eingehängt werden.
         let leftover = (try? FileManager.default.contentsOfDirectory(atPath: w.volumePath))?.isEmpty == true
         if FileManager.default.fileExists(atPath: w.volumePath) && !leftover {
-            throw MountError(message: String(localized: "A volume named “\(w.name)” already exists."))
+            throw MountError(message: String(localized: "Another drive named “\(w.name)” is already connected. Eject it first – two volumes cannot have the same name."))
         }
 
         // Der Helfer kehrt zurück, sobald das Volume steht, und läuft dann im Hintergrund weiter.
-        let (status, msg) = try run(helper, [source, w.volumePath, "-o", "volname=\(fuseEscape(w.name))" + (network ? "" : ",local")])
+        var options = "volname=\(fuseEscape(w.name))" + (network ? "" : ",local")
+        if let icon { options += ",volicon=\(fuseEscape(icon))" }
+        let (status, msg) = try run(helper, [source, w.volumePath, "-o", options])
         guard status == 0, isMounted(w.volumePath) else {
-            throw MountError(message: msg.isEmpty ? String(localized: "“\(w.name)” could not be mounted.") : msg)
+            throw MountError(message: explainMountFailure(msg, name: w.name))
         }
+    }
+
+    /// Ausgabe des Helfers in eine verständliche Meldung übersetzen; die Technik-Details hängen hinten an.
+    static func explainMountFailure(_ output: String, name: String) -> String {
+        let o = output.lowercased()
+        let text: String
+        if o.contains("not available") || o.contains("load") && o.contains("fuse") || o.contains("extension") {
+            text = String(localized: "macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again.")
+        } else if o.contains("permission denied") || o.contains("operation not permitted") {
+            text = String(localized: "Mountpoint is not allowed to read the folder of “\(name)”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders.")
+        } else {
+            text = String(localized: "“\(name)” could not be mounted.")
+        }
+        return output.isEmpty ? text : text + "\n" + String(localized: "Details: \(output)")
     }
 
     /// Nie mit Gewalt auswerfen: hat Avid noch Dateien offen, bleibt das Volume eingehängt.
@@ -46,7 +63,8 @@ enum Mounter {
         let (status, msg) = try run("/sbin/umount", [w.volumePath])
         guard status == 0 else {
             throw MountError(message: msg.localizedCaseInsensitiveContains("busy")
-                ? String(localized: "“\(w.name)” is in use. Quit Media Composer and try again.") : msg)
+                ? String(localized: "“\(w.name)” is in use. Quit Media Composer and try again.")
+                : String(localized: "“\(w.name)” could not be ejected.") + (msg.isEmpty ? "" : "\n" + String(localized: "Details: \(msg)")))
         }
     }
 
@@ -56,7 +74,9 @@ enum Mounter {
         p.arguments = args
         let err = Pipe()
         p.standardError = err
-        try p.run()
+        do { try p.run() } catch {
+            throw MountError(message: String(localized: "Mountpoint’s helper program could not be started. Please reinstall Mountpoint.") + "\n" + String(localized: "Details: \(error.localizedDescription)"))
+        }
         p.waitUntilExit()
         let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         return (p.terminationStatus, msg.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -71,8 +91,19 @@ enum Mounter {
             let sub = w.shareSubpath ?? ""
             let source = sub.isEmpty ? root : root + "/" + sub
             if FileManager.default.fileExists(atPath: source, isDirectory: &isDir), isDir.boolValue { return source }
+            throw MountError(message: String(localized: "The folder “\(w.name)” was not found on the NAS share \(url.host ?? "")\(url.path). It may have been moved or renamed."))
         }
-        throw MountError(message: String(localized: "Folder not found: \(w.path)"))
+        throw MountError(message: missingFolderMessage(w.path, connected: { FileManager.default.fileExists(atPath: $0) }))
+    }
+
+    /// Laufwerk fehlt oder Ordner wurde verschoben?
+    static func missingFolderMessage(_ path: String, connected: (String) -> Bool) -> String {
+        let parts = path.split(separator: "/", omittingEmptySubsequences: true)
+        if parts.count >= 2, parts[0] == "Volumes", !connected("/Volumes/\(parts[1])") {
+            return String(localized: "The drive “\(String(parts[1]))” is not connected. Connect it and try again.")
+        }
+        let name = parts.last.map(String.init) ?? path
+        return String(localized: "The folder “\(name)” no longer exists. It may have been moved or renamed: \(path)")
     }
 
     static func mountShare(_ url: URL) throws -> String {
@@ -82,9 +113,25 @@ enum Mounter {
         // Mehrere Workspaces derselben Freigabe starten gleichzeitig; dann hat ein anderer sie schon eingehängt.
         guard status == 0, let path = (points?.takeRetainedValue() as? [String])?.first ?? mountedShare(url) else {
             if let path = mountedShare(url) { return path }
-            throw MountError(message: String(localized: "Could not connect to \(url.host ?? url.absoluteString) (error \(String(status)))."))
+            throw MountError(message: netfsMessage(status, host: url.host ?? url.absoluteString, share: url.path))
         }
         return path
+    }
+
+    /// Fehlercodes beim Verbinden mit einem NAS (NetFS liefert errno-Werte oder OSStatus)
+    static func netfsMessage(_ status: Int32, host: String, share: String) -> String {
+        switch status {
+        case ECANCELED, -128:
+            return String(localized: "Connecting to “\(host)” was cancelled.")
+        case EAUTH, EACCES, EPERM:
+            return String(localized: "The NAS “\(host)” rejected the login. Check user name and password – Mountpoint uses the ones saved in the Keychain.")
+        case ENOENT:
+            return String(localized: "The share “\(share)” does not exist on “\(host)”.")
+        case EHOSTUNREACH, ETIMEDOUT, ENETUNREACH, ECONNREFUSED, EHOSTDOWN, ENETDOWN:
+            return String(localized: "The NAS “\(host)” cannot be reached. Check the network connection and whether the NAS is switched on.")
+        default:
+            return String(localized: "Could not connect to “\(host)” (error \(String(status))).")
+        }
     }
 
     static func mountedShare(_ url: URL) -> String? {

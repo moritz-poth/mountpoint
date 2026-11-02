@@ -12,6 +12,8 @@ final class Store: ObservableObject {
     @Published private(set) var mounted: Set<UUID> = []
     @Published private(set) var busy: Set<UUID> = []
     @Published var errors: [UUID: String] = [:]
+    /// Hinweis oben im Panel (statt Systemdialog, der das Panel schließen würde)
+    @Published var notice: String?
     @Published private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
     /// Als Netzlaufwerk einbinden (Standard): Avid-Zusammenarbeit mit "<Rechnername>.1"-Ordnern
     @Published var network = UserDefaults.standard.object(forKey: "network") as? Bool ?? true {
@@ -35,8 +37,15 @@ final class Store: ObservableObject {
             .appendingPathComponent("Mountpoint")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         file = dir.appendingPathComponent("library.json")
-        if let data = try? Data(contentsOf: file), let lib = try? JSONDecoder().decode(Library.self, from: data) {
-            library = lib
+        if let data = try? Data(contentsOf: file) {
+            do {
+                library = try JSONDecoder().decode(Library.self, from: data)
+            } catch {
+                // Nie stumm mit leerer Liste weitermachen: sonst überschreibt das nächste Speichern die Datei.
+                let backup = dir.appendingPathComponent("library-unreadable-\(Int(Date().timeIntervalSince1970)).json")
+                try? FileManager.default.moveItem(at: file, to: backup)
+                notice = String(localized: "Your workspace list could not be read and was set aside as “\(backup.lastPathComponent)” (in ~/Library/Application Support/Mountpoint). Mountpoint started with an empty list.")
+            }
         }
         refresh()
         // Volumes können auch im Finder ausgeworfen werden
@@ -82,15 +91,16 @@ final class Store: ObservableObject {
     func mount(_ w: Workspace) {
         guard !busy.contains(w.id) else { return }
         guard let helper = Bundle.main.url(forAuxiliaryExecutable: "mirror")?.path else {
-            errors[w.id] = "mirror helper missing"
+            errors[w.id] = String(localized: "Mountpoint is incomplete (its helper program is missing). Please reinstall Mountpoint.")
             return
         }
         busy.insert(w.id)
         errors[w.id] = nil
         let network = self.network
+        let icon = Bundle.main.path(forResource: "VolumeIcon", ofType: "icns")
         Task.detached {
             let message: String?
-            do { try Mounter.mount(w, helper: helper, network: network); message = nil } catch { message = error.localizedDescription }
+            do { try Mounter.mount(w, helper: helper, network: network, icon: icon); message = nil } catch { message = error.localizedDescription }
             await MainActor.run {
                 self.busy.remove(w.id)
                 self.errors[w.id] = message
@@ -148,9 +158,13 @@ final class Store: ObservableObject {
         for p in library.projects where p.mountAtLaunch { mountAll(p.id) }
     }
 
-    /// Beim Beenden auswerfen, was sich auswerfen lässt (nie mit Gewalt).
-    func unmountAllOnQuit() {
-        for w in library.workspaces where mounted.contains(w.id) { try? Mounter.unmount(w) }
+    /// Beim Beenden auswerfen, was sich auswerfen lässt (nie mit Gewalt). Gibt die Namen zurück, die eingehängt bleiben.
+    func unmountAllOnQuit() -> [String] {
+        var still: [String] = []
+        for w in library.workspaces where mounted.contains(w.id) {
+            do { try Mounter.unmount(w) } catch { still.append(w.name) }
+        }
+        return still
     }
 
     // MARK: Geschützte Volumes
@@ -182,8 +196,14 @@ final class Store: ObservableObject {
     func setLaunchAtLogin(_ on: Bool) {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            notice = nil
         } catch {
-            alert(String(localized: "Launch at login could not be changed."), error.localizedDescription)
+            notice = on
+                ? String(localized: "Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again.") + "\n" + String(localized: "Details: \(error.localizedDescription)")
+                : String(localized: "Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items.")
+        }
+        if on && SMAppService.mainApp.status == .requiresApproval {
+            notice = String(localized: "macOS asks you to approve Mountpoint: System Settings → General → Login Items.")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
@@ -197,7 +217,11 @@ final class Store: ObservableObject {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
         p.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", Bundle.main.bundlePath]
-        try? p.run()
+        do { try p.run() } catch {
+            // ohne Neustart nicht beenden – sonst wäre die App einfach weg
+            notice = String(localized: "The language changes the next time Mountpoint starts. Please quit and reopen it.")
+            return
+        }
         AppDelegate.relaunching = true
         NSApp.terminate(nil)
     }
@@ -225,20 +249,7 @@ final class Store: ObservableObject {
         do {
             try enc.encode(library).write(to: file, options: .atomic)
         } catch {
-            alert(String(localized: "Workspaces could not be saved."), error.localizedDescription)
+            notice = String(localized: "Your changes could not be saved. Check the free space on your Mac.") + "\n" + String(localized: "Details: \(error.localizedDescription)")
         }
     }
 }
-
-// MARK: Dialoge
-
-@MainActor
-func alert(_ title: String, _ info: String) {
-    NSApp.activate(ignoringOtherApps: true)
-    let a = NSAlert()
-    a.icon = NSImage(systemSymbolName: "externaldrive", accessibilityDescription: nil)
-    a.messageText = title
-    a.informativeText = info
-    a.runModal()
-}
-

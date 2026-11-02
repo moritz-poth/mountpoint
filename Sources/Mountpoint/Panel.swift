@@ -48,6 +48,22 @@ struct Panel: View {
                 .accessibilityLabel(Text("Settings"))
             }
 
+            if let notice = store.notice {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(t.partial)
+                    Text(notice).font(.mono(11)).foregroundColor(t.text).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Button { store.notice = nil } label: {
+                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
+                            .frame(width: 18, height: 18).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Close"))
+                }
+                .padding(12)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
+            }
+
             if about {
                 AboutView(theme: t) { about = false }
             } else if settings {

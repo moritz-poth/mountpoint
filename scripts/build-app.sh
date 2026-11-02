@@ -27,6 +27,10 @@ cp LICENSE "$APP/Contents/Resources/LICENSE.txt"   # GPL text ships with the app
 ICONSET=$(mktemp -d)/AppIcon.iconset
 swift scripts/make-icon.swift "$ICONSET" >/dev/null
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+# volume icon Finder shows for mounted workspaces (macFUSE volicon)
+VOLSET=$(mktemp -d)/VolumeIcon.iconset
+swift scripts/make-volume-icon.swift "$VOLSET" >/dev/null
+iconutil -c icns "$VOLSET" -o "$APP/Contents/Resources/VolumeIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

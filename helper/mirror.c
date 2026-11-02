@@ -119,11 +119,11 @@ static struct fuse_operations ops = {
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        fprintf(stderr, "Aufruf: mirror <Quellordner> <Mountpunkt> [-o volname=Name]\n");
+        fprintf(stderr, "usage: mirror <source folder> <mount point> [-o volname=Name]\n");
         return 1;
     }
     if (!realpath(argv[1], root)) {
-        fprintf(stderr, "Quellordner nicht gefunden: %s\n", argv[1]);
+        fprintf(stderr, "source folder not found or not readable: %s\n", argv[1]);
         return 1;
     }
     // Quellordner aus den Argumenten nehmen, den Rest bekommt libfuse
