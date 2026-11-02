@@ -24,6 +24,13 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
 - English and German, light and dark appearance, launch at login.
 
+## Good to know
+
+- **“This item will be deleted immediately”** – the Finder shows this warning for every network drive, and Mountpoint mounts workspaces as network drives so that Media Composer Enterprise creates `<computer name>.1` folders. **The warning is wrong here:** Mountpoint moves everything the Finder deletes into the Trash of the drive the folder lives on – under its own name, and you can drag it back from the Trash. (*Put Back* is not available.) The warning cannot be removed without losing the Avid collaboration: Finder and Avid both decide by whether a volume counts as local.
+- **Deleting outside the Finder** (Terminal, Avid’s Media Tool) deletes permanently, as on any drive.
+- **Changing settings or updating Mountpoint** applies to volumes the next time they are mounted – eject and mount them once.
+- **Avid’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Avid hides the workspaces.
+
 ## Requirements
 
 - macOS 13 Ventura or later, Apple Silicon or Intel
