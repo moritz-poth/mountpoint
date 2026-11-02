@@ -68,6 +68,14 @@ struct NumberedIntegrationTests {
         try FileManager.default.createDirectory(atPath: mxf + "3", withIntermediateDirectories: false)
         for _ in 0..<30 where alerts.count < 2 { try await Task.sleep(nanoseconds: 100_000_000) }
         #expect(alerts.last == ["3"])
+
+        // gelöscht und neu angelegt → wieder ein Alarm
+        guardian.acknowledgeNumbered(w, ["3"])
+        try FileManager.default.removeItem(atPath: mxf + "1")
+        for _ in 0..<10 { try await Task.sleep(nanoseconds: 100_000_000) }
+        try FileManager.default.createDirectory(atPath: mxf + "1", withIntermediateDirectories: false)
+        for _ in 0..<30 where alerts.count < 3 { try await Task.sleep(nanoseconds: 100_000_000) }
+        #expect(alerts.last == ["1"])
         try await Task.sleep(nanoseconds: 1_000_000_000)   // Volume registriert sich, bevor es ausgeworfen wird
     }
 }

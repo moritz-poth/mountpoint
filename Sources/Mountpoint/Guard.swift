@@ -115,8 +115,11 @@ final class VolumeGuard {
 
     private func checkNumbered(_ w: Workspace) {
         let key = "n:\(w.id)"
-        let known = Set(knownNumbered[w.id.uuidString] ?? [])
-        let new = numberedFolders(w).filter { !known.contains($0) }
+        let current = numberedFolders(w)
+        // Gelöschte Ordner vergessen: wird „1“ gelöscht und neu angelegt, warnt Mountpoint wieder.
+        let known = Set(knownNumbered[w.id.uuidString] ?? []).intersection(current)
+        if known.count != (knownNumbered[w.id.uuidString] ?? []).count { knownNumbered[w.id.uuidString] = known.sorted() }
+        let new = current.filter { !known.contains($0) }
         guard !new.isEmpty else { return }
         if let until = snoozed[key] {
             if until > Date() { return }
