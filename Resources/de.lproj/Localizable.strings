@@ -124,3 +124,8 @@
 "Close" = "Schließen";
 "Some volumes stay mounted" = "Einige Volumes bleiben eingehängt";
 "These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Diese Volumes werden noch benutzt und bleiben eingehängt: %@. Beende Media Composer und wirf sie im Finder aus.";
+
+/* Warnung bei nummerierten Ordnern */
+"Warn about numbered folders" = "Bei nummerierten Ordnern warnen";
+"Numbered folder in “%@”: %@" = "Nummerierter Ordner in „%@“: %@";
+"Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder." = "Avid hat in „Avid MediaFiles/MXF“ einen Ordner angelegt, der nur aus einer Nummer besteht. In solche Ordner kann jedes System im Team schreiben. Prüfe, ob der Workspace als Netzlaufwerk eingebunden ist – dann nutzt Avid einen eigenen Ordner „<Rechnername>.1“.";

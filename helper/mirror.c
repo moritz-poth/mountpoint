@@ -16,6 +16,9 @@
 #include <sys/time.h>
 #include <sys/xattr.h>
 #include <unistd.h>
+#include <libproc.h>
+#include <sys/mount.h>
+#include <time.h>
 
 static char root[PATH_MAX];
 
@@ -51,7 +54,74 @@ static int m_readdir(const char *p, void *buf, fuse_fill_dir_t fill, off_t off, 
     return 0;
 }
 static int m_mkdir(const char *p, mode_t mode) { REAL(p); TRY(mkdir(r, mode)); }
-static int m_unlink(const char *p) { REAL(p); TRY(unlink(r)); }
+// Papierkorb: Als Netzlaufwerk gibt macOS dem Volume keinen Papierkorb, der Finder würde sofort löschen.
+// Löscht der Finder (bzw. sein Hilfsprozess), verschieben wir die Datei stattdessen in den Papierkorb des Laufwerks, auf dem der
+// Quellordner liegt (gleiches Dateisystem → sofort, erscheint im Finder-Papierkorb). Andere Programme
+// (z. B. Avid) löschen wie gewohnt.
+static int from_finder(void) {
+    pid_t pid = fuse_get_context()->pid;
+    char path[PROC_PIDPATHINFO_MAXSIZE];
+    if (pid <= 0 || proc_pidpath(pid, path, sizeof path) <= 0) return 0;
+    // Der Finder lässt das Löschen meist von seinem Hilfsprozess DesktopServicesHelper ausführen
+    return strstr(path, "/Finder.app/") != NULL || strstr(path, "/DesktopServicesPriv.framework/") != NULL;
+}
+
+static int mkdirs(const char *dir, mode_t mode) {
+    char tmp[PATH_MAX];
+    snprintf(tmp, sizeof tmp, "%s", dir);
+    for (char *c = tmp + 1; *c; c++) {
+        if (*c != '/') continue;
+        *c = 0;
+        if (mkdir(tmp, mode) == -1 && errno != EEXIST) return -1;
+        *c = '/';
+    }
+    return mkdir(tmp, mode) == -1 && errno != EEXIST ? -1 : 0;
+}
+
+// Papierkorb-Ordner dieser Sitzung, z. B. <SSD>/.Trashes/501/AI_Media gelöscht 2026-11-02 21-15
+static int trash_target(const char *p, char *out) {
+    struct statfs fs;
+    if (statfs(root, &fs) == -1) return -1;
+    char base[PATH_MAX];
+    const char *home = getenv("HOME");
+    if ((!strcmp(fs.f_mntonname, "/") || !strcmp(fs.f_mntonname, "/System/Volumes/Data")) && home)
+        snprintf(base, sizeof base, "%s/.Trash", home);   // Systemvolume: Papierkorb des Benutzers
+    else
+        snprintf(base, sizeof base, "%s/.Trashes/%d", fs.f_mntonname, getuid());
+    static char session[64];
+    if (!session[0]) {
+        time_t t = time(NULL);
+        strftime(session, sizeof session, "%Y-%m-%d %H-%M", localtime(&t));
+    }
+    const char *name = strrchr(root, '/');
+    name = name ? name + 1 : root;
+    snprintf(out, PATH_MAX, "%s/%s deleted %s%s", base, name, session, p);
+    // Ordnerstruktur im Papierkorb nachbauen
+    char dir[PATH_MAX];
+    snprintf(dir, sizeof dir, "%s", out);
+    char *slash = strrchr(dir, '/');
+    if (slash) *slash = 0;
+    if (mkdirs(dir, 0700) == -1) return -1;
+    // gleichnamige Datei im Papierkorb nicht überschreiben: "name 2", "name 3", …
+    char first[PATH_MAX];
+    snprintf(first, sizeof first, "%s", out);
+    for (int i = 2; access(out, F_OK) == 0; i++) {
+        if (i > 999) { errno = EEXIST; return -1; }
+        snprintf(out, PATH_MAX, "%s %d", first, i);
+    }
+    return 0;
+}
+
+static int m_unlink(const char *p) {
+    REAL(p);
+    if (from_finder()) {
+        char target[PATH_MAX];
+        // Lässt sich nicht verschieben, lieber Fehler melden als endgültig löschen
+        if (trash_target(p, target) == -1) return -errno;
+        TRY(rename(r, target));
+    }
+    TRY(unlink(r));
+}
 static int m_rmdir(const char *p) { REAL(p); TRY(rmdir(r)); }
 static int m_symlink(const char *to, const char *p) { REAL(p); TRY(symlink(to, r)); }
 static int m_rename(const char *from, const char *to) {

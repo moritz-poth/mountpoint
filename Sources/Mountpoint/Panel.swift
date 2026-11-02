@@ -236,6 +236,8 @@ struct Panel: View {
 
                 MoreMenu(theme: t) {
                     Toggle("Mount at app launch", isOn: Binding(get: { p.mountAtLaunch }, set: { _ in store.toggleMountAtLaunch(p) }))
+                    Toggle("Warn about numbered folders", isOn: Binding(get: { store.projectWarns(p.id) }, set: { _ in store.toggleProjectWarn(p.id) }))
+                        .disabled(items.isEmpty)
                     Button("Add workspace…") { addWorkspace(to: p.id) }
                     Divider()
                     Button("Rename…") { show(.rename(p), text: p.name) }
@@ -296,6 +298,7 @@ struct Panel: View {
                 Button("Show in Finder") {
                     NSWorkspace.shared.open(URL(fileURLWithPath: isMounted ? w.volumePath : w.path))
                 }
+                Toggle("Warn about numbered folders", isOn: Binding(get: { w.warnNumbered == true }, set: { _ in store.toggleWarn(w) }))
                 Divider()
                 Button("Remove workspace…") { show(.removeWorkspace(w)) }
             }

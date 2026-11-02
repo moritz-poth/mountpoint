@@ -16,6 +16,9 @@ struct Workspace: Codable, Identifiable, Hashable {
     var share: String?
     /// Pfad innerhalb der Freigabe ("" = Freigabe selbst)
     var shareSubpath: String?
+    /// Warnen, wenn in MXF ein Ordner nur aus Ziffern entsteht ("1", "2" …) – die schreibt im Team jedes System.
+    /// Optional, damit ältere Dateien ohne das Feld weiter laden.
+    var warnNumbered: Bool?
 
     var name: String { (path as NSString).lastPathComponent }
     var volumePath: String { "/Volumes/" + name }
@@ -99,4 +102,9 @@ enum Snooze: Hashable {
     case minutes(Int)
     case restOfDay
     static let all: [Snooze] = [5, 10, 15, 30, 60, 120, 180, 240].map { .minutes($0) } + [.restOfDay]
+}
+
+/// Ordnername nur aus Ziffern, z. B. "1" oder "12" (nicht "Mac Studio.1")
+func isNumberedFolder(_ name: String) -> Bool {
+    !name.isEmpty && name.allSatisfy { $0.isASCII && $0.isNumber }
 }

@@ -6,7 +6,13 @@ enum MountState { case none, partial, busy, all }
 /// Zustand der App: Projekte, Workspaces, was gerade eingehängt ist.
 @MainActor
 final class Store: ObservableObject {
-    static let shared = Store()
+    static let shared: Store = {
+        let s = Store()
+        s.isShared = true
+        return s
+    }()
+    /// nur die App-Instanz steuert den Wächter (Tests nutzen eigene Stores)
+    private var isShared = false
 
     @Published private(set) var library = Library()
     @Published private(set) var mounted: Set<UUID> = []
@@ -68,6 +74,8 @@ final class Store: ObservableObject {
     func add(_ url: URL, to project: UUID?) {
         var w = Workspace.make(url: url)
         w.project = project
+        // Warnt das ganze Projekt, warnt auch der neue Workspace
+        if let project, projectWarns(project) { w.warnNumbered = true }
         library.workspaces.append(w)
         save()
     }
@@ -112,6 +120,34 @@ final class Store: ObservableObject {
     func unmount(_ w: Workspace) {
         do { try Mounter.unmount(w); errors[w.id] = nil } catch { errors[w.id] = error.localizedDescription }
         refresh()
+    }
+
+    // MARK: Warnung bei nummerierten Ordnern
+
+    func toggleWarn(_ w: Workspace) {
+        guard let i = library.workspaces.firstIndex(where: { $0.id == w.id }) else { return }
+        library.workspaces[i].warnNumbered = !(library.workspaces[i].warnNumbered ?? false)
+        save()
+        notifyGuard()
+    }
+
+    /// Projekt gilt als „an“, wenn alle seine Workspaces warnen.
+    func projectWarns(_ project: UUID) -> Bool {
+        let items = workspaces(in: project)
+        return !items.isEmpty && items.allSatisfy { $0.warnNumbered == true }
+    }
+
+    func toggleProjectWarn(_ project: UUID) {
+        let on = !projectWarns(project)
+        for i in library.workspaces.indices where library.workspaces[i].project == project {
+            library.workspaces[i].warnNumbered = on
+        }
+        save()
+        notifyGuard()
+    }
+
+    private func notifyGuard() {
+        if isShared { VolumeGuard.shared.refresh() }
     }
 
     // MARK: Projekte
@@ -234,7 +270,10 @@ final class Store: ObservableObject {
 
     func refresh() {
         let now = Set(library.workspaces.filter { Mounter.isMounted($0.volumePath) }.map(\.id))
-        if now != mounted { mounted = now }
+        if now != mounted {
+            mounted = now
+            notifyGuard()   // eingehängte Workspaces beobachten bzw. nicht mehr
+        }
     }
 
     private func update(_ p: Project, _ change: (inout Project) -> Void) {
