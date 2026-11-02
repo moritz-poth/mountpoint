@@ -23,12 +23,9 @@ cp .build/universal/Mountpoint .build/helper/mirror "$APP/Contents/MacOS/"
 cp -R Resources/fonts Resources/*.lproj "$APP/Contents/Resources/"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"   # GPL text ships with the app
 
+# every size drawn on Apple's grid (small sizes with less margin), not scaled down from 1024
 ICONSET=$(mktemp -d)/AppIcon.iconset
-mkdir -p "$ICONSET"
-for s in 16 32 128 256 512; do
-  sips -z $s $s assets/icon.png --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
-  sips -z $((s*2)) $((s*2)) assets/icon.png --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
-done
+swift scripts/make-icon.swift "$ICONSET" >/dev/null
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
