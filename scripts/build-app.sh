@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=1.0.0          # CFBundleShortVersionString (numbers only)
-RELEASE=1.0.0-beta.2   # tag and zip name
-BUILD=2
+RELEASE=1.0.0-beta.3   # tag and zip name
+BUILD=3
 APP=dist/Mountpoint.app
 
 swift build -c release --arch arm64
