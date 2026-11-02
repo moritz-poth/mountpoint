@@ -20,7 +20,7 @@ Mac-only menu bar app (own `NSStatusItem` + `NSPopover` with SwiftUI, `LSUIEleme
 - Visual check: temporarily render the panel with `ImageRenderer` to PNG, then remove the hook again.
 
 ## Icon
-N01 (`assets/icon.svg` → `assets/icon.png` → AppIcon.icns in the build script). Menu bar: `menuBarIcon()` in main.swift draws the same motif as a template image; mounted = drive filled. Folder lines have flat ends.
+N01, drawn by `scripts/make-icon.swift` → `assets/icon.png` (Apple grid: 824 px plate, shadow, gradient, light edge) → AppIcon.icns in the build script. Menu bar: `menuBarIcon()` in main.swift draws the same motif as a template image; mounted = drive filled. Folder lines have flat ends.
 
 ## Build / test
 `scripts/build-app.sh` (universal app + zip), `swift test`, `MOUNTPOINT_IT=1 swift test` (really mounts). Only Swift Testing is available (Command Line Tools, no XCTest). Release: bump `VERSION`/`RELEASE`/`BUILD` in the build script.
