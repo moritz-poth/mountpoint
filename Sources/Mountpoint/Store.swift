@@ -192,6 +192,14 @@ final class Store: ObservableObject {
 
     func mountAtLaunch() {
         for p in library.projects where p.mountAtLaunch { mountAll(p.id) }
+        // after an update: mount again what was mounted before
+        let again = Set((UserDefaults.standard.stringArray(forKey: "remountAfterUpdate") ?? []).compactMap(UUID.init))
+        UserDefaults.standard.removeObject(forKey: "remountAfterUpdate")
+        for w in library.workspaces where again.contains(w.id) && !mounted.contains(w.id) { mount(w) }
+    }
+
+    func rememberMountedForUpdate() {
+        UserDefaults.standard.set(mounted.map(\.uuidString), forKey: "remountAfterUpdate")
     }
 
     /// Beim Beenden auswerfen, was sich auswerfen lässt (nie mit Gewalt). Gibt die Namen zurück, die eingehängt bleiben.

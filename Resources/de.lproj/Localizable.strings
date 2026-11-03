@@ -141,3 +141,19 @@
 /* Hinweis beim Einschalten von „Als Netzlaufwerk einhängen“ */
 "Mounted as network drive" = "Als Netzlaufwerk eingehängt";
 "The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted." = "Der Finder warnt dann, gelöschte Objekte würden „sofort gelöscht“. Das stimmt nicht: Was du im Finder löschst, landet im Papierkorb. Gilt beim nächsten Einhängen eines Workspaces.";
+
+/* Updates */
+"Updates" = "Updates";
+"Check for updates" = "Nach Updates suchen";
+"Mountpoint is up to date." = "Mountpoint ist auf dem neuesten Stand.";
+"Mountpoint checks GitHub for new versions on its own and shows a notice." = "Mountpoint sucht selbst auf GitHub nach neuen Versionen und zeigt dann einen Hinweis.";
+"Mountpoint %@ is available." = "Mountpoint %@ ist verfügbar.";
+"Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first." = "Beim Installieren startet Mountpoint neu. Eingehängte Volumes werden ausgeworfen und wieder eingehängt – beende vorher Media Composer.";
+"Install update" = "Update installieren";
+"What’s new" = "Was ist neu";
+"Installing update…" = "Update wird installiert …";
+"Could not check for updates. Check the internet connection and try again." = "Die Suche nach Updates hat nicht geklappt. Prüfe die Internetverbindung und versuche es erneut.";
+"The update could not be downloaded. Check the internet connection and try again." = "Das Update konnte nicht geladen werden. Prüfe die Internetverbindung und versuche es erneut.";
+"The downloaded update is damaged. Please try again later or download it from GitHub." = "Das geladene Update ist beschädigt. Versuche es später erneut oder lade es von GitHub.";
+"Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub." = "Mountpoint konnte sich nicht selbst ersetzen. Leg es in den Programme-Ordner oder lade das Update von GitHub.";
+"The update is installed. Quit Mountpoint and open it again to finish." = "Das Update ist installiert. Beende Mountpoint und öffne es erneut, um es abzuschließen.";

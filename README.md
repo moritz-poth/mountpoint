@@ -20,6 +20,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Protected volumes** – get an alert as soon as Avid creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink). Alerts can be snoozed per volume (5 min … rest of the day).
 - **Warning about numbered folders** – per workspace or for a whole project (⋯ menu): an alert as soon as Avid creates a folder named only with a number (`1`, `2` …) in `Avid MediaFiles/MXF` – in a team every system can write into those.
 - **Trash on network-style volumes** – macOS gives network drives no trash, so the Finder would delete immediately. Mountpoint moves what the Finder deletes into the trash of the drive the folder lives on instead – under its own name, like macOS does. The Finder still warns "will be deleted immediately" – the files are recoverable anyway. Other apps (e.g. Avid) delete as usual.
+- **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates.
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do.
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
 - English and German, light and dark appearance, launch at login.
@@ -28,7 +29,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 
 - **“This item will be deleted immediately”** – the Finder shows this warning for every network drive, and Mountpoint mounts workspaces as network drives so that Media Composer Enterprise creates `<computer name>.1` folders. **The warning is wrong here:** Mountpoint moves everything the Finder deletes into the Trash of the drive the folder lives on – under its own name, and you can drag it back from the Trash. (*Put Back* is not available.) The warning cannot be removed without losing the Avid collaboration: Finder and Avid both decide by whether a volume counts as local.
 - **Deleting outside the Finder** (Terminal, Avid’s Media Tool) deletes permanently, as on any drive.
-- **Changing settings or updating Mountpoint** applies to volumes the next time they are mounted – eject and mount them once.
+- **Changing settings** applies to volumes the next time they are mounted – eject and mount them once. Updates installed from within the app do this for you (from 1.0.0 beta 8 on).
 - **Use at your own risk:** Mountpoint comes without any warranty; the author is not liable for data loss or other damage. Always keep a backup of your media.
 - **Avid’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Avid hides the workspaces.
 
@@ -65,7 +66,7 @@ The menu bar icon (a drive with a folder) appears at the top right. It is filled
 - **Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
 - **Mount / Eject** – per workspace or per project. Status dots: green = mounted, grey = not mounted, orange = partly mounted or a problem.
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch. Removing a workspace or deleting a project never touches any files.
-- **Settings (gear icon)** – launch at login, mount as network drive, appearance, language, protected volumes. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
+- **Settings (gear icon)** – launch at login, mount as network drive, appearance, language, protected volumes, version and *Check for updates*. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
 
 ### Protected volumes
 

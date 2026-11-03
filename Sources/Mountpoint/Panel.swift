@@ -15,6 +15,8 @@ private let titleCapHeight = NSFont(name: "HelveticaNeue-Light", size: 26)?.capH
 
 struct Panel: View {
     @ObservedObject var store: Store
+    @ObservedObject private var updater = Updater.shared
+    @State private var hideUpdate = false
     let hold: (Bool) -> Void
     @Environment(\.colorScheme) private var scheme
     @State private var expanded: Set<UUID> = []
@@ -63,6 +65,10 @@ struct Panel: View {
                 }
                 .padding(12)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
+            }
+
+            if let release = updater.available, !hideUpdate || updater.state == .installing {
+                updateBanner(release, t)
             }
 
             if about {
@@ -129,6 +135,46 @@ struct Panel: View {
                 Button("Quit Mountpoint") { NSApp.terminate(nil) }
                     .buttonStyle(FerryButtonStyle(theme: t))
             }
+    }
+
+    private func updateBanner(_ release: Release, _ t: Theme) -> some View {
+        let version = String(release.tag.dropFirst(release.tag.hasPrefix("v") ? 1 : 0))
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "arrow.down.circle.fill").font(.system(size: 12)).foregroundColor(t.online)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mountpoint \(version) is available.").font(.mono(11, semibold: true)).foregroundColor(t.text)
+                    Text("Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first.")
+                        .font(.mono(11)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
+                    if case .failed(let message) = updater.state {
+                        Text(message).font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+                if updater.state != .installing {
+                    Button { hideUpdate = true } label: {
+                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
+                            .frame(width: 18, height: 18).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Close"))
+                }
+            }
+            HStack(spacing: 10) {
+                if updater.state == .installing {
+                    ProgressView().controlSize(.small)
+                    Text("Installing update…").font(.mono(11)).foregroundColor(t.muted)
+                } else {
+                    Button("Install update") { updater.install() }
+                        .buttonStyle(FerryButtonStyle(theme: t, primary: true))
+                    Button("What’s new") { NSWorkspace.shared.open(release.page) }
+                        .buttonStyle(FerryButtonStyle(theme: t))
+                }
+            }
+            .padding(.leading, 22)
+        }
+        .padding(12)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
     }
 
     @ViewBuilder private func settingsContent(_ t: Theme) -> some View {
@@ -198,6 +244,27 @@ struct Panel: View {
             .frame(height: 26)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             .disabled(candidates.isEmpty)
+        }
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title: String(localized: "Updates"), theme: t)
+            HStack(spacing: 10) {
+                Text("Version \(Updater.current)").font(.mono(12)).foregroundColor(t.text)
+                Spacer()
+                if updater.state == .checking { ProgressView().controlSize(.small) }
+                Button("Check for updates") { hideUpdate = false; updater.check(manual: true) }
+                    .buttonStyle(FerryButtonStyle(theme: t))
+                    .disabled(updater.state == .checking || updater.state == .installing)
+            }
+            switch updater.state {
+            case .upToDate:
+                Text("Mountpoint is up to date.").font(.mono(11)).foregroundColor(t.faint)
+            case .failed(let message) where updater.available == nil:
+                Text(message).font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
+            default:
+                EmptyView()
+            }
+            Text("Mountpoint checks GitHub for new versions on its own and shows a notice.")
+                .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
         }
         Rectangle().fill(t.line).frame(height: 1)
         HStack {

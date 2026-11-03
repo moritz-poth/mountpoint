@@ -27,12 +27,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.action = #selector(togglePanel)
         item.button?.setAccessibilityLabel("Mountpoint")
         // Symbol zeigt eingehängt (gefüllt) und Probleme (Punkt) – auch Fehler beim automatischen Einhängen, wenn das Panel zu ist
-        watch = store.$mounted.combineLatest(store.$errors, store.$notice).sink { [weak self] m, e, n in
-            self?.item.button?.image = menuBarIcon(mounted: !m.isEmpty, problem: !e.isEmpty || n != nil)
+        // the dot also announces an available update
+        watch = store.$mounted.combineLatest(store.$errors, store.$notice, Updater.shared.$available).sink { [weak self] m, e, n, u in
+            self?.item.button?.image = menuBarIcon(mounted: !m.isEmpty, problem: !e.isEmpty || n != nil || u != nil)
         }
         store.mountAtLaunch()
         VolumeGuard.shared.start()
         Welcome.showIfNeeded()
+        Updater.shared.start()
     }
 
     /// Beim Neustart wegen Sprachwechsel bleiben die Volumes eingehängt.
