@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         store.mountAtLaunch()
         VolumeGuard.shared.start()
+        Welcome.showIfNeeded()
     }
 
     /// Beim Neustart wegen Sprachwechsel bleiben die Volumes eingehängt.

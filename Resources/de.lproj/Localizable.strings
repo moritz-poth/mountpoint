@@ -129,3 +129,15 @@
 "Warn about numbered folders" = "Bei nummerierten Ordnern warnen";
 "Numbered folder in “%@”: %@" = "Nummerierter Ordner in „%@“: %@";
 "Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder." = "Avid hat in „Avid MediaFiles/MXF“ einen Ordner angelegt, der nur aus einer Nummer besteht. In solche Ordner kann jedes System im Team schreiben. Prüfe, ob der Workspace als Netzlaufwerk eingebunden ist – dann nutzt Avid einen eigenen Ordner „<Rechnername>.1“.";
+
+/* Willkommen (erster Start) */
+"Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them." = "Mountpoint hängt Ordner als eigene Laufwerke ein, damit Media Composer die Medien darin findet.";
+"Deleting in the Finder" = "Löschen im Finder";
+"Workspaces are mounted as network drives, so Media Composer Enterprise creates its own “<computer name>.1” folder. For network drives the Finder warns that items “will be deleted immediately”.\n\nWith Mountpoint that is not true: what you delete in the Finder goes to the Trash. “Put Back” is not available – drag items back by hand. Deleting with other apps, e.g. Terminal or Media Composer, is permanent." = "Workspaces werden als Netzlaufwerke eingehängt, damit Media Composer Enterprise einen eigenen Ordner „<Rechnername>.1“ anlegt. Bei Netzlaufwerken warnt der Finder, Objekte würden „sofort gelöscht“.\n\nMit Mountpoint stimmt das nicht: Was du im Finder löschst, landet im Papierkorb. „Zurücklegen“ gibt es nicht – zieh Objekte von Hand zurück. Löschen mit anderen Programmen, z. B. Terminal oder Media Composer, ist endgültig.";
+"Use at your own risk" = "Nutzung auf eigenes Risiko";
+"Mountpoint is free software and comes without any warranty. You use it at your own risk. The author is not liable for data loss or any other damage. Always keep a backup of your media." = "Mountpoint ist freie Software und wird ohne jede Gewährleistung bereitgestellt. Die Nutzung erfolgt auf eigenes Risiko. Der Autor haftet nicht für Datenverlust oder sonstige Schäden. Sichere deine Medien immer zusätzlich.";
+"I understand" = "Verstanden";
+
+/* Hinweis beim Einschalten von „Als Netzlaufwerk einhängen“ */
+"Mounted as network drive" = "Als Netzlaufwerk eingehängt";
+"The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted." = "Der Finder warnt dann, gelöschte Objekte würden „sofort gelöscht“. Das stimmt nicht: Was du im Finder löschst, landet im Papierkorb. Gilt beim nächsten Einhängen eines Workspaces.";

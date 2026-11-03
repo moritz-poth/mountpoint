@@ -8,6 +8,7 @@ enum Dialog {
     case removeWorkspace(Workspace)
     case noAvidFolder(URL, UUID?)
     case error(String)
+    case networkInfo
 }
 
 private let titleCapHeight = NSFont(name: "HelveticaNeue-Light", size: 26)?.capHeight ?? 18.6
@@ -88,6 +89,12 @@ struct Panel: View {
         }
         .frame(width: 400)
         .background(t.background)
+        // settings are saved right away; reopening the panel always starts on the main page
+        .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
+            settings = false
+            about = false
+            picking = nil
+        }
     }
 
     @ViewBuilder private func content(_ t: Theme) -> some View {
@@ -130,7 +137,10 @@ struct Panel: View {
             Checkbox(title: "Launch at login", on: store.launchAtLogin, theme: t) {
                 store.setLaunchAtLogin(!store.launchAtLogin)
             }
-            Checkbox(title: "Mount as network drive", on: store.network, theme: t) { store.network.toggle() }
+            Checkbox(title: "Mount as network drive", on: store.network, theme: t) {
+                store.network.toggle()
+                if store.network { show(.networkInfo) }
+            }
             Text("For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
@@ -368,6 +378,10 @@ struct Panel: View {
         case .error(let message):
             title = message
             cancel = false
+        case .networkInfo:
+            title = String(localized: "Mounted as network drive")
+            info = String(localized: "The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted.")
+            cancel = false
         }
         let name = text.trimmingCharacters(in: .whitespaces)
 
@@ -435,7 +449,7 @@ struct Panel: View {
                 }
             }
             store.add(url, to: project)
-        case .error:
+        case .error, .networkInfo:
             break
         }
     }

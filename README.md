@@ -29,6 +29,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **“This item will be deleted immediately”** – the Finder shows this warning for every network drive, and Mountpoint mounts workspaces as network drives so that Media Composer Enterprise creates `<computer name>.1` folders. **The warning is wrong here:** Mountpoint moves everything the Finder deletes into the Trash of the drive the folder lives on – under its own name, and you can drag it back from the Trash. (*Put Back* is not available.) The warning cannot be removed without losing the Avid collaboration: Finder and Avid both decide by whether a volume counts as local.
 - **Deleting outside the Finder** (Terminal, Avid’s Media Tool) deletes permanently, as on any drive.
 - **Changing settings or updating Mountpoint** applies to volumes the next time they are mounted – eject and mount them once.
+- **Use at your own risk:** Mountpoint comes without any warranty; the author is not liable for data loss or other damage. Always keep a backup of your media.
 - **Avid’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Avid hides the workspaces.
 
 ## Requirements
@@ -57,14 +58,14 @@ Alternatively, in Terminal:
 xattr -dr com.apple.quarantine /Applications/Mountpoint.app
 ```
 
-The menu bar icon (a drive with a folder) appears at the top right. It is filled while at least one workspace is mounted.
+The menu bar icon (a drive with a folder) appears at the top right. It is filled while at least one workspace is mounted. On the very first launch a short notice explains the Finder’s delete warning and that you use Mountpoint at your own risk – it appears until you click **I understand**.
 
 ## Usage
 
 - **Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
 - **Mount / Eject** – per workspace or per project. Status dots: green = mounted, grey = not mounted, orange = partly mounted or a problem.
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch. Removing a workspace or deleting a project never touches any files.
-- **Settings (gear icon)** – launch at login, appearance, language, protected volumes. Changing the language restarts the app for a moment; mounted volumes stay mounted.
+- **Settings (gear icon)** – launch at login, mount as network drive, appearance, language, protected volumes. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
 
 ### Protected volumes
 
