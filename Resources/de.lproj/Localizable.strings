@@ -157,3 +157,8 @@
 "The downloaded update is damaged. Please try again later or download it from GitHub." = "Das geladene Update ist beschädigt. Versuche es später erneut oder lade es von GitHub.";
 "Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub." = "Mountpoint konnte sich nicht selbst ersetzen. Leg es in den Programme-Ordner oder lade das Update von GitHub.";
 "The update is installed. Quit Mountpoint and open it again to finish." = "Das Update ist installiert. Beende Mountpoint und öffne es erneut, um es abzuschließen.";
+
+/* Erscheinungsbild */
+"Appearance" = "Erscheinungsbild";
+"Light" = "Hell";
+"Dark" = "Dunkel";

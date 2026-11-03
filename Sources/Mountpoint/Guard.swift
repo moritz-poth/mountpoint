@@ -271,18 +271,11 @@ struct GuardAlert: View {
             HStack(spacing: 12) {
                 Button("Show in Finder", action: showInFinder)
                     .buttonStyle(FerryButtonStyle(theme: t, height: 32))
-                Menu {
+                Dropdown(title: Text("Snooze alert…"), theme: t, height: 32) {
                     ForEach(Snooze.all, id: \.self) { choice in
                         Button(label(choice)) { snooze(choice) }
                     }
-                } label: {
-                    Text("Snooze alert…").font(.mono(13))
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .padding(.horizontal, 16)
-                .frame(height: 32)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
                 Spacer()
                 Button("OK", action: dismiss)
                     .buttonStyle(FerryButtonStyle(theme: t, primary: true, height: 32))

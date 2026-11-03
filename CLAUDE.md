@@ -21,10 +21,12 @@ Mac-only menu bar app (own `NSStatusItem` + `NSPopover` with SwiftUI, `LSUIEleme
 
 ## UI
 - No `MenuBarExtra` and no `NSAlert` in the panel: both close the panel. Questions are `Dialog` cards in the panel (Panel.swift), the folder picker is `FolderBrowser` in the panel (no `NSOpenPanel`). Anything open outside the panel (NAS password) keeps it open via `hold(true)`.
+- Drop-downs: `Dropdown` (Views.swift) = Menu with `.menuStyle(.button)` + `FerryButtonStyle`, own chevron, system indicator hidden – the borderless style added its own insets and never lined up. Visual check of menus: render with `NSHostingView.cacheDisplay` (ImageRenderer draws menus as placeholders) and register the fonts first.
+- Appearance: the panel uses `Store.dark` directly (Theme + colorScheme), the popover appearance follows it; light/dark is a `Switch` (Views.swift), not a checkbox. About is a button at the bottom left of the main page.
 - Settings and folder picker replace the panel content (no separate windows: they slip behind the panel). Closing the popover resets to the main page (settings save immediately). The picker starts at `Store.lastFolder`.
 - Dots: green = all mounted, grey = none, orange (`Theme.partial`) = partly / problem. Projects are collapsed by default.
 - Colors only from `Theme` (Views.swift), font `Font.mono` (JetBrains Mono), title Helvetica Neue Light. Default: dark.
-- UI strings are English in code, translations in `Resources/<code>.lproj/Localizable.strings` – update them with every new string. Language is selectable (default English, `languages` in Model.swift); switching restarts the app via `AppleLanguages`, volumes stay mounted.
+- UI strings are English in code, translations in `Resources/<code>.lproj/Localizable.strings` (de, fr, es) – update all of them with every new string (`LocalizationTests` fails otherwise). Language is selectable (default English, `languages` in Model.swift); switching restarts the app via `AppleLanguages`, volumes stay mounted.
 - Visual check: temporarily render the panel with `ImageRenderer` to PNG, then remove the hook again.
 
 ## Icon

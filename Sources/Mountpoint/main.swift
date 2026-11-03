@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let popover = NSPopover()
     private var watch: AnyCancellable?
+    private var appearance: AnyCancellable?
     private var holds = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,6 +31,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // the dot also announces an available update
         watch = store.$mounted.combineLatest(store.$errors, store.$notice, Updater.shared.$available).sink { [weak self] m, e, n, u in
             self?.item.button?.image = menuBarIcon(mounted: !m.isEmpty, problem: !e.isEmpty || n != nil || u != nil)
+        }
+        // the popover frame (arrow, edge) follows the setting at once, also while open
+        appearance = store.$dark.sink { [weak self] dark in
+            self?.popover.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         }
         store.mountAtLaunch()
         VolumeGuard.shared.start()

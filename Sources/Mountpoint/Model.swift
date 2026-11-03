@@ -87,7 +87,7 @@ func createAvidFolders(in folder: URL) throws {
 
 /// Verfügbare Sprachen. Neue Sprache: Resources/<code>.lproj/Localizable.strings anlegen, hier eintragen,
 /// und den Code in CFBundleLocalizations (scripts/build-app.sh) ergänzen.
-let languages: [(code: String, name: String)] = [("en", "English"), ("de", "Deutsch")]
+let languages: [(code: String, name: String)] = [("en", "English"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español")]
 
 /// Ende einer Alarm-Pause; „Rest des Tages“ = nächste Mitternacht.
 func snoozeEnd(_ choice: Snooze, from now: Date = Date(), calendar: Calendar = .current) -> Date {

@@ -18,7 +18,6 @@ struct Panel: View {
     @ObservedObject private var updater = Updater.shared
     @State private var hideUpdate = false
     let hold: (Bool) -> Void
-    @Environment(\.colorScheme) private var scheme
     @State private var expanded: Set<UUID> = []
     @State private var dialog: Dialog?
     /// Ordnerauswahl offen; Wert = Zielprojekt
@@ -30,7 +29,8 @@ struct Panel: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        let t = Theme(dark: scheme == .dark)
+        // the setting decides, not what the popover window happens to report (it lagged behind when switching)
+        let t = Theme(dark: store.dark)
         // ZStack statt overlay: das Panel wächst mit, wenn die Rückfrage größer ist als der Inhalt
         ZStack {
         VStack(alignment: .leading, spacing: 20) {
@@ -95,6 +95,7 @@ struct Panel: View {
         }
         .frame(width: 400)
         .background(t.background)
+        .environment(\.colorScheme, store.dark ? .dark : .light)
         // settings are saved right away; reopening the panel always starts on the main page
         .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
             settings = false
@@ -131,6 +132,8 @@ struct Panel: View {
             Rectangle().fill(t.line).frame(height: 1)
 
             HStack {
+                Button("About Mountpoint") { about = true }
+                    .buttonStyle(FerryButtonStyle(theme: t))
                 Spacer()
                 Button("Quit Mountpoint") { NSApp.terminate(nil) }
                     .buttonStyle(FerryButtonStyle(theme: t))
@@ -192,22 +195,22 @@ struct Panel: View {
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, 23)
-            Checkbox(title: "Dark appearance", on: store.dark, theme: t) { store.dark.toggle() }
+            HStack(spacing: 10) {
+                Text("Appearance").font(.mono()).foregroundColor(t.text)
+                Spacer()
+                Text("Light").font(.mono(12)).foregroundColor(store.dark ? t.faint : t.text)
+                Switch(on: store.dark, theme: t) { store.dark.toggle() }
+                    .accessibilityLabel(Text("Dark appearance"))
+                Text("Dark").font(.mono(12)).foregroundColor(store.dark ? t.text : t.faint)
+            }
             HStack(spacing: 10) {
                 Text("Language").font(.mono()).foregroundColor(t.text)
                 Spacer()
-                Menu {
+                Dropdown(title: Text(verbatim: languages.first { $0.code == store.language }?.name ?? "English"), theme: t) {
                     ForEach(languages, id: \.code) { l in
                         Button(l.name) { store.setLanguage(l.code) }.disabled(l.code == store.language)
                     }
-                } label: {
-                    Text(languages.first { $0.code == store.language }?.name ?? "English").font(.mono(12))
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .padding(.horizontal, 12)
-                .frame(height: 26)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             }
         }
         VStack(alignment: .leading, spacing: 10) {
@@ -231,18 +234,11 @@ struct Panel: View {
                 }
             }
             let candidates = store.guardCandidates()
-            Menu {
+            Dropdown(title: Text("Add volume…"), theme: t) {
                 ForEach(candidates, id: \.self) { name in
                     Button(name) { store.addGuard(name) }
                 }
-            } label: {
-                Text("Add volume…").font(.mono(12))
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .padding(.horizontal, 12)
-            .frame(height: 26)
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             .disabled(candidates.isEmpty)
         }
         VStack(alignment: .leading, spacing: 10) {
@@ -268,8 +264,6 @@ struct Panel: View {
         }
         Rectangle().fill(t.line).frame(height: 1)
         HStack {
-            Button("About Mountpoint") { settings = false; about = true }
-                .buttonStyle(FerryButtonStyle(theme: t))
             Spacer()
             Button("Done") { settings = false }
                 .buttonStyle(FerryButtonStyle(theme: t, primary: true))

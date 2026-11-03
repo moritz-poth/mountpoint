@@ -6,7 +6,7 @@ A small macOS menu bar app that mounts any folder as its own volume – from a l
 
 Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` folder at the **root** of a volume. With Mountpoint, a folder like `/Volumes/Archive/2024/Documentary/AI_Media` becomes the volume `AI_Media`, with `Avid MediaFiles` right at its top.
 
-*Deutsch: Die App gibt es auch auf Deutsch – Einstellungen (Zahnrad) → Sprache.*
+*Deutsch · Français · Español: Einstellungen (Zahnrad) → Sprache · Réglages → Langue · Ajustes → Idioma.*
 
 > **Beta.** Mountpoint 1.0 is a beta. Please report problems in [Issues](../../issues).
 
@@ -23,7 +23,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates.
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do.
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
-- English and German, light and dark appearance, launch at login.
+- English, German, French and Spanish, light and dark appearance, launch at login.
 
 ## Good to know
 
@@ -66,7 +66,7 @@ The menu bar icon (a drive with a folder) appears at the top right. It is filled
 - **Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
 - **Mount / Eject** – per workspace or per project. Status dots: green = mounted, grey = not mounted, orange = partly mounted or a problem.
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch. Removing a workspace or deleting a project never touches any files.
-- **Settings (gear icon)** – launch at login, mount as network drive, appearance, language, protected volumes, version and *Check for updates*. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
+- **Settings (gear icon)** – launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom left of the main panel. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
 
 ### Protected volumes
 
@@ -91,6 +91,8 @@ The UI is written in English (the default). To add a language:
 1. Create `Resources/<code>.lproj/Localizable.strings` (copy `Resources/de.lproj/…`)
 2. Add the language to `languages` in `Sources/Mountpoint/Model.swift`
 3. Add the code to `CFBundleLocalizations` in `scripts/build-app.sh`
+
+`LocalizationTests` checks that every language has every text with the same placeholders.
 
 ## License
 

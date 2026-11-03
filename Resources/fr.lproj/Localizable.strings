@@ -1,0 +1,164 @@
+/* Interface */
+"Add a folder to mount it as its own volume – e.g. the folder that contains “Avid MediaFiles”." = "Ajoutez un dossier pour le monter comme volume à part entière – par exemple le dossier qui contient « Avid MediaFiles ».";
+"Add workspace…" = "Ajouter un workspace…";
+"New project…" = "Nouveau projet…";
+"Launch at login" = "Ouvrir à la connexion";
+"Dark appearance" = "Apparence sombre";
+"Quit Mountpoint" = "Quitter Mountpoint";
+"AT LAUNCH" = "AU DÉMARRAGE";
+"Mount at app launch" = "Monter au démarrage de l’app";
+"Rename…" = "Renommer…";
+"Delete project…" = "Supprimer le projet…";
+"No workspaces yet." = "Aucun workspace pour l’instant.";
+"Move to project" = "Déplacer vers le projet";
+"No project" = "Sans projet";
+"Show in Finder" = "Afficher dans le Finder";
+"Remove workspace…" = "Retirer le workspace…";
+"Mounting…" = "Montage…";
+"Eject" = "Éjecter";
+"Mount" = "Monter";
+"Workspaces" = "Workspaces";
+"Settings" = "Réglages";
+
+/* Dialogues */
+"New project" = "Nouveau projet";
+"Rename project" = "Renommer le projet";
+"Delete project “%@”?" = "Supprimer le projet « %@ » ?";
+"Delete" = "Supprimer";
+"Remove workspace “%@”?" = "Retirer le workspace « %@ » ?";
+"The volume is ejected. The folder and its files are not touched." = "Le volume est éjecté. Le dossier et ses fichiers ne sont pas modifiés.";
+"Remove" = "Retirer";
+"No “Avid MediaFiles” folder in “%@”." = "Aucun dossier « Avid MediaFiles » dans « %@ ».";
+"Cancel" = "Annuler";
+"OK" = "OK";
+"Choose the folder that contains “Avid MediaFiles”." = "Choisissez le dossier qui contient « Avid MediaFiles ».";
+
+/* Montage */
+"“%@” could not be mounted." = "Impossible de monter « %@ ».";
+"“%@” is in use. Quit Media Composer and try again." = "« %@ » est en cours d’utilisation. Quittez Media Composer et réessayez.";
+
+/* Supprimer un projet */
+"Create" = "Créer";
+"Also remove its workspaces" = "Retirer aussi ses workspaces";
+"Its volumes are ejected and its workspaces removed. No files are touched." = "Ses volumes sont éjectés et ses workspaces retirés. Aucun fichier n’est modifié.";
+"Its workspaces stay and move to “No project”. No files are touched." = "Ses workspaces restent et passent dans « Sans projet ». Aucun fichier n’est modifié.";
+
+/* Choix du dossier */
+"Back" = "Retour";
+"Choose a folder" = "Choisir un dossier";
+"Loading…" = "Chargement…";
+"No folders here." = "Aucun dossier ici.";
+"Connect" = "Se connecter";
+"Connecting…" = "Connexion…";
+"Connect a NAS, e.g. smb://nas/Archive" = "Connecter un NAS, p. ex. smb://nas/Archives";
+"Choose “%@”" = "Choisir « %@ »";
+"Contains “Avid MediaFiles”" = "Contient « Avid MediaFiles »";
+"Enter an address like smb://nas/Archive." = "Saisissez une adresse comme smb://nas/Archives.";
+
+/* Réglages, créer des dossiers */
+"Done" = "Terminé";
+"Add only" = "Ajouter seulement";
+"Avid only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?" = "Avid ne trouve les médias que si « Avid MediaFiles » se trouve directement dans le dossier monté. Y créer « Avid MediaFiles/MXF » ?";
+"“Avid MediaFiles” could not be created: %@" = "Impossible de créer « Avid MediaFiles » : %@";
+"New folder…" = "Nouveau dossier…";
+"Folder name" = "Nom du dossier";
+"With “Avid MediaFiles/MXF” inside" = "Avec « Avid MediaFiles/MXF » à l’intérieur";
+"Folder names cannot contain “/” or start with a dot." = "Un nom de dossier ne peut pas contenir « / » ni commencer par un point.";
+"“%@” already exists here." = "« %@ » existe déjà ici.";
+
+/* Volumes protégés */
+"Protected volumes" = "Volumes protégés";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink." = "Avertit dès qu’Avid crée « Avid MediaFiles » sur l’un de ces volumes, p. ex. LucidLink.";
+"Add volume…" = "Ajouter un volume…";
+"Remove %@" = "Retirer %@";
+"Avid is writing to “%@”" = "Avid écrit sur « %@ »";
+"An “Avid MediaFiles” folder was created on this volume. Check your import or render target." = "Un dossier « Avid MediaFiles » a été créé sur ce volume. Vérifiez la destination de votre import ou de votre rendu.";
+"Snooze alert…" = "Suspendre l’alerte…";
+"%lld minutes" = "%lld minutes";
+"1 hour" = "1 heure";
+"%lld hours" = "%lld heures";
+"Rest of the day" = "Reste de la journée";
+"Language" = "Langue";
+
+/* À propos */
+"About Mountpoint" = "À propos de Mountpoint";
+"Version %@" = "Version %@";
+"Mountpoint is free software: you can redistribute and modify it under the terms of the GNU General Public License, version 3 or later." = "Mountpoint est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la GNU General Public License, version 3 ou ultérieure.";
+"It comes with ABSOLUTELY NO WARRANTY – use at your own risk." = "Il est fourni SANS AUCUNE GARANTIE – utilisation à vos propres risques.";
+"Source code" = "Code source";
+"License" = "Licence";
+"Third-party" = "Tiers";
+"JetBrains Mono font – SIL Open Font License 1.1" = "Police JetBrains Mono – SIL Open Font License 1.1";
+"Requires macFUSE, which is not included and has its own license." = "Nécessite macFUSE, qui n’est pas inclus et possède sa propre licence.";
+"Avid and Media Composer are trademarks of Avid Technology, Inc. LucidLink is a trademark of LucidLink Corp. Mountpoint is not affiliated with either." = "Avid et Media Composer sont des marques d’Avid Technology, Inc. LucidLink est une marque de LucidLink Corp. Mountpoint n’est affilié à aucune de ces sociétés.";
+
+/* Lecteur réseau */
+"Mount as network drive" = "Monter comme lecteur réseau";
+"For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted." = "Pour la collaboration avec Media Composer Enterprise : Avid crée alors un dossier « <nom de l’ordinateur>.1 » au lieu de « 1 ». Désactivez le filtrage des lecteurs réseau dans les réglages Media Creation d’Avid. S’applique au prochain montage d’un workspace.";
+
+/* Messages d’erreur */
+"macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again." = "macFUSE n’est pas installé. Installez-le depuis macfuse.github.io (Mimiq l’installe aussi), puis réessayez.";
+"Another drive named “%@” is already connected. Eject it first – two volumes cannot have the same name." = "Un autre disque nommé « %@ » est déjà connecté. Éjectez-le d’abord – deux volumes ne peuvent pas porter le même nom.";
+"macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again." = "Impossible de charger macFUSE. Autorisez son extension système dans Réglages Système → Confidentialité et sécurité, redémarrez le Mac et réessayez.";
+"Mountpoint is not allowed to read the folder of “%@”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders." = "Mountpoint n’a pas le droit de lire le dossier de « %@ ». Vérifiez les autorisations du dossier ou autorisez Mountpoint dans Réglages Système → Confidentialité et sécurité → Fichiers et dossiers.";
+"Details: %@" = "Détails : %@";
+"“%@” could not be ejected." = "Impossible d’éjecter « %@ ».";
+"Mountpoint’s helper program could not be started. Please reinstall Mountpoint." = "Le programme d’aide de Mountpoint n’a pas pu démarrer. Veuillez réinstaller Mountpoint.";
+"The folder “%@” was not found on the NAS share %@%@. It may have been moved or renamed." = "Le dossier « %@ » est introuvable sur le partage NAS %@%@. Il a peut-être été déplacé ou renommé.";
+"The drive “%@” is not connected. Connect it and try again." = "Le disque « %@ » n’est pas connecté. Connectez-le et réessayez.";
+"The folder “%@” no longer exists. It may have been moved or renamed: %@" = "Le dossier « %@ » n’existe plus. Il a peut-être été déplacé ou renommé : %@";
+"Connecting to “%@” was cancelled." = "La connexion à « %@ » a été annulée.";
+"The NAS “%@” rejected the login. Check user name and password – Mountpoint uses the ones saved in the Keychain." = "Le NAS « %@ » a refusé la connexion. Vérifiez le nom d’utilisateur et le mot de passe – Mountpoint utilise ceux enregistrés dans le trousseau.";
+"The share “%@” does not exist on “%@”." = "Le partage « %@ » n’existe pas sur « %@ ».";
+"The NAS “%@” cannot be reached. Check the network connection and whether the NAS is switched on." = "Le NAS « %@ » est injoignable. Vérifiez la connexion réseau et que le NAS est allumé.";
+"Could not connect to “%@” (error %@)." = "Impossible de se connecter à « %@ » (erreur %@).";
+"Your workspace list could not be read and was set aside as “%@” (in ~/Library/Application Support/Mountpoint). Mountpoint started with an empty list." = "Votre liste de workspaces n’a pas pu être lue et a été mise de côté sous « %@ » (dans ~/Library/Application Support/Mountpoint). Mountpoint a démarré avec une liste vide.";
+"Mountpoint is incomplete (its helper program is missing). Please reinstall Mountpoint." = "Mountpoint est incomplet (le programme d’aide est manquant). Veuillez réinstaller Mountpoint.";
+"Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again." = "Impossible d’activer l’ouverture à la connexion. Placez Mountpoint dans le dossier Applications et réessayez.";
+"Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items." = "Impossible de désactiver l’ouverture à la connexion. Retirez Mountpoint dans Réglages Système → Général → Ouverture.";
+"macOS asks you to approve Mountpoint: System Settings → General → Login Items." = "macOS vous demande d’autoriser Mountpoint : Réglages Système → Général → Ouverture.";
+"The language changes the next time Mountpoint starts. Please quit and reopen it." = "La langue changera au prochain démarrage de Mountpoint. Veuillez le quitter et le rouvrir.";
+"Your changes could not be saved. Check the free space on your Mac." = "Vos modifications n’ont pas pu être enregistrées. Vérifiez l’espace libre sur votre Mac.";
+"Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access)." = "Mountpoint n’a pas le droit d’ouvrir ce dossier. Autorisez l’accès dans Réglages Système → Confidentialité et sécurité → Fichiers et dossiers (ou Accès complet au disque).";
+"This folder cannot be read: %@" = "Ce dossier ne peut pas être lu : %@";
+"Close" = "Fermer";
+"Some volumes stay mounted" = "Certains volumes restent montés";
+"These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Ces volumes sont encore utilisés et restent montés : %@. Quittez Media Composer et éjectez-les dans le Finder.";
+
+/* Avertissement dossiers numérotés */
+"Warn about numbered folders" = "Avertir des dossiers numérotés";
+"Numbered folder in “%@”: %@" = "Dossier numéroté dans « %@ » : %@";
+"Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder." = "Avid a créé dans « Avid MediaFiles/MXF » un dossier dont le nom n’est qu’un numéro. Tous les postes de l’équipe peuvent écrire dans de tels dossiers. Vérifiez que le workspace est monté comme lecteur réseau – Avid utilise alors son propre dossier « <nom de l’ordinateur>.1 ».";
+
+/* Bienvenue (premier démarrage) */
+"Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them." = "Mountpoint monte des dossiers comme volumes à part entière, pour que Media Composer y trouve les médias.";
+"Deleting in the Finder" = "Supprimer dans le Finder";
+"Workspaces are mounted as network drives, so Media Composer Enterprise creates its own “<computer name>.1” folder. For network drives the Finder warns that items “will be deleted immediately”.\n\nWith Mountpoint that is not true: what you delete in the Finder goes to the Trash. “Put Back” is not available – drag items back by hand. Deleting with other apps, e.g. Terminal or Media Composer, is permanent." = "Les workspaces sont montés comme lecteurs réseau, pour que Media Composer Enterprise crée son propre dossier « <nom de l’ordinateur>.1 ». Pour les lecteurs réseau, le Finder avertit que les éléments « seront supprimés immédiatement ».\n\nAvec Mountpoint, ce n’est pas vrai : ce que vous supprimez dans le Finder va dans la corbeille. « Remettre à sa place » n’est pas disponible – faites glisser les éléments à la main. Supprimer avec d’autres apps, p. ex. Terminal ou Media Composer, est définitif.";
+"Use at your own risk" = "Utilisation à vos propres risques";
+"Mountpoint is free software and comes without any warranty. You use it at your own risk. The author is not liable for data loss or any other damage. Always keep a backup of your media." = "Mountpoint est un logiciel libre fourni sans aucune garantie. Vous l’utilisez à vos propres risques. L’auteur ne peut être tenu responsable d’une perte de données ni d’aucun autre dommage. Conservez toujours une sauvegarde de vos médias.";
+"I understand" = "J’ai compris";
+
+/* Avis à l’activation de « Monter comme lecteur réseau » */
+"Mounted as network drive" = "Monté comme lecteur réseau";
+"The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted." = "Le Finder avertira que les éléments « seront supprimés immédiatement ». Ce n’est pas vrai : ce que vous supprimez dans le Finder va dans la corbeille. S’applique au prochain montage d’un workspace.";
+
+/* Mises à jour */
+"Updates" = "Mises à jour";
+"Check for updates" = "Rechercher des mises à jour";
+"Mountpoint is up to date." = "Mountpoint est à jour.";
+"Mountpoint checks GitHub for new versions on its own and shows a notice." = "Mountpoint recherche lui-même les nouvelles versions sur GitHub et affiche un avis.";
+"Mountpoint %@ is available." = "Mountpoint %@ est disponible.";
+"Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first." = "L’installation redémarre Mountpoint. Les volumes montés sont éjectés puis remontés – quittez d’abord Media Composer.";
+"Install update" = "Installer la mise à jour";
+"What’s new" = "Nouveautés";
+"Installing update…" = "Installation de la mise à jour…";
+"Could not check for updates. Check the internet connection and try again." = "Impossible de rechercher des mises à jour. Vérifiez la connexion Internet et réessayez.";
+"The update could not be downloaded. Check the internet connection and try again." = "La mise à jour n’a pas pu être téléchargée. Vérifiez la connexion Internet et réessayez.";
+"The downloaded update is damaged. Please try again later or download it from GitHub." = "La mise à jour téléchargée est endommagée. Réessayez plus tard ou téléchargez-la depuis GitHub.";
+"Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub." = "Mountpoint n’a pas pu se remplacer. Placez-le dans le dossier Applications ou téléchargez la mise à jour depuis GitHub.";
+"The update is installed. Quit Mountpoint and open it again to finish." = "La mise à jour est installée. Quittez Mountpoint et rouvrez-le pour terminer.";
+
+/* Apparence */
+"Appearance" = "Apparence";
+"Light" = "Clair";
+"Dark" = "Sombre";

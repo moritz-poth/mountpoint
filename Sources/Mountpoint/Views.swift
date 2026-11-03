@@ -55,6 +55,27 @@ struct FerryButtonStyle: ButtonStyle {
     }
 }
 
+/// Drop-down in the same look as `FerryButtonStyle` buttons (own chevron, no system indicator), so it lines
+/// up flush left or right like any other button. The borderless menu style kept its own insets.
+struct Dropdown<Content: View>: View {
+    let title: Text
+    let theme: Theme
+    var height: CGFloat = 26
+    @ViewBuilder let content: () -> Content
+    var body: some View {
+        Menu(content: content) {
+            HStack(spacing: 6) {
+                title
+                Image(systemName: "chevron.down").font(.system(size: height > 26 ? 9 : 8, weight: .semibold))
+            }
+        }
+        .menuStyle(.button)
+        .buttonStyle(FerryButtonStyle(theme: theme, height: height))
+        .menuIndicator(.hidden)
+        .fixedSize()
+    }
+}
+
 struct SectionTitle: View {
     let title: String
     let theme: Theme
@@ -80,6 +101,26 @@ struct MoreMenu<Content: View>: View {
         .menuIndicator(.hidden)
         .foregroundColor(theme.muted)
         .fixedSize()
+    }
+}
+
+/// On/off switch in the Ferry look (theme colours instead of the system accent).
+struct Switch: View {
+    let on: Bool
+    let theme: Theme
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: on ? .trailing : .leading) {
+                Capsule().fill(on ? theme.primary : theme.line)
+                Circle().fill(on ? theme.onPrimary : (theme.dark ? theme.muted : theme.background)).padding(2)
+            }
+            .frame(width: 34, height: 20)
+            .animation(.easeOut(duration: 0.15), value: on)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 
