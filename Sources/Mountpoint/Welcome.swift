@@ -1,10 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// Shown once, centered on screen, until the user confirms it: Finder's delete warning and the disclaimer.
+/// Shown once, centered on screen, until the user confirms it: deleting is permanent, and the disclaimer.
 @MainActor
 enum Welcome {
-    private static let key = "welcomeConfirmed"
+    // new key whenever the text changes in substance, so everyone reads it once more (v2: no Trash any more)
+    private static let key = "welcomeConfirmed2"
     private static var panel: NSPanel?
 
     static func showIfNeeded() {
@@ -42,8 +43,8 @@ struct WelcomeView: View {
                 .foregroundColor(t.text)
             Text("Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them.")
                 .font(.mono(12)).foregroundColor(t.muted).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
-            section(t, "Deleting in the Finder",
-                    "Workspaces are mounted as network drives, so Media Composer Enterprise creates its own “<computer name>.1” folder. For network drives the Finder warns that items “will be deleted immediately”.\n\nWith Mountpoint that is not true: what you delete in the Finder goes to the Trash. “Put Back” is not available – drag items back by hand. Deleting with other apps, e.g. Terminal or Media Composer, is permanent.")
+            section(t, "Deleting is permanent",
+                    "What you delete on a Mountpoint volume is gone immediately – there is no Trash, even if the folder lies on a local drive. This applies to the Finder (its warning “will be deleted immediately” is right), Media Composer and every other app. Always keep a backup of your media.")
             section(t, "Use at your own risk",
                     "Mountpoint is free software and comes without any warranty. You use it at your own risk. The author is not liable for data loss or any other damage. Always keep a backup of your media.")
             HStack {

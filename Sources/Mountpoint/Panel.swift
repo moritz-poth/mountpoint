@@ -441,7 +441,7 @@ struct Panel: View {
             cancel = false
         case .networkInfo:
             title = String(localized: "Mounted as network drive")
-            info = String(localized: "The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted.")
+            info = String(localized: "The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
             cancel = false
         }
         let name = text.trimmingCharacters(in: .whitespaces)

@@ -132,15 +132,15 @@
 
 /* Bienvenue (premier démarrage) */
 "Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them." = "Mountpoint monte des dossiers comme volumes à part entière, pour que Media Composer y trouve les médias.";
-"Deleting in the Finder" = "Supprimer dans le Finder";
-"Workspaces are mounted as network drives, so Media Composer Enterprise creates its own “<computer name>.1” folder. For network drives the Finder warns that items “will be deleted immediately”.\n\nWith Mountpoint that is not true: what you delete in the Finder goes to the Trash. “Put Back” is not available – drag items back by hand. Deleting with other apps, e.g. Terminal or Media Composer, is permanent." = "Les workspaces sont montés comme lecteurs réseau, pour que Media Composer Enterprise crée son propre dossier « <nom de l’ordinateur>.1 ». Pour les lecteurs réseau, le Finder avertit que les éléments « seront supprimés immédiatement ».\n\nAvec Mountpoint, ce n’est pas vrai : ce que vous supprimez dans le Finder va dans la corbeille. « Remettre à sa place » n’est pas disponible – faites glisser les éléments à la main. Supprimer avec d’autres apps, p. ex. Terminal ou Media Composer, est définitif.";
+"Deleting is permanent" = "La suppression est définitive";
+"What you delete on a Mountpoint volume is gone immediately – there is no Trash, even if the folder lies on a local drive. This applies to the Finder (its warning “will be deleted immediately” is right), Media Composer and every other app. Always keep a backup of your media." = "Ce que vous supprimez sur un volume Mountpoint disparaît immédiatement – il n’y a pas de corbeille, même si le dossier se trouve sur un disque local. Cela vaut pour le Finder (son avertissement « sera supprimé immédiatement » est juste), Media Composer et toute autre app. Gardez toujours une sauvegarde de vos médias.";
 "Use at your own risk" = "Utilisation à vos propres risques";
 "Mountpoint is free software and comes without any warranty. You use it at your own risk. The author is not liable for data loss or any other damage. Always keep a backup of your media." = "Mountpoint est un logiciel libre fourni sans aucune garantie. Vous l’utilisez à vos propres risques. L’auteur ne peut être tenu responsable d’une perte de données ni d’aucun autre dommage. Conservez toujours une sauvegarde de vos médias.";
 "I understand" = "J’ai compris";
 
 /* Avis à l’activation de « Monter comme lecteur réseau » */
 "Mounted as network drive" = "Monté comme lecteur réseau";
-"The Finder will warn that deleted items “will be deleted immediately”. That is not true: what you delete in the Finder goes to the Trash. Applies the next time a workspace is mounted." = "Le Finder avertira que les éléments « seront supprimés immédiatement ». Ce n’est pas vrai : ce que vous supprimez dans le Finder va dans la corbeille. S’applique au prochain montage d’un workspace.";
+"The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted." = "Le Finder avertira que les éléments « seront supprimés immédiatement » – c’est exact : les volumes Mountpoint n’ont pas de corbeille. S’applique au prochain montage d’un workspace.";
 
 /* Mises à jour */
 "Updates" = "Mises à jour";

@@ -6,6 +6,8 @@ A small macOS menu bar app that mounts any folder as its own volume – from a l
 
 Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` folder at the **root** of a volume. With Mountpoint, a folder like `/Volumes/Archive/2024/Documentary/AI_Media` becomes the volume `AI_Media`, with `Avid MediaFiles` right at its top.
 
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/panel-dark.png"><img src="assets/screenshots/panel-light.png" width="400" alt="Mountpoint panel: a project with three mounted workspaces, a second project and a single workspace"></picture></p>
+
 *Deutsch · Français · Español: Einstellungen (Zahnrad) → Sprache · Réglages → Langue · Ajustes → Idioma.*
 
 > **Beta.** Mountpoint 1.0 is a beta. Please report problems in [Issues](../../issues).
@@ -19,16 +21,22 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Avid collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Avid's Media Creation settings. Can be switched off in the settings.
 - **Protected volumes** – get an alert as soon as Avid creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink). Alerts can be snoozed per volume (5 min … rest of the day).
 - **Warning about numbered folders** – per workspace or for a whole project (⋯ menu): an alert as soon as Avid creates a folder named only with a number (`1`, `2` …) in `Avid MediaFiles/MXF` – in a team every system can write into those.
-- **Trash on network-style volumes** – macOS gives network drives no trash, so the Finder would delete immediately. Mountpoint moves what the Finder deletes into the trash of the drive the folder lives on instead – under its own name, like macOS does. The Finder still warns "will be deleted immediately" – the files are recoverable anyway. Other apps (e.g. Avid) delete as usual.
 - **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates.
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do.
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
 - English, German, French and Spanish, light and dark appearance, launch at login.
 
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: Avid created a numbered folder in a workspace"></picture></p>
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, updates"></picture></p>
+
+
 ## Good to know
 
-- **“This item will be deleted immediately”** – the Finder shows this warning for every network drive, and Mountpoint mounts workspaces as network drives so that Media Composer Enterprise creates `<computer name>.1` folders. **The warning is wrong here:** Mountpoint moves everything the Finder deletes into the Trash of the drive the folder lives on – under its own name, and you can drag it back from the Trash. (*Put Back* is not available.) The warning cannot be removed without losing the Avid collaboration: Finder and Avid both decide by whether a volume counts as local.
-- **Deleting outside the Finder** (Terminal, Avid’s Media Tool) deletes permanently, as on any drive.
+- **Deleting is permanent** – there is no Trash on Mountpoint volumes, even if the folder lies on a local drive. What you delete there – in the Finder, Media Composer or any other app – is gone immediately; the Finder’s warning “This item will be deleted immediately” is right. **Always keep a backup of your media.** (macOS gives network drives no Trash, and Mountpoint mounts workspaces as network drives so that Media Composer Enterprise creates `<computer name>.1` folders.)
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/welcome-dark.png"><img src="assets/screenshots/welcome-light.png" width="520" alt="First-launch notice: deleting is permanent, use at your own risk"></picture></p>
+
 - **Changing settings** applies to volumes the next time they are mounted – eject and mount them once. Updates installed from within the app do this for you (from 1.0.0 beta 8 on).
 - **Use at your own risk:** Mountpoint comes without any warranty; the author is not liable for data loss or other damage. Always keep a backup of your media.
 - **Avid’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Avid hides the workspaces.
