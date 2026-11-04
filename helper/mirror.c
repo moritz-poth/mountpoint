@@ -264,9 +264,11 @@ static int m_statfs(const char *p, struct statvfs *st) { REAL(p); TRY(statvfs(r,
 static int m_release(const char *p, struct fuse_file_info *fi) { close(fi->fh); return 0; }
 static int m_fsync(const char *p, int datasync, struct fuse_file_info *fi) { TRY(fsync(fi->fh)); }
 // Avid und Finder nutzen erweiterte Attribute (z. B. Resource Forks)
+// Der Finder setzt beim Kopieren XATTR_NOSECURITY/XATTR_NODEFAULT mit; die darf nur der Kernel benutzen,
+// setxattr() lehnt sie mit EINVAL ab und der Finder bricht mit Fehler -50 ab – darum herausnehmen.
 static int m_setxattr(const char *p, const char *name, const char *val, size_t size, int flags, uint32_t pos) {
     REAL(p);
-    TRY(setxattr(r, name, val, size, pos, flags | XATTR_NOFOLLOW));
+    TRY(setxattr(r, name, val, size, pos, (flags & ~(XATTR_NOSECURITY | XATTR_NODEFAULT)) | XATTR_NOFOLLOW));
 }
 static int m_getxattr(const char *p, const char *name, char *val, size_t size, uint32_t pos) {
     REAL(p);
