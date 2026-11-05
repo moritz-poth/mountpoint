@@ -1,5 +1,3 @@
-<p align="center"><img src="assets/icon.png" width="128" alt="Mountpoint icon"></p>
-
 # Mountpoint
 
 A small macOS menu bar app that mounts any folder as its own volume – from a local disk, an archive drive or a NAS.
