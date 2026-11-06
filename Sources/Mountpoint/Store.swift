@@ -199,8 +199,6 @@ final class Store: ObservableObject {
     func addGuard(_ name: String) {
         guard !library.guarded.contains(name) else { return }
         library.guarded.append(name)
-        // Auf dem Systemvolume legt die Avid-Installation „Avid MediaFiles“ an – dort zählt nur der eigene Ordner
-        if name == systemGuard && !library.guardOwn.contains(name) { library.guardOwn.append(name) }
         save()
         notifyGuard()
     }
@@ -233,7 +231,7 @@ final class Store: ObservableObject {
     func folderWatches() -> [FolderWatch] {
         var watches: [FolderWatch] = []
         let computer = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? ""
-        for name in library.guarded where library.guardOwn.contains(name) {
+        for name in library.guarded where library.watchesOwn(name) {
             let root = guardRoot(name)
             guard name == systemGuard || isMountPoint(root) else { continue }
             let local = name == systemGuard || isLocal(root)

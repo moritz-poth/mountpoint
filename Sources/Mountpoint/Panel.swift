@@ -220,15 +220,20 @@ struct Panel: View {
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(store.library.guarded, id: \.self) { name in
-                let own = store.library.guardOwn.contains(name)
+                let own = store.library.watchesOwn(name)
                 HStack(spacing: 10) {
                     Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
                     Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
                         .help(guardRoot(name))
                     Spacer()
-                    Dropdown(title: own ? Text("Own folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
-                        Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
-                        Button("Own folder") { store.setGuardOwn(name, true) }.disabled(own)
+                    if name == systemGuard {
+                        // fest: „Avid MediaFiles“ gibt es dort immer
+                        Text("Own folder").font(.mono(12)).foregroundColor(t.muted).padding(.horizontal, 12).frame(height: 26)
+                    } else {
+                        Dropdown(title: own ? Text("Own folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
+                            Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
+                            Button("Own folder") { store.setGuardOwn(name, true) }.disabled(own)
+                        }
                     }
                     Button { store.removeGuard(name) } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)

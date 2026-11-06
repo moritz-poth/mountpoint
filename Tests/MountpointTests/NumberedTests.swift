@@ -42,9 +42,12 @@ struct NumberedLogicTests {
         let s = Store(directory: FileManager.default.temporaryDirectory.appendingPathComponent("mp-sys-\(UUID())"))
         s.addGuard(systemGuard)
         s.addGuard("LucidLink")
-        #expect(s.library.guardOwn == [systemGuard])
-        s.removeGuard(systemGuard)
-        #expect(s.library.guardOwn.isEmpty)
+        #expect(s.library.watchesOwn(systemGuard))
+        #expect(!s.library.watchesOwn("LucidLink"))
+        s.setGuardOwn(systemGuard, false)                // ältere Einträge ohne Auswahl: trotzdem eigener Ordner
+        #expect(s.library.watchesOwn(systemGuard))
+        s.setGuardOwn("LucidLink", true)
+        #expect(s.library.watchesOwn("LucidLink"))
     }
 }
 

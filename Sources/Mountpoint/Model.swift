@@ -48,6 +48,9 @@ struct Library: Codable {
     /// geschützte Volumes, bei denen nur der eigene Ordner in MXF warnt („1“ lokal, „<Rechnername>.1“ im Netz)
     var guardOwn: [String] = []
 
+    /// Nur der eigene Ordner zählt. Immer beim Systemvolume: dort legt die Avid-Installation „Avid MediaFiles“ an.
+    func watchesOwn(_ name: String) -> Bool { name == systemGuard || guardOwn.contains(name) }
+
     init(projects: [Project] = [], workspaces: [Workspace] = [], guarded: [String] = []) {
         self.projects = projects
         self.workspaces = workspaces

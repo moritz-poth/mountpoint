@@ -42,7 +42,7 @@ final class VolumeGuard {
         didSet { UserDefaults.standard.set(knownNumbered, forKey: "numberedKnown") }
     }
 
-    init(names: @escaping @MainActor () -> [String] = { Store.shared.library.guarded.filter { !Store.shared.library.guardOwn.contains($0) } },
+    init(names: @escaping @MainActor () -> [String] = { Store.shared.library.guarded.filter { !Store.shared.library.watchesOwn($0) } },
          numbered: @escaping @MainActor () -> [FolderWatch] = { Store.shared.folderWatches() }) {
         self.names = names
         self.numbered = numbered
