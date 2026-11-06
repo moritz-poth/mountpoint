@@ -68,7 +68,6 @@
 
 /* Volúmenes protegidos */
 "Protected volumes" = "Volúmenes protegidos";
-"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink." = "Avisa en cuanto Avid crea «Avid MediaFiles» en uno de estos volúmenes, p. ej. LucidLink.";
 "Add volume…" = "Añadir volumen…";
 "Remove %@" = "Quitar %@";
 "Avid is writing to “%@”" = "Avid está escribiendo en «%@»";
@@ -162,3 +161,14 @@
 "Appearance" = "Aspecto";
 "Light" = "Claro";
 "Dark" = "Oscuro";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Avisa en cuanto Avid crea «Avid MediaFiles» en uno de estos volúmenes, p. ej. LucidLink. «Carpeta propia»: solo cuando tu Media Composer crea su carpeta en MXF – «1» en discos locales, «<nombre del ordenador>.1» en discos de red –, no cuando escriben otros.";
+"Own folder" = "Carpeta propia";
+"Avid MediaFiles" = "Avid MediaFiles";
+"Warn about numbered folders on network drives" = "Avisar de carpetas numeradas en discos de red";
+"On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking." = "En cada disco de red conectado con «Avid MediaFiles»: avisa cuando aparece en MXF una carpeta con solo un número («1») – señal de que alguien trabaja sin bloqueo de bins.";
+"Clear error messages" = "Borrar mensajes de error";
+"Clear error message" = "Borrar mensaje de error";
+"Avid is writing to “%@”: %@" = "Avid está escribiendo en «%@»: %@";
+"Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target." = "Tu Media Composer ha creado su carpeta en «Avid MediaFiles/MXF» en este volumen. Comprueba tu destino de importación o render.";
+"Numbered folder on “%@”: %@" = "Carpeta numerada en «%@»: %@";
+"A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Ha aparecido una carpeta con solo un número en «Avid MediaFiles/MXF» en este disco de red. Un sistema escribe en él como en un disco local – probablemente alguien trabaja sin bloqueo de bins. Averigua quién y revisa su configuración de Media Composer.";

@@ -68,7 +68,6 @@
 
 /* Geschützte Volumes */
 "Protected volumes" = "Geschützte Volumes";
-"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink.";
 "Add volume…" = "Volume hinzufügen…";
 "Remove %@" = "%@ entfernen";
 "Avid is writing to “%@”" = "Avid schreibt auf „%@“";
@@ -162,3 +161,14 @@
 "Appearance" = "Erscheinungsbild";
 "Light" = "Hell";
 "Dark" = "Dunkel";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink. „Eigener Ordner“: nur, wenn dein Media Composer seinen Ordner in MXF anlegt – „1“ auf lokalen Laufwerken, „<Rechnername>.1“ auf Netzlaufwerken –, nicht, wenn andere schreiben.";
+"Own folder" = "Eigener Ordner";
+"Avid MediaFiles" = "Avid MediaFiles";
+"Warn about numbered folders on network drives" = "Bei nummerierten Ordnern auf Netzlaufwerken warnen";
+"On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking." = "Auf jedem verbundenen Netzlaufwerk mit „Avid MediaFiles“: warnt, wenn in MXF ein Ordner nur aus Ziffern („1“) entsteht – ein Zeichen, dass jemand ohne Bin Locking arbeitet.";
+"Clear error messages" = "Fehlermeldungen entfernen";
+"Clear error message" = "Fehlermeldung entfernen";
+"Avid is writing to “%@”: %@" = "Avid schreibt auf „%@“: %@";
+"Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target." = "Dein Media Composer hat auf diesem Volume seinen Ordner in „Avid MediaFiles/MXF“ angelegt. Prüfe dein Import- oder Renderziel.";
+"Numbered folder on “%@”: %@" = "Nummerierter Ordner auf „%@“: %@";
+"A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Auf diesem Netzlaufwerk ist in „Avid MediaFiles/MXF“ ein Ordner nur aus Ziffern entstanden. Ein System schreibt darauf wie auf ein lokales Laufwerk – wahrscheinlich arbeitet jemand ohne Bin Locking. Finde heraus, wer, und prüfe dessen Media-Composer-Einstellungen.";

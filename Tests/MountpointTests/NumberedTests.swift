@@ -12,6 +12,34 @@ struct NumberedLogicTests {
         #expect(!isNumberedFolder("١"))   // keine nicht-lateinischen Ziffern
     }
 
+    @Test func ownFolderOnNetworkDrives() {
+        #expect(isOwnFolder("Mac Studio.1", computer: "Mac Studio"))
+        #expect(isOwnFolder("mac studio.12", computer: "Mac Studio"))
+        #expect(!isOwnFolder("Mac Studio 2.1", computer: "Mac Studio"))   // anderer Rechner
+        #expect(!isOwnFolder("Mac Studio.", computer: "Mac Studio"))
+        #expect(!isOwnFolder("1", computer: "Mac Studio"))
+        #expect(!isOwnFolder(".1", computer: ""))
+    }
+
+    @Test func systemVolumeIsWatchedInSharedFolder() {
+        #expect(guardRoot(systemGuard) == "/Users/Shared/AvidMediaComposer")
+        #expect(guardRoot("LucidLink") == "/Volumes/LucidLink")
+        #expect(!guardName(systemGuard).isEmpty && guardName(systemGuard) != systemGuard)
+    }
+
+    @Test @MainActor func errorsCanBeClearedPerProject() {
+        let s = Store(directory: FileManager.default.temporaryDirectory.appendingPathComponent("mp-err-\(UUID())"))
+        s.addProject("Doku")
+        let p = s.library.projects[0].id
+        s.add(URL(fileURLWithPath: "/tmp/a"), to: p)
+        s.add(URL(fileURLWithPath: "/tmp/b"), to: p)
+        s.add(URL(fileURLWithPath: "/tmp/c"), to: nil)
+        for w in s.library.workspaces { s.errors[w.id] = "nicht erreichbar" }
+        s.clearErrors(in: p)
+        #expect(s.errors.keys.map { $0 } == [s.library.workspaces[2].id])
+        #expect(s.state(of: p) == .none)
+    }
+
     @Test func oldWorkspaceEntriesStillLoad() throws {
         let json = #"{"workspaces":[{"id":"7C9F8E2A-1111-4222-8333-444455556666","path":"/x/AI_Media"}]}"#
         let lib = try JSONDecoder().decode(Library.self, from: Data(json.utf8))
@@ -52,7 +80,8 @@ struct NumberedIntegrationTests {
         try Mounter.mount(w, helper: MountTests.helper)
         defer { try? Mounter.unmount(w) }
 
-        let guardian = VolumeGuard(names: { [] }, numbered: { [w] })
+        let watch = FolderWatch(workspace: w)
+        let guardian = VolumeGuard(names: { [] }, numbered: { [watch] })
         var alerts: [[String]] = []
         guardian.presentNumbered = { _, folders in alerts.append(folders) }
         guardian.refresh()
@@ -64,13 +93,13 @@ struct NumberedIntegrationTests {
         for _ in 0..<30 where alerts.isEmpty { try await Task.sleep(nanoseconds: 100_000_000) }
         #expect(alerts == [["2"]])
 
-        guardian.acknowledgeNumbered(w, ["2"])
+        guardian.acknowledgeNumbered(watch, ["2"])
         try FileManager.default.createDirectory(atPath: mxf + "3", withIntermediateDirectories: false)
         for _ in 0..<30 where alerts.count < 2 { try await Task.sleep(nanoseconds: 100_000_000) }
         #expect(alerts.last == ["3"])
 
         // gelöscht und neu angelegt → wieder ein Alarm
-        guardian.acknowledgeNumbered(w, ["3"])
+        guardian.acknowledgeNumbered(watch, ["3"])
         try FileManager.default.removeItem(atPath: mxf + "1")
         for _ in 0..<10 { try await Task.sleep(nanoseconds: 100_000_000) }
         try FileManager.default.createDirectory(atPath: mxf + "1", withIntermediateDirectories: false)

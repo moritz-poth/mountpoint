@@ -215,15 +215,21 @@ struct Panel: View {
         }
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: String(localized: "Protected volumes"), theme: t)
-            Text("Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink.")
+            Text("Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(store.library.guarded, id: \.self) { name in
+                let own = store.library.guardOwn.contains(name)
                 HStack(spacing: 10) {
                     Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
-                    Text(name).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
+                    Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
+                        .help(guardRoot(name))
                     Spacer()
+                    Dropdown(title: own ? Text("Own folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
+                        Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
+                        Button("Own folder") { store.setGuardOwn(name, true) }.disabled(own)
+                    }
                     Button { store.removeGuard(name) } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
                             .frame(width: 18, height: 18).contentShape(Rectangle())
@@ -236,10 +242,18 @@ struct Panel: View {
             let candidates = store.guardCandidates()
             Dropdown(title: Text("Add volume…"), theme: t) {
                 ForEach(candidates, id: \.self) { name in
-                    Button(name) { store.addGuard(name) }
+                    Button(guardName(name)) { store.addGuard(name) }
                 }
             }
             .disabled(candidates.isEmpty)
+            Checkbox(title: "Warn about numbered folders on network drives", on: store.watchNetwork, theme: t) {
+                store.watchNetwork.toggle()
+            }
+            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 23)
         }
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: String(localized: "Updates"), theme: t)
@@ -310,6 +324,8 @@ struct Panel: View {
                     Toggle("Warn about numbered folders", isOn: Binding(get: { store.projectWarns(p.id) }, set: { _ in store.toggleProjectWarn(p.id) }))
                         .disabled(items.isEmpty)
                     Button("Add workspace…") { addWorkspace(to: p.id) }
+                    Button("Clear error messages") { store.clearErrors(in: p.id) }
+                        .disabled(!items.contains { store.errors[$0.id] != nil })
                     Divider()
                     Button("Rename…") { show(.rename(p), text: p.name) }
                     Button("Delete project…") { show(.deleteProject(p)) }
@@ -358,6 +374,15 @@ struct Panel: View {
                     .help(error ?? w.path)
             }
             Spacer(minLength: 8)
+            if error != nil {
+                Button { store.clearError(w) } label: {
+                    Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
+                        .frame(width: 18, height: 18).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(Text("Clear error message"))
+                .accessibilityLabel(Text("Clear error message"))
+            }
             MoreMenu(theme: t) {
                 Menu("Move to project") {
                     ForEach(store.library.projects) { p in

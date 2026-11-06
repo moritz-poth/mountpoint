@@ -1,6 +1,29 @@
 import AppKit
 import SwiftUI
 
+/// Ein MXF-Ordner, in dem neue Ordner eines Musters warnen.
+struct FolderWatch {
+    enum Kind { case workspace, own, network }
+    /// merkt bekannte Ordner und Pausen; bei Workspaces ihre UUID (so heißen ältere gespeicherte Listen)
+    let key: String
+    let name: String
+    let mxf: String
+    let kind: Kind
+    let matches: (String) -> Bool
+
+    init(key: String, name: String, mxf: String, kind: Kind, matches: @escaping (String) -> Bool) {
+        self.key = key
+        self.name = name
+        self.mxf = mxf
+        self.kind = kind
+        self.matches = matches
+    }
+
+    init(workspace w: Workspace) {
+        self.init(key: w.id.uuidString, name: w.name, mxf: w.volumePath + "/Avid MediaFiles/MXF", kind: .workspace, matches: isNumberedFolder)
+    }
+}
+
 /// Warnt, sobald auf einem geschützten Volume „Avid MediaFiles“ entsteht.
 /// Kein Scannen: macOS meldet Änderungen in der obersten Ebene (kqueue, 0 % CPU im Ruhezustand);
 /// dazu einmal pro Minute ein einzelner Dateizugriff als Sicherheitsnetz.
@@ -9,22 +32,20 @@ final class VolumeGuard {
     static let shared = VolumeGuard()
 
     private let names: @MainActor () -> [String]
-    /// eingehängte Workspaces, die bei nummerierten Ordnern warnen sollen
-    private let numbered: @MainActor () -> [Workspace]
+    /// MXF-Ordner, in denen neue nummerierte bzw. eigene Ordner warnen
+    private let numbered: @MainActor () -> [FolderWatch]
     /// Anzeige des Alarms (Tests ersetzen sie)
     var present: ((String) -> Void)?
-    var presentNumbered: ((Workspace, [String]) -> Void)?
+    var presentNumbered: ((FolderWatch, [String]) -> Void)?
 
-    private var mxfWatchers: [UUID: DispatchSourceFileSystemObject] = [:]
-    /// bereits bekannte bzw. bestätigte nummerierte Ordner je Workspace (Warnung nur bei neuen)
+    private var mxfWatchers: [String: DispatchSourceFileSystemObject] = [:]
+    /// bereits bekannte bzw. bestätigte Ordner je Beobachtung (Warnung nur bei neuen)
     private var knownNumbered: [String: [String]] = (UserDefaults.standard.dictionary(forKey: "numberedKnown") as? [String: [String]]) ?? [:] {
         didSet { UserDefaults.standard.set(knownNumbered, forKey: "numberedKnown") }
     }
 
-    init(names: @escaping @MainActor () -> [String] = { Store.shared.library.guarded },
-         numbered: @escaping @MainActor () -> [Workspace] = {
-             Store.shared.library.workspaces.filter { $0.warnNumbered == true && Store.shared.mounted.contains($0.id) }
-         }) {
+    init(names: @escaping @MainActor () -> [String] = { Store.shared.library.guarded.filter { !Store.shared.library.guardOwn.contains($0) } },
+         numbered: @escaping @MainActor () -> [FolderWatch] = { Store.shared.folderWatches() }) {
         self.names = names
         self.numbered = numbered
     }
@@ -78,47 +99,45 @@ final class VolumeGuard {
 
     // MARK: nummerierte Ordner in MXF
 
-    private func mxfPath(_ w: Workspace) -> String { w.volumePath + "/Avid MediaFiles/MXF" }
-
-    private func numberedFolders(_ w: Workspace) -> [String] {
-        ((try? FileManager.default.contentsOfDirectory(atPath: mxfPath(w))) ?? []).filter(isNumberedFolder).sorted()
+    private func numberedFolders(_ w: FolderWatch) -> [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: w.mxf)) ?? []).filter(w.matches).sorted()
     }
 
     private func refreshNumbered() {
         let watch = numbered()
-        let ids = Set(watch.map(\.id))
-        for (id, source) in mxfWatchers where !ids.contains(id) {
+        let keys = Set(watch.map(\.key))
+        for (key, source) in mxfWatchers where !keys.contains(key) {
             source.cancel()
-            mxfWatchers[id] = nil
+            mxfWatchers[key] = nil
         }
-        for key in active where key.hasPrefix("n:") && !ids.contains(where: { "n:\($0)" == key }) { closeAlert(key) }
+        for key in active where key.hasPrefix("n:") && !keys.contains(String(key.dropFirst(2))) { closeAlert(key) }
         for w in watch {
             // Was beim Einschalten schon da ist, gilt als bekannt – gewarnt wird bei neuen Ordnern.
-            if knownNumbered[w.id.uuidString] == nil { knownNumbered[w.id.uuidString] = numberedFolders(w) }
-            if mxfWatchers[w.id] == nil {
-                let fd = open(mxfPath(w), O_EVTONLY)   // fehlt MXF noch, versucht es das Sicherheitsnetz später erneut
+            if knownNumbered[w.key] == nil { knownNumbered[w.key] = numberedFolders(w) }
+            if mxfWatchers[w.key] == nil {
+                let fd = open(w.mxf, O_EVTONLY)   // fehlt MXF noch, versucht es das Sicherheitsnetz später erneut
                 if fd >= 0 {
                     let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete, .revoke], queue: .main)
-                    let id = w.id
+                    let key = w.key
                     source.setEventHandler { [weak self] in
-                        guard let self, let w = self.numbered().first(where: { $0.id == id }) else { return }
+                        guard let self, let w = self.numbered().first(where: { $0.key == key }) else { return }
                         self.checkNumbered(w)
                     }
                     source.setCancelHandler { close(fd) }
                     source.resume()
-                    mxfWatchers[w.id] = source
+                    mxfWatchers[w.key] = source
                 }
             }
             checkNumbered(w)
         }
     }
 
-    private func checkNumbered(_ w: Workspace) {
-        let key = "n:\(w.id)"
+    private func checkNumbered(_ w: FolderWatch) {
+        let key = "n:" + w.key
         let current = numberedFolders(w)
         // Gelöschte Ordner vergessen: wird „1“ gelöscht und neu angelegt, warnt Mountpoint wieder.
-        let known = Set(knownNumbered[w.id.uuidString] ?? []).intersection(current)
-        if known.count != (knownNumbered[w.id.uuidString] ?? []).count { knownNumbered[w.id.uuidString] = known.sorted() }
+        let known = Set(knownNumbered[w.key] ?? []).intersection(current)
+        if known.count != (knownNumbered[w.key] ?? []).count { knownNumbered[w.key] = known.sorted() }
         let new = current.filter { !known.contains($0) }
         guard !new.isEmpty else { return }
         if let until = snoozed[key] {
@@ -131,9 +150,9 @@ final class VolumeGuard {
     }
 
     /// „OK“: diese Ordner sind bekannt, gewarnt wird erst bei weiteren
-    func acknowledgeNumbered(_ w: Workspace, _ folders: [String]) {
-        knownNumbered[w.id.uuidString, default: []].append(contentsOf: folders)
-        closeAlert("n:\(w.id)")
+    func acknowledgeNumbered(_ w: FolderWatch, _ folders: [String]) {
+        knownNumbered[w.key, default: []].append(contentsOf: folders)
+        closeAlert("n:" + w.key)
     }
 
     func checkAll() {
@@ -155,10 +174,11 @@ final class VolumeGuard {
         if let present { present(name) } else { showAlert(name) }
     }
 
-    private func path(_ name: String) -> String { "/Volumes/" + name }
+    private func path(_ name: String) -> String { guardRoot(name) }
 
-    /// Nur echte eingehängte Volumes, kein leerer Ordner in /Volumes.
+    /// Nur echte eingehängte Volumes, kein leerer Ordner in /Volumes. Das Systemvolume ist immer da.
     private func isVolume(_ name: String) -> Bool {
+        if name == systemGuard { return true }
         var s = statfs()
         guard statfs(path(name), &s) == 0 else { return false }
         let on = withUnsafeBytes(of: s.f_mntonname) { String(cString: $0.bindMemory(to: CChar.self).baseAddress!) }
@@ -168,7 +188,7 @@ final class VolumeGuard {
     // MARK: Alarmfenster
 
     private func showAlert(_ name: String) {
-        let view = GuardAlert(title: String(localized: "Avid is writing to “\(name)”"),
+        let view = GuardAlert(title: String(localized: "Avid is writing to “\(guardName(name))”"),
             message: String(localized: "An “Avid MediaFiles” folder was created on this volume. Check your import or render target."),
             dark: Store.shared.dark,
             showInFinder: { [weak self] in
@@ -186,15 +206,26 @@ final class VolumeGuard {
         presentPanel(view, key: name)
     }
 
-    private func showNumberedAlert(_ w: Workspace, _ folders: [String]) {
-        let key = "n:\(w.id)"
+    private func showNumberedAlert(_ w: FolderWatch, _ folders: [String]) {
+        let key = "n:" + w.key
         let list = folders.map { "„\($0)“" }.joined(separator: ", ")
-        let view = GuardAlert(title: String(localized: "Numbered folder in “\(w.name)”: \(list)"),
-            message: String(localized: "Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder."),
+        let title, message: String
+        switch w.kind {
+        case .workspace:
+            title = String(localized: "Numbered folder in “\(w.name)”: \(list)")
+            message = String(localized: "Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder.")
+        case .own:
+            title = String(localized: "Avid is writing to “\(w.name)”: \(list)")
+            message = String(localized: "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target.")
+        case .network:
+            title = String(localized: "Numbered folder on “\(w.name)”: \(list)")
+            message = String(localized: "A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings.")
+        }
+        let view = GuardAlert(title: title, message: message,
             dark: Store.shared.dark,
-            showInFinder: { [weak self] in
-                guard let self, let first = folders.first else { return }
-                NSWorkspace.shared.selectFile(self.mxfPath(w) + "/" + first, inFileViewerRootedAtPath: "")
+            showInFinder: {
+                guard let first = folders.first else { return }
+                NSWorkspace.shared.selectFile(w.mxf + "/" + first, inFileViewerRootedAtPath: "")
             },
             snooze: { [weak self] choice in
                 self?.snoozed[key] = snoozeEnd(choice)

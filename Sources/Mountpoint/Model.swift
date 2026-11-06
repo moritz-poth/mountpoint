@@ -46,8 +46,10 @@ struct Workspace: Codable, Identifiable, Hashable {
 struct Library: Codable {
     var projects: [Project] = []
     var workspaces: [Workspace] = []
-    /// Volume-Namen, auf denen kein „Avid MediaFiles“ entstehen soll (z. B. LucidLink)
+    /// Volume-Namen, auf denen kein „Avid MediaFiles“ entstehen soll (z. B. LucidLink); `systemGuard` = Systemvolume
     var guarded: [String] = []
+    /// geschützte Volumes, bei denen nur der eigene Ordner in MXF warnt („1“ lokal, „<Rechnername>.1“ im Netz)
+    var guardOwn: [String] = []
 
     init(projects: [Project] = [], workspaces: [Workspace] = [], guarded: [String] = []) {
         self.projects = projects
@@ -61,6 +63,7 @@ struct Library: Codable {
         projects = try c.decodeIfPresent([Project].self, forKey: .projects) ?? []
         workspaces = try c.decodeIfPresent([Workspace].self, forKey: .workspaces) ?? []
         guarded = try c.decodeIfPresent([String].self, forKey: .guarded) ?? []
+        guardOwn = try c.decodeIfPresent([String].self, forKey: .guardOwn) ?? []
     }
 }
 
@@ -107,4 +110,25 @@ enum Snooze: Hashable {
 /// Ordnername nur aus Ziffern, z. B. "1" oder "12" (nicht "Mac Studio.1")
 func isNumberedFolder(_ name: String) -> Bool {
     !name.isEmpty && name.allSatisfy { $0.isASCII && $0.isNumber }
+}
+
+/// Ordner, den Media Composer auf einem Netzlaufwerk für diesen Rechner anlegt: "<Rechnername>.1", "<Rechnername>.2" …
+func isOwnFolder(_ name: String, computer: String) -> Bool {
+    let prefix = computer.lowercased() + "."
+    guard !computer.isEmpty, name.lowercased().hasPrefix(prefix) else { return false }
+    return isNumberedFolder(String(name.dropFirst(prefix.count)))
+}
+
+/// Eintrag in `Library.guarded` für das Systemvolume: dort liegt „Avid MediaFiles“ nicht in der obersten Ebene.
+let systemGuard = "/"
+
+/// Ordner, in dem „Avid MediaFiles“ entstehen würde
+func guardRoot(_ name: String) -> String {
+    name == systemGuard ? "/Users/Shared/AvidMediaComposer" : "/Volumes/" + name
+}
+
+/// Anzeigename, beim Systemvolume sein Name im Finder (z. B. „Macintosh HD“)
+func guardName(_ name: String) -> String {
+    guard name == systemGuard else { return name }
+    return (try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "Macintosh HD"
 }

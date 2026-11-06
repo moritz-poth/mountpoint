@@ -1,5 +1,6 @@
 import AppKit
 import ServiceManagement
+import SystemConfiguration
 
 enum MountState { case none, partial, busy, all }
 
@@ -24,6 +25,10 @@ final class Store: ObservableObject {
     /// Als Netzlaufwerk einbinden (Standard): Avid-Zusammenarbeit mit "<Rechnername>.1"-Ordnern
     @Published var network = UserDefaults.standard.object(forKey: "network") as? Bool ?? true {
         didSet { UserDefaults.standard.set(network, forKey: "network") }
+    }
+    /// Auf allen Netzlaufwerken mit „Avid MediaFiles“ vor Ordnern wie „1“ warnen: dort arbeitet jemand ohne Bin Locking
+    @Published var watchNetwork = UserDefaults.standard.bool(forKey: "watchNetwork") {
+        didSet { UserDefaults.standard.set(watchNetwork, forKey: "watchNetwork"); notifyGuard() }
     }
     @Published var dark = UserDefaults.standard.object(forKey: "dark") as? Bool ?? true {
         didSet { UserDefaults.standard.set(dark, forKey: "dark"); applyAppearance() }
@@ -116,6 +121,10 @@ final class Store: ObservableObject {
             }
         }
     }
+
+    /// Fehlermeldungen wegklicken (eines Workspaces oder aller Workspaces eines Projekts)
+    func clearError(_ w: Workspace) { errors[w.id] = nil }
+    func clearErrors(in project: UUID?) { workspaces(in: project).forEach(clearError) }
 
     func unmount(_ w: Workspace) {
         do { try Mounter.unmount(w); errors[w.id] = nil } catch { errors[w.id] = error.localizedDescription }
@@ -222,17 +231,59 @@ final class Store: ObservableObject {
 
     func removeGuard(_ name: String) {
         library.guarded.removeAll { $0 == name }
+        library.guardOwn.removeAll { $0 == name }
         save()
         VolumeGuard.shared.refresh()
     }
 
-    /// Eingehängte Volumes, die man schützen kann (ohne Systemvolume und eigene Spiegel-Volumes)
+    /// „Avid MediaFiles“ (aus) oder nur der eigene Ordner in MXF (an)
+    func setGuardOwn(_ name: String, _ on: Bool) {
+        library.guardOwn.removeAll { $0 == name }
+        if on { library.guardOwn.append(name) }
+        save()
+        VolumeGuard.shared.refresh()
+    }
+
+    /// Volumes, die man schützen kann: das Systemvolume und eingehängte Volumes (ohne eigene Spiegel-Volumes)
     func guardCandidates() -> [String] {
-        (FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? [])
+        let volumes = (FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? [])
             .filter { $0.path.hasPrefix("/Volumes/") && !Mounter.isMounted($0.path) }
             .map(\.lastPathComponent)
-            .filter { !library.guarded.contains($0) }
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        return ([systemGuard] + volumes).filter { !library.guarded.contains($0) }
+    }
+
+    /// MXF-Ordner, in denen neue Ordner eines Musters warnen
+    func folderWatches() -> [FolderWatch] {
+        var watches = library.workspaces.filter { $0.warnNumbered == true && mounted.contains($0.id) }.map(FolderWatch.init(workspace:))
+        let computer = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? ""
+        for name in library.guarded where library.guardOwn.contains(name) {
+            let root = guardRoot(name)
+            guard name == systemGuard || isMountPoint(root) else { continue }
+            let local = name == systemGuard || isLocal(root)
+            watches.append(FolderWatch(key: "g:" + name, name: guardName(name), mxf: root + "/Avid MediaFiles/MXF", kind: .own,
+                                       matches: local ? isNumberedFolder : { isOwnFolder($0, computer: computer) }))
+        }
+        if watchNetwork {
+            let taken = Set(watches.filter { $0.kind == .workspace }.map(\.mxf))
+            for url in FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeIsLocalKey], options: [.skipHiddenVolumes]) ?? [] {
+                let mxf = url.path + "/Avid MediaFiles/MXF"
+                guard url.path.hasPrefix("/Volumes/"), !isLocal(url.path), !taken.contains(mxf),
+                      FileManager.default.fileExists(atPath: url.path + "/Avid MediaFiles") else { continue }
+                watches.append(FolderWatch(key: "net:" + url.path, name: url.lastPathComponent, mxf: mxf, kind: .network, matches: isNumberedFolder))
+            }
+        }
+        return watches
+    }
+
+    private func isLocal(_ path: String) -> Bool {
+        (try? URL(fileURLWithPath: path).resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal) ?? true
+    }
+
+    private func isMountPoint(_ path: String) -> Bool {
+        var s = statfs()
+        guard statfs(path, &s) == 0 else { return false }
+        return withUnsafeBytes(of: s.f_mntonname) { String(cString: $0.bindMemory(to: CChar.self).baseAddress!) } == path
     }
 
     // MARK: Einstellungen
