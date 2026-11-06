@@ -16,9 +16,6 @@ struct Workspace: Codable, Identifiable, Hashable {
     var share: String?
     /// Pfad innerhalb der Freigabe ("" = Freigabe selbst)
     var shareSubpath: String?
-    /// Warnen, wenn in MXF ein Ordner nur aus Ziffern entsteht ("1", "2" …) – die schreibt im Team jedes System.
-    /// Optional, damit ältere Dateien ohne das Feld weiter laden.
-    var warnNumbered: Bool?
 
     var name: String { (path as NSString).lastPathComponent }
     var volumePath: String { "/Volumes/" + name }
@@ -107,16 +104,9 @@ enum Snooze: Hashable {
     static let all: [Snooze] = [5, 10, 15, 30, 60, 120, 180, 240].map { .minutes($0) } + [.restOfDay]
 }
 
-/// Ordnername nur aus Ziffern, z. B. "1" oder "12" (nicht "Mac Studio.1")
-func isNumberedFolder(_ name: String) -> Bool {
-    !name.isEmpty && name.allSatisfy { $0.isASCII && $0.isNumber }
-}
-
-/// Ordner, den Media Composer auf einem Netzlaufwerk für diesen Rechner anlegt: "<Rechnername>.1", "<Rechnername>.2" …
+/// Ordner, den Media Composer auf einem Netzlaufwerk für diesen Rechner anlegt: "<Rechnername>.1"
 func isOwnFolder(_ name: String, computer: String) -> Bool {
-    let prefix = computer.lowercased() + "."
-    guard !computer.isEmpty, name.lowercased().hasPrefix(prefix) else { return false }
-    return isNumberedFolder(String(name.dropFirst(prefix.count)))
+    !computer.isEmpty && name.lowercased() == computer.lowercased() + ".1"
 }
 
 /// Eintrag in `Library.guarded` für das Systemvolume: dort liegt „Avid MediaFiles“ nicht in der obersten Ebene.

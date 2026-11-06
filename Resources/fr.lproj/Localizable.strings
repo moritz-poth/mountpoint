@@ -125,9 +125,6 @@
 "These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Ces volumes sont encore utilisés et restent montés : %@. Quittez Media Composer et éjectez-les dans le Finder.";
 
 /* Avertissement dossiers numérotés */
-"Warn about numbered folders" = "Avertir des dossiers numérotés";
-"Numbered folder in “%@”: %@" = "Dossier numéroté dans « %@ » : %@";
-"Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder." = "Avid a créé dans « Avid MediaFiles/MXF » un dossier dont le nom n’est qu’un numéro. Tous les postes de l’équipe peuvent écrire dans de tels dossiers. Vérifiez que le workspace est monté comme lecteur réseau – Avid utilise alors son propre dossier « <nom de l’ordinateur>.1 ».";
 
 /* Bienvenue (premier démarrage) */
 "Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them." = "Mountpoint monte des dossiers comme volumes à part entière, pour que Media Composer y trouve les médias.";
@@ -164,11 +161,11 @@
 "Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Avertit dès qu’Avid crée « Avid MediaFiles » sur l’un de ces volumes, p. ex. LucidLink. « Propre dossier » : seulement quand votre Media Composer crée son dossier dans MXF – « 1 » sur les disques locaux, « <nom de l’ordinateur>.1 » sur les disques réseau –, pas quand d’autres écrivent.";
 "Own folder" = "Propre dossier";
 "Avid MediaFiles" = "Avid MediaFiles";
-"Warn about numbered folders on network drives" = "Avertir des dossiers numérotés sur les disques réseau";
-"On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking." = "Sur chaque disque réseau connecté avec « Avid MediaFiles » : avertit quand un dossier nommé uniquement par un chiffre (« 1 ») apparaît dans MXF – signe que quelqu’un travaille sans verrouillage des chutiers.";
 "Clear error messages" = "Effacer les messages d’erreur";
 "Clear error message" = "Effacer le message d’erreur";
 "Avid is writing to “%@”: %@" = "Avid écrit sur « %@ » : %@";
 "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target." = "Votre Media Composer a créé son dossier dans « Avid MediaFiles/MXF » sur ce volume. Vérifiez votre cible d’import ou de rendu.";
-"Numbered folder on “%@”: %@" = "Dossier numéroté sur « %@ » : %@";
-"A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Un dossier nommé uniquement par un chiffre est apparu dans « Avid MediaFiles/MXF » sur ce disque réseau. Un système y écrit comme sur un disque local – probablement quelqu’un travaille sans verrouillage des chutiers. Trouvez qui et vérifiez ses réglages Media Composer.";
+"Warn about a “1” folder on network drives" = "Avertir d’un dossier « 1 » sur les disques réseau";
+"On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking." = "Sur chaque disque réseau connecté avec « Avid MediaFiles » : avertit quand un dossier « 1 » apparaît dans MXF – signe que quelqu’un travaille sans verrouillage des chutiers.";
+"Folder “1” on “%@”" = "Dossier « 1 » sur « %@ »";
+"A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Un dossier « 1 » est apparu dans « Avid MediaFiles/MXF » sur ce disque réseau. Un système y écrit comme sur un disque local – probablement quelqu’un travaille sans verrouillage des chutiers. Trouvez qui et vérifiez ses réglages Media Composer.";

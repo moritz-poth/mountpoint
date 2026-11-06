@@ -125,9 +125,6 @@
 "These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Diese Volumes werden noch benutzt und bleiben eingehängt: %@. Beende Media Composer und wirf sie im Finder aus.";
 
 /* Warnung bei nummerierten Ordnern */
-"Warn about numbered folders" = "Bei nummerierten Ordnern warnen";
-"Numbered folder in “%@”: %@" = "Nummerierter Ordner in „%@“: %@";
-"Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder." = "Avid hat in „Avid MediaFiles/MXF“ einen Ordner angelegt, der nur aus einer Nummer besteht. In solche Ordner kann jedes System im Team schreiben. Prüfe, ob der Workspace als Netzlaufwerk eingebunden ist – dann nutzt Avid einen eigenen Ordner „<Rechnername>.1“.";
 
 /* Willkommen (erster Start) */
 "Mountpoint mounts folders as their own volumes, so Media Composer finds the media in them." = "Mountpoint hängt Ordner als eigene Laufwerke ein, damit Media Composer die Medien darin findet.";
@@ -164,11 +161,11 @@
 "Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink. „Eigener Ordner“: nur, wenn dein Media Composer seinen Ordner in MXF anlegt – „1“ auf lokalen Laufwerken, „<Rechnername>.1“ auf Netzlaufwerken –, nicht, wenn andere schreiben.";
 "Own folder" = "Eigener Ordner";
 "Avid MediaFiles" = "Avid MediaFiles";
-"Warn about numbered folders on network drives" = "Bei nummerierten Ordnern auf Netzlaufwerken warnen";
-"On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking." = "Auf jedem verbundenen Netzlaufwerk mit „Avid MediaFiles“: warnt, wenn in MXF ein Ordner nur aus Ziffern („1“) entsteht – ein Zeichen, dass jemand ohne Bin Locking arbeitet.";
 "Clear error messages" = "Fehlermeldungen entfernen";
 "Clear error message" = "Fehlermeldung entfernen";
 "Avid is writing to “%@”: %@" = "Avid schreibt auf „%@“: %@";
 "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target." = "Dein Media Composer hat auf diesem Volume seinen Ordner in „Avid MediaFiles/MXF“ angelegt. Prüfe dein Import- oder Renderziel.";
-"Numbered folder on “%@”: %@" = "Nummerierter Ordner auf „%@“: %@";
-"A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Auf diesem Netzlaufwerk ist in „Avid MediaFiles/MXF“ ein Ordner nur aus Ziffern entstanden. Ein System schreibt darauf wie auf ein lokales Laufwerk – wahrscheinlich arbeitet jemand ohne Bin Locking. Finde heraus, wer, und prüfe dessen Media-Composer-Einstellungen.";
+"Warn about a “1” folder on network drives" = "Bei einem Ordner „1“ auf Netzlaufwerken warnen";
+"On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking." = "Auf jedem verbundenen Netzlaufwerk mit „Avid MediaFiles“: warnt, wenn in MXF ein Ordner „1“ entsteht – ein Zeichen, dass jemand ohne Bin Locking arbeitet.";
+"Folder “1” on “%@”" = "Ordner „1“ auf „%@“";
+"A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Auf diesem Netzlaufwerk ist in „Avid MediaFiles/MXF“ ein Ordner „1“ entstanden. Ein System schreibt darauf wie auf ein lokales Laufwerk – wahrscheinlich arbeitet jemand ohne Bin Locking. Finde heraus, wer, und prüfe dessen Media-Composer-Einstellungen.";

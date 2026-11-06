@@ -3,8 +3,8 @@ import SwiftUI
 
 /// Ein MXF-Ordner, in dem neue Ordner eines Musters warnen.
 struct FolderWatch {
-    enum Kind { case workspace, own, network }
-    /// merkt bekannte Ordner und Pausen; bei Workspaces ihre UUID (so heißen ältere gespeicherte Listen)
+    enum Kind { case own, network }
+    /// merkt bekannte Ordner und Pausen
     let key: String
     let name: String
     let mxf: String
@@ -17,10 +17,6 @@ struct FolderWatch {
         self.mxf = mxf
         self.kind = kind
         self.matches = matches
-    }
-
-    init(workspace w: Workspace) {
-        self.init(key: w.id.uuidString, name: w.name, mxf: w.volumePath + "/Avid MediaFiles/MXF", kind: .workspace, matches: isNumberedFolder)
     }
 }
 
@@ -37,6 +33,8 @@ final class VolumeGuard {
     /// Anzeige des Alarms (Tests ersetzen sie)
     var present: ((String) -> Void)?
     var presentNumbered: ((FolderWatch, [String]) -> Void)?
+    /// hält das Panel offen, solange ein Alarm offen ist – sonst schließt ein Klick auf den Alarm das Panel
+    var hold: ((Bool) -> Void)?
 
     private var mxfWatchers: [String: DispatchSourceFileSystemObject] = [:]
     /// bereits bekannte bzw. bestätigte Ordner je Beobachtung (Warnung nur bei neuen)
@@ -211,15 +209,12 @@ final class VolumeGuard {
         let list = folders.map { "„\($0)“" }.joined(separator: ", ")
         let title, message: String
         switch w.kind {
-        case .workspace:
-            title = String(localized: "Numbered folder in “\(w.name)”: \(list)")
-            message = String(localized: "Avid created a folder named only with a number in “Avid MediaFiles/MXF”. Every system in the team can write into such folders. Check that the workspace is mounted as a network drive – then Avid uses its own “<computer name>.1” folder.")
         case .own:
             title = String(localized: "Avid is writing to “\(w.name)”: \(list)")
             message = String(localized: "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target.")
         case .network:
-            title = String(localized: "Numbered folder on “\(w.name)”: \(list)")
-            message = String(localized: "A folder named only with a number appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings.")
+            title = String(localized: "Folder “1” on “\(w.name)”")
+            message = String(localized: "A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings.")
         }
         let view = GuardAlert(title: title, message: message,
             dark: Store.shared.dark,
@@ -253,12 +248,13 @@ final class VolumeGuard {
                                          y: screen.midY - panel.frame.height / 2 - offset))
         }
         panel.orderFrontRegardless()
+        hold?(true)
         NSSound.beep()
         alerts[key] = panel
     }
 
     private func closeAlert(_ name: String) {
-        alerts[name]?.close()
+        if let panel = alerts[name] { panel.close(); hold?(false) }
         alerts[name] = nil
         active.remove(name)
     }

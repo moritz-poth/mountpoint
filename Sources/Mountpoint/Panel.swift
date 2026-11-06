@@ -246,10 +246,10 @@ struct Panel: View {
                 }
             }
             .disabled(candidates.isEmpty)
-            Checkbox(title: "Warn about numbered folders on network drives", on: store.watchNetwork, theme: t) {
+            Checkbox(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
                 store.watchNetwork.toggle()
             }
-            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder named only with a number (“1”) appears in MXF – a sign that someone is working without bin locking.")
+            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
@@ -321,8 +321,6 @@ struct Panel: View {
 
                 MoreMenu(theme: t) {
                     Toggle("Mount at app launch", isOn: Binding(get: { p.mountAtLaunch }, set: { _ in store.toggleMountAtLaunch(p) }))
-                    Toggle("Warn about numbered folders", isOn: Binding(get: { store.projectWarns(p.id) }, set: { _ in store.toggleProjectWarn(p.id) }))
-                        .disabled(items.isEmpty)
                     Button("Add workspace…") { addWorkspace(to: p.id) }
                     Button("Clear error messages") { store.clearErrors(in: p.id) }
                         .disabled(!items.contains { store.errors[$0.id] != nil })
@@ -394,7 +392,6 @@ struct Panel: View {
                 Button("Show in Finder") {
                     NSWorkspace.shared.open(URL(fileURLWithPath: isMounted ? w.volumePath : w.path))
                 }
-                Toggle("Warn about numbered folders", isOn: Binding(get: { w.warnNumbered == true }, set: { _ in store.toggleWarn(w) }))
                 Divider()
                 Button("Remove workspace…") { show(.removeWorkspace(w)) }
             }

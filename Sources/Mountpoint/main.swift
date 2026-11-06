@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.popover.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         }
         store.mountAtLaunch()
+        VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()
         Welcome.showIfNeeded()
         Updater.shared.start()
