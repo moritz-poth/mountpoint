@@ -38,6 +38,7 @@ struct GuardIntegrationTests {
         var alerted: [String] = []
         guardian.present = { alerted.append($0) }
         guardian.refresh()
+        for _ in 0..<50 where !guardian.idle { try await Task.sleep(nanoseconds: 50_000_000) }
         #expect(alerted.isEmpty)
 
         try FileManager.default.createDirectory(atPath: w.volumePath + "/Avid MediaFiles", withIntermediateDirectories: false)
@@ -50,6 +51,7 @@ struct GuardIntegrationTests {
         var again: [String] = []
         restarted.present = { again.append($0) }
         restarted.refresh()
+        for _ in 0..<50 where !restarted.idle { try await Task.sleep(nanoseconds: 50_000_000) }
         #expect(again == [w.name])
     }
 }

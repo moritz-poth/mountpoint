@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var holds = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        var arch = utsname()
+        uname(&arch)
+        let machine = withUnsafeBytes(of: arch.machine) { String(cString: $0.bindMemory(to: CChar.self).baseAddress!) }
+        Log.write("Mountpoint \(Updater.current) started (\(machine), macOS \(ProcessInfo.processInfo.operatingSystemVersionString))")
         for url in Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: "fonts") ?? [] {
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
@@ -48,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Beim Beenden auswerfen; was noch benutzt wird, bleibt eingehängt – und das sagen wir.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Log.write(AppDelegate.relaunching ? "restarting" : "quit")
         guard !AppDelegate.relaunching else { return .terminateNow }
         let still = Store.shared.unmountAllOnQuit()
         if !still.isEmpty {

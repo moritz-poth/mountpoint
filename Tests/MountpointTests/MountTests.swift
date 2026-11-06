@@ -14,7 +14,7 @@ struct MountTests {
         let w = Workspace(path: src.path)
 
         try Mounter.mount(w, helper: Self.helper)
-        #expect(Mounter.isMounted(w.volumePath))
+        #expect(Mounter.isMounted(w))
         // Standard: Netzlaufwerk (für Avid-Zusammenarbeit)
         #expect(try URL(fileURLWithPath: w.volumePath).resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal == false)
         let file = w.volumePath + "/Avid MediaFiles/MXF/1/a.mxf"
@@ -31,7 +31,7 @@ struct MountTests {
         // shortcut: macOS räumt den Mountpunkt nur weg, wenn das Volume schon registriert war (echter Betrieb: immer)
         Thread.sleep(forTimeInterval: 2)
         try Mounter.unmount(w)
-        #expect(!Mounter.isMounted(w.volumePath))
+        #expect(!Mounter.isMounted(w))
         #expect(gone(w.volumePath))
     }
 
@@ -63,7 +63,7 @@ extension MountTests {
             try FileManager.default.createDirectory(atPath: w.path, withIntermediateDirectories: true)
             defer { try? FileManager.default.removeItem(atPath: w.path) }
             try Mounter.mount(w, helper: Self.helper)
-            #expect(Mounter.isMounted(w.volumePath))
+            #expect(Mounter.isMounted(w))
             try Mounter.unmount(w)
         }
     }

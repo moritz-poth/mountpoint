@@ -124,27 +124,24 @@ struct Switch: View {
     }
 }
 
-struct Checkbox: View {
+/// On/off row: label left, `Switch` right; the whole row toggles.
+struct SwitchRow: View {
     let title: LocalizedStringKey
     let on: Bool
     let theme: Theme
     let action: () -> Void
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 3)
-                    .stroke(on ? theme.primary : theme.line, lineWidth: 1)
-                    .background(RoundedRectangle(cornerRadius: 3).fill(on ? theme.primary : .clear))
-                    .overlay(Image(systemName: "checkmark").font(.system(size: 8, weight: .bold))
-                        .foregroundColor(theme.onPrimary).opacity(on ? 1 : 0))
-                    .frame(width: 13, height: 13)
-                Text(title).font(.mono()).foregroundColor(theme.text)
-                Spacer()
-            }
-            .contentShape(Rectangle())
+        HStack(spacing: 10) {
+            Text(title).font(.mono()).foregroundColor(theme.text).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Switch(on: on, theme: theme, action: action)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? .isSelected : [])
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(title))
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { action() }
     }
 }
 

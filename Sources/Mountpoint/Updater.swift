@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 
 /// Version from a release tag like "v1.0.0-beta.7". Final releases rank above their betas.
@@ -40,10 +41,20 @@ struct Release {
     let tag: String
     let page: URL
     let zip: URL
+    /// `<zip>.sig`: Ed25519 signature of the zip (scripts/update-key.swift)
+    let signature: URL?
+    /// Asset `Mountpoint-<version>.manual`: install by hand (e.g. after the update key was lost).
+    /// Only this marker comes from outside – the text and the link are fixed in the app, nothing is downloaded or run.
+    let manual: Bool
+
+    static let releasesPage = URL(string: "https://github.com/moritz-poth/mountpoint/releases")!
+
+    /// Release page, but only on this project's GitHub – otherwise the list of releases.
+    var safePage: URL { page.absoluteString.hasPrefix(Release.releasesPage.absoluteString + "/") ? page : Release.releasesPage }
 }
 
-/// Newest non-draft release with a Mountpoint zip, from GitHub's releases JSON.
-func newestRelease(fromJSON data: Data) -> Release? {
+/// Newest non-draft release with a Mountpoint zip (and its signature), from GitHub's releases JSON.
+func newestRelease(fromJSON data: Data, requireSignature: Bool = true) -> Release? {
     struct Asset: Decodable { let name: String; let browser_download_url: URL }
     struct R: Decodable { let tag_name: String; let html_url: URL; let draft: Bool; let assets: [Asset] }
     guard let list = try? JSONDecoder().decode([R].self, from: data) else { return nil }
@@ -51,7 +62,10 @@ func newestRelease(fromJSON data: Data) -> Release? {
         .filter { !$0.draft && AppVersion($0.tag_name) != nil }
         .compactMap { r -> (AppVersion, Release)? in
             guard let zip = r.assets.first(where: { $0.name.hasPrefix("Mountpoint-") && $0.name.hasSuffix(".zip") }) else { return nil }
-            return (AppVersion(r.tag_name)!, Release(tag: r.tag_name, page: r.html_url, zip: zip.browser_download_url))
+            let sig = r.assets.first { $0.name == zip.name + ".sig" }?.browser_download_url
+            let manual = r.assets.contains { $0.name == zip.name.dropLast(4) + ".manual" }
+            if requireSignature && sig == nil && !manual { return nil }
+            return (AppVersion(r.tag_name)!, Release(tag: r.tag_name, page: r.html_url, zip: zip.browser_download_url, signature: sig, manual: manual))
         }
         .max { $0.0 < $1.0 }?.1
 }
@@ -69,6 +83,9 @@ final class Updater: ObservableObject {
     @Published var state = State.idle
 
     static let current = Bundle.main.object(forInfoDictionaryKey: "MountpointRelease") as? String ?? "dev"
+    /// Public half of the update key (`swift scripts/update-key.swift public`). Only zips signed with it are installed:
+    /// the codesign check alone proves the app is intact, not who made it (ad-hoc signature).
+    nonisolated static let publicKey = "zDauUuX5/5aDuNcfbCFsho7D8dsjhAf5BVBdNRLJhxc="
     private static let api = URL(string: "https://api.github.com/repos/moritz-poth/mountpoint/releases?per_page=20")!
     private var timer: Timer?
 
@@ -87,10 +104,11 @@ final class Updater: ObservableObject {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         URLSession.shared.dataTask(with: request) { data, response, error in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200
-            let release = ok ? data.flatMap(newestRelease(fromJSON:)) : nil
+            let release = ok ? data.flatMap { newestRelease(fromJSON: $0) } : nil
             Task { @MainActor in
                 guard self.state != .installing else { return }
                 if let release, let new = AppVersion(release.tag), let mine = AppVersion(Self.current), mine < new {
+                    if self.available?.tag != release.tag { Log.write("update available: \(release.tag)" + (release.manual ? " (install by hand)" : "")) }
                     self.available = release
                     if manual { self.state = .idle }
                 } else if release != nil {
@@ -106,24 +124,41 @@ final class Updater: ObservableObject {
     /// Downloads the zip, verifies the app inside, swaps it in place of the running app and restarts.
     /// The old version goes to the Trash. Mounted workspaces are ejected and mounted again by the new version.
     func install() {
-        guard let release = available, state != .installing else { return }
+        guard let release = available, !release.manual, let sigURL = release.signature, state != .installing else { return }
         state = .installing
-        URLSession.shared.downloadTask(with: release.zip) { file, response, error in
-            let result: Result<URL, Error>
-            if let file, (response as? HTTPURLResponse)?.statusCode == 200 {
-                result = Result { try Self.unpack(file, expecting: release.tag) }
-            } else {
-                result = .failure(UpdateError(String(localized: "The update could not be downloaded. Check the internet connection and try again.")))
+        Log.write("installing update \(release.tag)")
+        Task {
+            let signature = try? await URLSession.shared.data(from: sigURL).0
+            URLSession.shared.downloadTask(with: release.zip) { file, response, error in
+                self.installDownloaded(file, response, release, signature)
+            }.resume()
+        }
+    }
+
+    nonisolated private func installDownloaded(_ file: URL?, _ response: URLResponse?, _ release: Release, _ signature: Data?) {
+        let result: Result<URL, Error>
+        if let file, (response as? HTTPURLResponse)?.statusCode == 200 {
+            result = Result { try Self.unpack(file, expecting: release.tag, signature: signature) }
+        } else {
+            result = .failure(UpdateError(String(localized: "The update could not be downloaded. Check the internet connection and try again.")))
+        }
+        Task { @MainActor in
+            switch result {
+            case .success(let app):
+                do { try self.swapAndRestart(with: app) } catch { self.state = .failed(error.localizedDescription) }
+            case .failure(let error):
+                Log.write("update failed: \(error.localizedDescription)")
+                self.state = .failed(error.localizedDescription)
             }
-            Task { @MainActor in
-                switch result {
-                case .success(let app):
-                    do { try self.swapAndRestart(with: app) } catch { self.state = .failed(error.localizedDescription) }
-                case .failure(let error):
-                    self.state = .failed(error.localizedDescription)
-                }
-            }
-        }.resume()
+        }
+    }
+
+    /// The zip was signed with the update key (before anything in it is unpacked or run).
+    nonisolated static func signatureValid(_ zip: Data, _ signature: Data?, publicKey: String = Updater.publicKey) -> Bool {
+        guard let signature, let sig = Data(base64Encoded: String(decoding: signature, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)),
+              let raw = Data(base64Encoded: publicKey), let key = try? Curve25519.Signing.PublicKey(rawRepresentation: raw)
+        else { return false }
+        return key.isValidSignature(sig, for: zip)
     }
 
     struct UpdateError: LocalizedError {
@@ -133,10 +168,12 @@ final class Updater: ObservableObject {
     }
 
     /// Unzips into a temporary folder and checks that it really is the expected, intact Mountpoint version.
-    nonisolated static func unpack(_ zip: URL, expecting tag: String, bundleID: String? = Bundle.main.bundleIdentifier) throws -> URL {
+    nonisolated static func unpack(_ zip: URL, expecting tag: String, signature: Data?, publicKey: String = Updater.publicKey,
+                                   bundleID: String? = Bundle.main.bundleIdentifier) throws -> URL {
+        let damaged = UpdateError(String(localized: "The downloaded update is damaged. Please try again later or download it from GitHub."))
+        guard let data = try? Data(contentsOf: zip, options: .mappedIfSafe), signatureValid(data, signature, publicKey: publicKey) else { throw damaged }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("mountpoint-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let damaged = UpdateError(String(localized: "The downloaded update is damaged. Please try again later or download it from GitHub."))
         guard run("/usr/bin/ditto", ["-x", "-k", zip.path, dir.path]) else { throw damaged }
         let app = dir.appendingPathComponent("Mountpoint.app")
         guard let info = Bundle(url: app)?.infoDictionary,

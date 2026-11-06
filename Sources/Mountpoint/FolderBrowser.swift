@@ -170,7 +170,7 @@ struct FolderBrowser: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("Cancel"))
             }
-            Checkbox(title: "With “Avid MediaFiles/MXF” inside", on: withAvid, theme: t) { withAvid.toggle() }
+            SwitchRow(title: "With “Avid MediaFiles/MXF” inside", on: withAvid, theme: t) { withAvid.toggle() }
         }
     }
 
@@ -235,8 +235,9 @@ struct FolderBrowser: View {
                     return v?.isDirectory == true && v?.isPackage != true
                 }
         } else {
+            let own = Set(Mounter.mounts().filter(\.own).map(\.point))
             urls = (fm.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? [])
-                .filter { !Mounter.isMounted($0.path) }
+                .filter { !own.contains($0.path) }
         }
         let items: [Item] = urls.map { (u: URL) -> Item in
             let name = u.path == "/" ? ((try? u.resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "/") : u.lastPathComponent

@@ -16,6 +16,11 @@ struct NumberedLogicTests {
     @Test func systemVolumeIsWatchedInSharedFolder() {
         #expect(guardRoot(systemGuard) == "/Users/Shared/AvidMediaComposer")
         #expect(guardRoot("LucidLink") == "/Volumes/LucidLink")
+        // LucidLink 3 hängt eine Ebene tiefer ein
+        #expect(guardEntry("/Volumes/Filespace/Projekt") == "/Volumes/Filespace/Projekt")
+        #expect(guardEntry("/Volumes/LucidLink") == "LucidLink")
+        #expect(guardRoot(guardEntry("/Volumes/Filespace/Projekt")) == "/Volumes/Filespace/Projekt")
+        #expect(guardName("/Volumes/Filespace/Projekt") == "Projekt")
         #expect(!guardName(systemGuard).isEmpty && guardName(systemGuard) != systemGuard)
     }
 
@@ -68,6 +73,7 @@ struct NumberedIntegrationTests {
         var alerts: [[String]] = []
         guardian.presentNumbered = { _, folders in alerts.append(folders) }
         guardian.refresh()
+        for _ in 0..<50 where !guardian.idle { try await Task.sleep(nanoseconds: 50_000_000) }
         #expect(alerts.isEmpty, "\"1\" existed before – not new")
 
         let mxf = w.volumePath + "/Avid MediaFiles/MXF/"

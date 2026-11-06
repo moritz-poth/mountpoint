@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=1.0.0          # CFBundleShortVersionString (numbers only)
-RELEASE=1.0.0-beta.15  # tag and zip name
-BUILD=15
+RELEASE=1.0.0          # tag and zip name
+BUILD=17
 APP=dist/Mountpoint.app
 
 swift build -c release --arch arm64
@@ -58,4 +58,11 @@ PLIST
 codesign --force --deep --sign - "$APP"
 rm -f "dist/Mountpoint-$RELEASE.zip"
 ditto -c -k --keepParent "$APP" "dist/Mountpoint-$RELEASE.zip"
-echo "Done: $APP, dist/Mountpoint-$RELEASE.zip"
+# update signature: installed apps only accept zips signed with the key in this Mac's Keychain
+rm -f "dist/Mountpoint-$RELEASE.zip.sig"
+if PUB=$(swift scripts/update-key.swift public 2>/dev/null) && grep -q "\"$PUB\"" Sources/Mountpoint/Updater.swift \
+   && swift scripts/update-key.swift sign "dist/Mountpoint-$RELEASE.zip"; then
+  echo "Done: $APP, dist/Mountpoint-$RELEASE.zip (+ .sig – upload both)"
+else
+  echo "Done: $APP, dist/Mountpoint-$RELEASE.zip – NOT SIGNED (no update key, or it differs from Updater.publicKey): not releasable" >&2
+fi

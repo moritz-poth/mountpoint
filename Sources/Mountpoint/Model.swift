@@ -115,13 +115,20 @@ func isOwnFolder(_ name: String, computer: String) -> Bool {
 /// Eintrag in `Library.guarded` für das Systemvolume: dort liegt „Avid MediaFiles“ nicht in der obersten Ebene.
 let systemGuard = "/"
 
-/// Ordner, in dem „Avid MediaFiles“ entstehen würde
+/// Ordner, in dem „Avid MediaFiles“ entstehen würde. Einträge sind Volume-Namen in /Volumes oder – bei tiefer
+/// eingehängten Volumes wie LucidLink („/Volumes/<Filespace>/<Projekt>“) – der volle Pfad.
 func guardRoot(_ name: String) -> String {
-    name == systemGuard ? "/Users/Shared/AvidMediaComposer" : "/Volumes/" + name
+    name == systemGuard ? "/Users/Shared/AvidMediaComposer" : name.hasPrefix("/") ? name : "/Volumes/" + name
+}
+
+/// Eintrag für `Library.guarded` aus einem Mountpunkt
+func guardEntry(_ mountPoint: String) -> String {
+    let name = (mountPoint as NSString).lastPathComponent
+    return mountPoint == "/Volumes/" + name ? name : mountPoint
 }
 
 /// Anzeigename, beim Systemvolume sein Name im Finder (z. B. „Macintosh HD“)
 func guardName(_ name: String) -> String {
-    guard name == systemGuard else { return name }
+    guard name == systemGuard else { return (name as NSString).lastPathComponent }
     return (try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "Macintosh HD"
 }

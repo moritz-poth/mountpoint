@@ -8,7 +8,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 
 *Deutsch · Français · Español: Einstellungen (Zahnrad) → Sprache · Réglages → Langue · Ajustes → Idioma.*
 
-> **Beta.** Mountpoint 1.0 is a beta. Please report problems in [Issues](../../issues).
+> Please report problems in [Issues](../../issues).
 
 ## Features
 
@@ -19,14 +19,15 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Avid collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise (from version 2026.8 on) then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Avid's Media Creation settings. Can be switched off in the settings.
 - **Protected volumes** – get an alert as soon as Avid creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink), or – per volume – only when your own Media Composer creates its folder there. The Mac's system volume can be protected too. Alerts can be snoozed per volume (5 min … rest of the day).
 - **Warning about a `1` folder on network drives** – a setting: on every connected network drive with `Avid MediaFiles`, an alert as soon as a folder `1` appears in `Avid MediaFiles/MXF` – a sign that someone works without bin locking.
-- **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates.
-- **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do.
+- **Warning about big MXF folders** – a setting: an alert as soon as a folder in `Avid MediaFiles/MXF` holds more than 5000 files, on every connected drive, the system volume and your workspaces. Checked once a minute in the background; unchanged folders are not counted again.
+- **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates. Every update is signed; Mountpoint installs only updates with a valid signature.
+- **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do. A drive that stops responding never freezes Mountpoint. Settings → *Show log file* shows what happened – send it along when you report a problem.
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
 - English, German, French and Spanish, light and dark appearance, launch at login.
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: a folder “1” appeared on a network drive"></picture></p>
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, updates"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, warnings, updates"></picture></p>
 
 
 ## Good to know
@@ -89,10 +90,13 @@ Mountpoint does not scan your drives. macOS notifies it when something changes a
 Requires the Xcode Command Line Tools and macFUSE.
 
 ```
-scripts/build-app.sh            # → dist/Mountpoint.app (universal) and dist/Mountpoint-<version>.zip
+scripts/build-app.sh            # → dist/Mountpoint.app (universal), dist/Mountpoint-<version>.zip (+ .sig)
 swift test                      # unit tests
 MOUNTPOINT_IT=1 swift test      # also real mounts (after build-app.sh)
+MOUNTPOINT_STRESS=1 swift test --filter StressTests   # stress test before a release
 ```
+
+Updates are signed with an Ed25519 key that lives only in the release Mac's Keychain (`swift scripts/update-key.swift new` once; its public key goes into `Updater.publicKey`). The build signs the zip automatically; a release needs both the zip and its `.sig`. Builds from forks need their own key. If the key is ever lost, a release that also carries an empty `Mountpoint-<version>.manual` makes older versions show a notice to install the update by hand.
 
 Layout: `Sources/Mountpoint` (SwiftUI menu bar app), `helper/mirror.c` (pass-through file system for macFUSE), `Resources/<code>.lproj` (translations), `assets` (icon and design drafts).
 

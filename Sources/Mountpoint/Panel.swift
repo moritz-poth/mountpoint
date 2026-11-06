@@ -147,7 +147,9 @@ struct Panel: View {
                 Image(systemName: "arrow.down.circle.fill").font(.system(size: 12)).foregroundColor(t.online)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Mountpoint \(version) is available.").font(.mono(11, semibold: true)).foregroundColor(t.text)
-                    Text("Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first.")
+                    Text(release.manual
+                         ? "This update has to be installed by hand: download it from GitHub, quit Mountpoint and replace the app in the Applications folder."
+                         : "Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first.")
                         .font(.mono(11)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
                     if case .failed(let message) = updater.state {
                         Text(message).font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
@@ -167,10 +169,13 @@ struct Panel: View {
                 if updater.state == .installing {
                     ProgressView().controlSize(.small)
                     Text("Installing update…").font(.mono(11)).foregroundColor(t.muted)
+                } else if release.manual {
+                    Button("Download from GitHub") { NSWorkspace.shared.open(release.safePage) }
+                        .buttonStyle(FerryButtonStyle(theme: t, primary: true))
                 } else {
                     Button("Install update") { updater.install() }
                         .buttonStyle(FerryButtonStyle(theme: t, primary: true))
-                    Button("What’s new") { NSWorkspace.shared.open(release.page) }
+                    Button("What’s new") { NSWorkspace.shared.open(release.safePage) }
                         .buttonStyle(FerryButtonStyle(theme: t))
                 }
             }
@@ -183,10 +188,10 @@ struct Panel: View {
     @ViewBuilder private func settingsContent(_ t: Theme) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle(title: String(localized: "Settings"), theme: t)
-            Checkbox(title: "Launch at login", on: store.launchAtLogin, theme: t) {
+            SwitchRow(title: "Launch at login", on: store.launchAtLogin, theme: t) {
                 store.setLaunchAtLogin(!store.launchAtLogin)
             }
-            Checkbox(title: "Mount as network drive", on: store.network, theme: t) {
+            SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {
                 store.network.toggle()
                 if store.network { show(.networkInfo) }
             }
@@ -194,7 +199,6 @@ struct Panel: View {
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.leading, 23)
             HStack(spacing: 10) {
                 Text("Appearance").font(.mono()).foregroundColor(t.text)
                 Spacer()
@@ -250,14 +254,20 @@ struct Panel: View {
                 }
             }
             .disabled(candidates.isEmpty)
-            Checkbox(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
+            SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
                 store.watchNetwork.toggle()
             }
             Text("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.leading, 23)
+            SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) {
+                store.watchSize.toggle()
+            }
+            Text("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
         }
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: String(localized: "Updates"), theme: t)
@@ -282,6 +292,9 @@ struct Panel: View {
         }
         Rectangle().fill(t.line).frame(height: 1)
         HStack {
+            // für Fehlerberichte: Ereignisse, Fehler und Alarme stehen dort
+            Button("Show log file") { Log.reveal() }
+                .buttonStyle(FerryButtonStyle(theme: t))
             Spacer()
             Button("Done") { settings = false }
                 .buttonStyle(FerryButtonStyle(theme: t, primary: true))
@@ -332,7 +345,8 @@ struct Panel: View {
                     Button("Rename…") { show(.rename(p), text: p.name) }
                     Button("Delete project…") { show(.deleteProject(p)) }
                 }
-                Button(state == .busy ? "Mounting…" : state == .all ? "Eject" : "Mount") {
+                let ejecting = items.contains { store.busy.contains($0.id) && store.mounted.contains($0.id) }
+                Button(state == .busy ? (ejecting ? "Ejecting…" : "Mounting…") : state == .all ? "Eject" : "Mount") {
                     state == .all ? store.unmountAll(p.id) : store.mountAll(p.id)
                 }
                 .buttonStyle(FerryButtonStyle(theme: t, primary: state != .all))
@@ -399,7 +413,7 @@ struct Panel: View {
                 Divider()
                 Button("Remove workspace…") { show(.removeWorkspace(w)) }
             }
-            Button(isBusy ? "Mounting…" : isMounted ? "Eject" : "Mount") {
+            Button(isBusy ? (isMounted ? "Ejecting…" : "Mounting…") : isMounted ? "Eject" : "Mount") {
                 isMounted ? store.unmount(w) : store.mount(w)
             }
             .buttonStyle(FerryButtonStyle(theme: t, primary: !isMounted))
@@ -492,7 +506,7 @@ struct Panel: View {
                     .onSubmit { if !name.isEmpty { confirm(d, name) } }
             }
             if checkbox {
-                Checkbox(title: "Also remove its workspaces", on: flag, theme: t) { flag.toggle() }
+                SwitchRow(title: "Also remove its workspaces", on: flag, theme: t) { flag.toggle() }
             }
             HStack(spacing: 10) {
                 Spacer()

@@ -19,12 +19,13 @@
 
 static char root[PATH_MAX];
 
-// Pfad im Volume -> Pfad im Quellordner
+// Pfad im Volume -> Pfad im Quellordner; NULL, wenn er zu lang wird.
+// Nie gekürzt weitermachen: ein abgeschnittener Pfad zeigt auf ein anderes Objekt.
 static const char *real(const char *path, char *buf) {
-    snprintf(buf, PATH_MAX, "%s%s", root, path);
-    return buf;
+    int n = snprintf(buf, PATH_MAX, "%s%s", root, path);
+    return n < 0 || n >= PATH_MAX ? NULL : buf;
 }
-#define REAL(p) char _b[PATH_MAX]; const char *r = real(p, _b)
+#define REAL(p) char _b[PATH_MAX]; const char *r = real(p, _b); if (!r) return -ENAMETOOLONG
 #define TRY(x) return (x) == -1 ? -errno : 0
 
 static int m_getattr(const char *p, struct stat *st) { REAL(p); TRY(lstat(r, st)); }
@@ -58,11 +59,21 @@ static int m_rmdir(const char *p) { REAL(p); TRY(rmdir(r)); }
 static int m_symlink(const char *to, const char *p) { REAL(p); TRY(symlink(to, r)); }
 static int m_rename(const char *from, const char *to) {
     char a[PATH_MAX], b[PATH_MAX];
-    TRY(rename(real(from, a), real(to, b)));
+    const char *ra = real(from, a), *rb = real(to, b);
+    if (!ra || !rb) return -ENAMETOOLONG;
+    TRY(rename(ra, rb));
 }
-static int m_chmod(const char *p, mode_t mode) { REAL(p); TRY(chmod(r, mode)); }
+// Verknüpfungen nie folgen: sonst änderte sich ihr Ziel, womöglich außerhalb des Workspace
+static int m_chmod(const char *p, mode_t mode) { REAL(p); TRY(fchmodat(AT_FDCWD, r, mode, AT_SYMLINK_NOFOLLOW)); }
 static int m_chown(const char *p, uid_t u, gid_t g) { REAL(p); TRY(lchown(r, u, g)); }
-static int m_truncate(const char *p, off_t size) { REAL(p); TRY(truncate(r, size)); }
+static int m_truncate(const char *p, off_t size) {
+    REAL(p);
+    int fd = open(r, O_WRONLY | O_NOFOLLOW);
+    if (fd == -1) return -errno;
+    int res = ftruncate(fd, size) == -1 ? -errno : 0;
+    close(fd);
+    return res;
+}
 static int m_ftruncate(const char *p, off_t size, struct fuse_file_info *fi) { TRY(ftruncate(fi->fh, size)); }
 static int m_utimens(const char *p, const struct timespec tv[2]) {
     REAL(p);
@@ -91,6 +102,13 @@ static int m_write(const char *p, const char *buf, size_t size, off_t off, struc
     return n == -1 ? -errno : (int)n;
 }
 static int m_statfs(const char *p, struct statvfs *st) { REAL(p); TRY(statvfs(r, st)); }
+// Bei jedem close() des Programms: Netzlaufwerke (SMB) melden Schreibfehler oft erst beim Schließen –
+// close() auf einer Kopie des Handles reicht sie an Avid/Finder weiter, statt sie zu verschlucken.
+static int m_flush(const char *p, struct fuse_file_info *fi) {
+    int fd = dup(fi->fh);
+    if (fd == -1) return -errno;
+    TRY(close(fd));
+}
 static int m_release(const char *p, struct fuse_file_info *fi) { close(fi->fh); return 0; }
 static int m_fsync(const char *p, int datasync, struct fuse_file_info *fi) { TRY(fsync(fi->fh)); }
 // Avid und Finder nutzen erweiterte Attribute (z. B. Resource Forks)
@@ -117,7 +135,7 @@ static struct fuse_operations ops = {
     .mkdir = m_mkdir, .unlink = m_unlink, .rmdir = m_rmdir, .symlink = m_symlink, .rename = m_rename,
     .chmod = m_chmod, .chown = m_chown, .truncate = m_truncate, .ftruncate = m_ftruncate,
     .utimens = m_utimens, .open = m_open, .create = m_create, .read = m_read, .write = m_write,
-    .statfs = m_statfs, .release = m_release, .fsync = m_fsync,
+    .statfs = m_statfs, .flush = m_flush, .release = m_release, .fsync = m_fsync,
     .setxattr = m_setxattr, .getxattr = m_getxattr, .listxattr = m_listxattr, .removexattr = m_removexattr,
 };
 
