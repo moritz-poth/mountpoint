@@ -78,7 +78,7 @@ The menu bar icon (a drive with a folder) appears at the top right. It is filled
 
 Choose per volume what to watch:
 - **Avid MediaFiles** (default) – any `Avid MediaFiles` folder at the top level of the volume.
-- **Own folder** (always for the system volume, without a choice: the Avid installation always creates `Avid MediaFiles` there) – only the folder your own Media Composer writes into in `Avid MediaFiles/MXF`: `1` on local drives, `<computer name>.1` on network drives. Folders other systems write (e.g. on a shared cloud drive) don't alert.
+- **Workstation folder** (always for the system volume, which has no choice: the Avid installation always creates `Avid MediaFiles` there) – only the folder your own Media Composer writes into in `Avid MediaFiles/MXF`: `1` on local drives, `<computer name>.1` on network drives. Folders other systems write (e.g. on a shared cloud drive) don't alert.
 
 The system volume (e.g. *Macintosh HD*) is listed under its Finder name; there Media Composer uses `/Users/Shared/AvidMediaComposer/Avid MediaFiles`, so that is the folder Mountpoint watches.
 

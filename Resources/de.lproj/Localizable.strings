@@ -158,8 +158,6 @@
 "Appearance" = "Erscheinungsbild";
 "Light" = "Hell";
 "Dark" = "Dunkel";
-"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink. „Eigener Ordner“: nur, wenn dein Media Composer seinen Ordner in MXF anlegt – „1“ auf lokalen Laufwerken, „<Rechnername>.1“ auf Netzlaufwerken –, nicht, wenn andere schreiben.";
-"Own folder" = "Eigener Ordner";
 "Avid MediaFiles" = "Avid MediaFiles";
 "Clear error messages" = "Fehlermeldungen entfernen";
 "Clear error message" = "Fehlermeldung entfernen";
@@ -169,3 +167,5 @@
 "On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking." = "Auf jedem verbundenen Netzlaufwerk mit „Avid MediaFiles“: warnt, wenn in MXF ein Ordner „1“ entsteht – ein Zeichen, dass jemand ohne Bin Locking arbeitet.";
 "Folder “1” on “%@”" = "Ordner „1“ auf „%@“";
 "A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Auf diesem Netzlaufwerk ist in „Avid MediaFiles/MXF“ ein Ordner „1“ entstanden. Ein System schreibt darauf wie auf ein lokales Laufwerk – wahrscheinlich arbeitet jemand ohne Bin Locking. Finde heraus, wer, und prüfe dessen Media-Composer-Einstellungen.";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write. The system volume always watches the workstation folder." = "Warnt, sobald Avid auf einem dieser Volumes „Avid MediaFiles“ anlegt, z. B. bei LucidLink. „Workstation-Ordner“: nur, wenn dein Media Composer seinen Ordner in MXF anlegt – „1“ auf lokalen Laufwerken, „<Rechnername>.1“ auf Netzlaufwerken –, nicht, wenn andere schreiben. Beim Systemvolume zählt immer der Workstation-Ordner.";
+"Workstation folder" = "Workstation-Ordner";

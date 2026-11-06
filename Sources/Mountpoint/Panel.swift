@@ -215,7 +215,7 @@ struct Panel: View {
         }
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: String(localized: "Protected volumes"), theme: t)
-            Text("Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write.")
+            Text("Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write. The system volume always watches the workstation folder.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
@@ -225,14 +225,13 @@ struct Panel: View {
                     Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
                     Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
                         .help(guardRoot(name))
+                        .frame(height: 26)   // so hoch wie die Zeilen mit Auswahl
                     Spacer()
-                    if name == systemGuard {
-                        // fest: „Avid MediaFiles“ gibt es dort immer
-                        Text("Own folder").font(.mono(12)).foregroundColor(t.muted).padding(.horizontal, 12).frame(height: 26)
-                    } else {
-                        Dropdown(title: own ? Text("Own folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
+                    // Systemvolume ohne Auswahl: „Avid MediaFiles“ gibt es dort immer, es zählt der Workstation-Ordner
+                    if name != systemGuard {
+                        Dropdown(title: own ? Text("Workstation folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
                             Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
-                            Button("Own folder") { store.setGuardOwn(name, true) }.disabled(own)
+                            Button("Workstation folder") { store.setGuardOwn(name, true) }.disabled(own)
                         }
                     }
                     Button { store.removeGuard(name) } label: {

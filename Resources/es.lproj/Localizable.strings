@@ -158,8 +158,6 @@
 "Appearance" = "Aspecto";
 "Light" = "Claro";
 "Dark" = "Oscuro";
-"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Own folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write." = "Avisa en cuanto Avid crea «Avid MediaFiles» en uno de estos volúmenes, p. ej. LucidLink. «Carpeta propia»: solo cuando tu Media Composer crea su carpeta en MXF – «1» en discos locales, «<nombre del ordenador>.1» en discos de red –, no cuando escriben otros.";
-"Own folder" = "Carpeta propia";
 "Avid MediaFiles" = "Avid MediaFiles";
 "Clear error messages" = "Borrar mensajes de error";
 "Clear error message" = "Borrar mensaje de error";
@@ -169,3 +167,5 @@
 "On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking." = "En cada disco de red conectado con «Avid MediaFiles»: avisa cuando aparece en MXF una carpeta «1» – señal de que alguien trabaja sin bloqueo de bins.";
 "Folder “1” on “%@”" = "Carpeta «1» en «%@»";
 "A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Ha aparecido una carpeta «1» en «Avid MediaFiles/MXF» en este disco de red. Un sistema escribe en él como en un disco local – probablemente alguien trabaja sin bloqueo de bins. Averigua quién y revisa su configuración de Media Composer.";
+"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write. The system volume always watches the workstation folder." = "Avisa en cuanto Avid crea «Avid MediaFiles» en uno de estos volúmenes, p. ej. LucidLink. «Carpeta de la estación»: solo cuando tu Media Composer crea su carpeta en MXF – «1» en discos locales, «<nombre del ordenador>.1» en discos de red –, no cuando escriben otros. El volumen del sistema siempre vigila la carpeta de la estación.";
+"Workstation folder" = "Carpeta de la estación";
