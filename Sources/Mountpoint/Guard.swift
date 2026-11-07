@@ -171,8 +171,9 @@ final class VolumeGuard {
     private func showSizeAlert(_ volume: String, _ folder: String, _ count: Int) {
         let key = "s:" + folder
         let name = (folder as NSString).lastPathComponent
-        let view = GuardAlert(title: String(localized: "“\(name)” on “\(volume)” holds \(count) files"),
-            message: String(localized: "Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Avid starts a new folder."),
+        let view = GuardAlert(title: loc("“\(name)” on “\(volume)” holds \(count) files"),
+            message: loc("Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
+            note: loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
             dark: Store.shared.dark,
             showInFinder: { NSWorkspace.shared.selectFile(folder, inFileViewerRootedAtPath: "") },
             snooze: { [weak self] choice in
@@ -361,8 +362,8 @@ final class VolumeGuard {
     // MARK: Alarmfenster
 
     private func showAlert(_ name: String) {
-        let view = GuardAlert(title: String(localized: "Avid is writing to “\(guardName(name))”"),
-            message: String(localized: "An “Avid MediaFiles” folder was created on this volume. Check your import or render target."),
+        let view = GuardAlert(title: loc("Media Composer is writing to “\(guardName(name))”"),
+            message: loc("An “Avid MediaFiles” folder was created on this volume. Check your import or render target."),
             dark: Store.shared.dark,
             showInFinder: { [weak self] in
                 guard let self else { return }
@@ -386,11 +387,11 @@ final class VolumeGuard {
         let title, message: String
         switch w.kind {
         case .own:
-            title = String(localized: "Avid is writing to “\(w.name)”: \(list)")
-            message = String(localized: "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target.")
+            title = loc("Media Composer is writing to “\(w.name)”: \(list)")
+            message = loc("Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target.")
         case .network:
-            title = String(localized: "Folder “1” on “\(w.name)”")
-            message = String(localized: "A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings.")
+            title = loc("Folder “1” on “\(w.name)”")
+            message = loc("A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without the bin locking of Media Composer Enterprise. Find out who and check their Media Composer settings.")
         }
         let view = GuardAlert(title: title, message: message,
             dark: Store.shared.dark,
@@ -409,7 +410,7 @@ final class VolumeGuard {
 
     private func presentPanel(_ view: GuardAlert, key: String) {
         let panel = AlertPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.contentViewController = NSHostingController(rootView: view)
+        panel.contentViewController = NSHostingController(rootView: view.environment(\.locale, Store.shared.locale))
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
@@ -445,6 +446,8 @@ final class AlertPanel: NSPanel {
 struct GuardAlert: View {
     let title: String
     let message: String
+    /// zweiter Absatz, Markdown (Links sind klickbar)
+    var note: String? = nil
     let dark: Bool
     let showInFinder: () -> Void
     let snooze: (Snooze) -> Void
@@ -471,6 +474,15 @@ struct GuardAlert: View {
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.leading, 36)
+                if let note {
+                    Text(linked(note))
+                        .font(.mono(12))
+                        .foregroundColor(t.muted)
+                        .tint(t.text)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 36)
+                }
             }
             HStack(spacing: 12) {
                 Button("Show in Finder", action: showInFinder)
@@ -493,11 +505,18 @@ struct GuardAlert: View {
         .environment(\.colorScheme, dark ? .dark : .light)
     }
 
+    /// Markdown-Links unterstrichen, damit man sieht, dass sie klickbar sind
+    private func linked(_ md: String) -> AttributedString {
+        var a = (try? AttributedString(markdown: md)) ?? AttributedString(md)
+        for run in a.runs where run.link != nil { a[run.range].underlineStyle = .single }
+        return a
+    }
+
     private func label(_ s: Snooze) -> String {
         switch s {
-        case .minutes(let m) where m < 60: return String(localized: "\(m) minutes")
-        case .minutes(let m): return m == 60 ? String(localized: "1 hour") : String(localized: "\(m / 60) hours")
-        case .restOfDay: return String(localized: "Rest of the day")
+        case .minutes(let m) where m < 60: return loc("\(m) minutes")
+        case .minutes(let m): return m == 60 ? loc("1 hour") : loc("\(m / 60) hours")
+        case .restOfDay: return loc("Rest of the day")
         }
     }
 }

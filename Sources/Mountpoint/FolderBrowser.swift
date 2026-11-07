@@ -41,18 +41,30 @@ struct FolderBrowser: View {
     var body: some View {
         let t = theme
         VStack(alignment: .leading, spacing: 12) {
+            // feste Höhe: das Panel springt beim Wechsel der Ebene nicht; in der Laufwerksliste steht der Titel bündig links
             HStack(spacing: 8) {
-                if current != nil {
-                    Button { go(parent(of: current!)) } label: {
+                if let current {
+                    Button { go(parent(of: current)) } label: {
                         Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
                             .foregroundColor(t.muted).frame(width: 18, height: 18).contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Back"))
                 }
-                SectionTitle(title: current.map(displayName) ?? String(localized: "Choose a folder"), theme: t)
+                SectionTitle(title: current.map(displayName) ?? loc("Choose a volume"), theme: t)
+                Spacer(minLength: 8)
+                // in der Laufwerksliste gibt es keinen Ort für einen neuen Ordner
+                Button { newFolder = ""; withAvid = true } label: {
+                    Image(systemName: "folder.badge.plus").font(.system(size: 13))
+                        .foregroundColor(current == nil ? t.disabled : t.muted).frame(width: 24, height: 18).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(current == nil || newFolder != nil)
+                .help(Text("New folder…"))
+                .accessibilityLabel(Text("New folder…"))
             }
-            Text(current?.path ?? String(localized: "Choose the folder that contains “Avid MediaFiles”."))
+            .frame(height: 18)
+            Text(current?.path ?? loc("Choose the folder that contains “Avid MediaFiles”."))
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .lineLimit(1)
@@ -65,6 +77,16 @@ struct FolderBrowser: View {
             }
             .frame(height: 260)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
+            .overlay(alignment: .bottom) {
+                if let name = newFolder, current != nil {
+                    VStack(spacing: 0) {
+                        Rectangle().fill(t.line).frame(height: 1)
+                        newFolderForm(name, t).padding(10)
+                    }
+                    .background(t.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
             .overlay {
                 if loading || items.isEmpty {
                     if let readError, !loading {
@@ -76,16 +98,8 @@ struct FolderBrowser: View {
                 }
             }
 
-            if current != nil {
-                if let name = newFolder {
-                    newFolderForm(name, t)
-                } else {
-                    Button("New folder…") { newFolder = ""; withAvid = true }
-                        .buttonStyle(FerryButtonStyle(theme: t))
-                }
-            }
-            if current == nil {
-                HStack(spacing: 8) {
+            // NAS verbinden: auf jeder Ebene, damit sich die Höhe beim Wechsel nicht ändert
+            HStack(spacing: 8) {
                     TextField("", text: $server)
                         .textFieldStyle(.plain)
                         .font(.mono(12))
@@ -97,9 +111,8 @@ struct FolderBrowser: View {
                     Button(connecting ? "Connecting…" : "Connect", action: connect)
                         .buttonStyle(FerryButtonStyle(theme: t))
                         .disabled(connecting)
-                }
-                Text("Connect a NAS, e.g. smb://nas/Archive").font(.mono(11)).foregroundColor(t.faint)
             }
+            Text("Connect a NAS, e.g. smb://nas/Archive").font(.mono(11)).foregroundColor(t.faint)
             if let error {
                 Text(error).font(.mono(11)).foregroundColor(t.error).fixedSize(horizontal: false, vertical: true)
             }
@@ -130,7 +143,7 @@ struct FolderBrowser: View {
                 Spacer(minLength: 6)
                 if item.avid {
                     Text("AVID")
-                        .font(.mono(9, semibold: true))
+                        .font(.mono(10, semibold: true))
                         .tracking(0.5)
                         .foregroundColor(t.online)
                         .padding(.horizontal, 5)
@@ -188,6 +201,7 @@ struct FolderBrowser: View {
 
     private func go(_ url: URL?) {
         error = nil
+        newFolder = nil
         current = url
     }
 
@@ -226,8 +240,8 @@ struct FolderBrowser: View {
             } catch let e as NSError {
                 let denied = e.code == NSFileReadNoPermissionError || (e.userInfo[NSUnderlyingErrorKey] as? NSError)?.code == Int(EPERM)
                 return ([], denied
-                    ? String(localized: "Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access).")
-                    : String(localized: "This folder cannot be read: \(e.localizedDescription)"))
+                    ? loc("Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access).")
+                    : loc("This folder cannot be read: \(e.localizedDescription)"))
             }
             urls = entries
                 .filter { u in
@@ -250,7 +264,7 @@ struct FolderBrowser: View {
     private func connect() {
         let address = server.trimmingCharacters(in: .whitespaces)
         guard let url = URL(string: address), url.scheme != nil, url.host != nil else {
-            error = String(localized: "Enter an address like smb://nas/Archive.")
+            error = loc("Enter an address like smb://nas/Archive.")
             return
         }
         connecting = true
@@ -283,11 +297,11 @@ struct HoverRowStyle: ButtonStyle {
 /// Legt einen neuen Ordner an (Fehler, falls es ihn schon gibt), optional mit `Avid MediaFiles/MXF`.
 func makeFolder(named name: String, in dir: URL, withAvid: Bool) throws -> URL {
     guard !name.contains("/"), !name.hasPrefix(".") else {
-        throw MountError(message: String(localized: "Folder names cannot contain “/” or start with a dot."))
+        throw MountError(message: loc("Folder names cannot contain “/” or start with a dot."))
     }
     let url = dir.appendingPathComponent(name)
     if FileManager.default.fileExists(atPath: url.path) {
-        throw MountError(message: String(localized: "“\(name)” already exists here."))
+        throw MountError(message: loc("“\(name)” already exists here."))
     }
     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
     if withAvid { try createAvidFolders(in: url) }

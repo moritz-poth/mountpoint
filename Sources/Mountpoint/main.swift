@@ -47,20 +47,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Updater.shared.start()
     }
 
-    /// Beim Neustart wegen Sprachwechsel bleiben die Volumes eingehängt.
-    static var relaunching = false
-
     /// Beim Beenden auswerfen; was noch benutzt wird, bleibt eingehängt – und das sagen wir.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        Log.write(AppDelegate.relaunching ? "restarting" : "quit")
-        guard !AppDelegate.relaunching else { return .terminateNow }
+        Log.write("quit")
         let still = Store.shared.unmountAllOnQuit()
+        Sidebar.removeAll()   // der nächste Start trägt noch eingehängte Volumes wieder ein
         if !still.isEmpty {
             NSApp.activate(ignoringOtherApps: true)
             let a = NSAlert()
             a.icon = NSApp.applicationIconImage
-            a.messageText = String(localized: "Some volumes stay mounted")
-            a.informativeText = String(localized: "These volumes are still in use and stay mounted: \(still.joined(separator: ", ")). Quit Media Composer and eject them in the Finder.")
+            a.messageText = loc("Some volumes stay mounted")
+            a.informativeText = loc("These volumes are still in use and stay mounted: \(still.joined(separator: ", ")). Quit Media Composer and eject them in the Finder.")
             a.runModal()
         }
         return .terminateNow
@@ -84,45 +81,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Icon N01 (assets/menubar.svg) als Vorlage für die Menüleiste; eingehängt = Laufwerk gefüllt.
+/// Menüleisten-Vorlage „Ordner-Laufwerk“ (wie assets/menubar.svg, 256er Raster): nicht eingehängt = Kontur,
+/// eingehängt = gefüllt mit ausgestanzter LED; Problem = Punkt oben rechts.
 func menuBarIcon(mounted: Bool, problem: Bool = false) -> NSImage {
     let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
-        // Raster wie im SVG: viewBox 4 6 92 92 → 18 pt
-        let s = 18.0 / 92.0
+        // Ausschnitt x 24…232 (208 Einheiten) auf 18 pt, Motivmitte y 138 auf 9 pt
+        let s = 18.0 / 208.0
         let t = NSAffineTransform()
+        t.translateX(by: 9, yBy: 9)
         t.scale(by: s)
-        t.translateX(by: -4, yBy: -6)
+        t.translateX(by: -128, yBy: -138)
         t.concat()
         NSColor.black.set()
 
-        let folder = NSBezierPath()
-        folder.move(to: NSPoint(x: 26, y: 45))
-        folder.line(to: NSPoint(x: 26, y: 26))
-        folder.line(to: NSPoint(x: 45.2, y: 26))
-        folder.line(to: NSPoint(x: 50.2, y: 32))
-        folder.line(to: NSPoint(x: 74, y: 32))
-        folder.line(to: NSPoint(x: 74, y: 45))
-        folder.lineWidth = 7
-        folder.lineCapStyle = .butt
-        folder.lineJoinStyle = .round
-        folder.stroke()
-
-        let drive = NSBezierPath(roundedRect: NSRect(x: 14, y: 54, width: 72, height: 22), xRadius: 6, yRadius: 6)
-        let led = NSBezierPath(ovalIn: NSRect(x: 74 - 3.5, y: 65 - 3.5, width: 7, height: 7))
+        // Körper mit Ordnerreiter, Schräge exakt 45°
+        func shape(_ o: CGFloat) -> NSBezierPath {
+            let p = NSBezierPath()
+            let (l, top, bodyTop, r, b) = (40 - o, 80 - o, 100 - o, 216 + o, 196 + o)
+            let tabEnd = 98 + o * (2.0.squareRoot() - 1)   // die Schräge bleibt beim Erweitern auf derselben 45°-Parallelen
+            p.move(to: NSPoint(x: l, y: (bodyTop + b) / 2))
+            p.appendArc(from: NSPoint(x: l, y: top), to: NSPoint(x: tabEnd, y: top), radius: 12 + o)
+            p.line(to: NSPoint(x: tabEnd, y: top))
+            p.line(to: NSPoint(x: tabEnd + bodyTop - top, y: bodyTop))
+            p.appendArc(from: NSPoint(x: r, y: bodyTop), to: NSPoint(x: r, y: b), radius: 20 + o)
+            p.appendArc(from: NSPoint(x: r, y: b), to: NSPoint(x: l, y: b), radius: 20 + o)
+            p.appendArc(from: NSPoint(x: l, y: b), to: NSPoint(x: l, y: top), radius: 20 + o)
+            p.close()
+            return p
+        }
+        let led = NSBezierPath(ovalIn: NSRect(x: 180 - 12, y: 164 - 12, width: 24, height: 24))
         if mounted {
-            // gefüllt, LED ausgestanzt
-            let outer = NSBezierPath(roundedRect: NSRect(x: 10.5, y: 50.5, width: 79, height: 29), xRadius: 9.5, yRadius: 9.5)
-            outer.append(led)
-            outer.windingRule = .evenOdd
-            outer.fill()
+            // um die halbe Strichstärke erweitert, damit beide Zustände gleich groß sind; LED ausgestanzt
+            let filled = shape(9)
+            filled.append(led)
+            filled.windingRule = .evenOdd
+            filled.fill()
         } else {
-            drive.lineWidth = 7
-            drive.stroke()
-            led.fill()
+            let outline = shape(0)
+            outline.lineWidth = 18
+            outline.lineJoinStyle = .round
+            outline.stroke()
+            NSBezierPath(ovalIn: NSRect(x: 180 - 11, y: 164 - 11, width: 22, height: 22)).fill()
         }
         if problem {
-            // Warnpunkt oben rechts
-            NSBezierPath(ovalIn: NSRect(x: 76, y: 6, width: 18, height: 18)).fill()
+            // Warnpunkt oben rechts, über dem Körper
+            NSBezierPath(ovalIn: NSRect(x: 197, y: 33, width: 34, height: 34)).fill()
         }
         return true
     }

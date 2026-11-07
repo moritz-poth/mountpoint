@@ -1,10 +1,12 @@
-# Mountpoint
+<p align="center"><img src="assets/icon.png" width="128" alt="Mountpoint"></p>
+
+<p align="center"><img src="assets/header.png" alt="Mountpoint – any folder becomes its own volume, so Avid Media Composer finds the media"></p>
 
 A small macOS menu bar app that mounts any folder as its own volume – from a local disk, an archive drive or a NAS.
 
-Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` folder at the **root** of a volume. With Mountpoint, a folder like `/Volumes/Archive/2024/Documentary/AI_Media` becomes the volume `AI_Media`, with `Avid MediaFiles` right at its top.
+Built for Avid Media Composer: Media Composer only finds media in an `Avid MediaFiles` folder at the **root** of a volume. With Mountpoint, a folder like `/Volumes/Archive/2024/Documentary/AI_Media` becomes the volume `AI_Media`, with `Avid MediaFiles` right at its top.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/panel-dark.png"><img src="assets/screenshots/panel-light.png" width="400" alt="Mountpoint panel: a project with three mounted workspaces, a second project and a single workspace"></picture></p>
+<p align="center"><img src="assets/mountpoint.gif" width="800" alt="Animation: a folder deep in an archive drive is mounted with one click in Mountpoint and appears as its own volume"></p>
 
 *Deutsch · Français · Español: Einstellungen (Zahnrad) → Sprache · Réglages → Langue · Ajustes → Idioma.*
 
@@ -16,13 +18,14 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 - **Projects** – group workspaces, mount or eject a whole project with one click, and mount projects automatically when the app starts.
 - **NAS without Finder** – Mountpoint remembers the network share of a workspace and connects it itself when needed (credentials from the Keychain). The folder picker can also connect to a share directly (`smb://nas/Archive`).
 - **Create folders** – create new workspace folders, with `Avid MediaFiles/MXF` inside, directly from the folder picker.
-- **Avid collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise (from version 2026.8 on) then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Avid's Media Creation settings. Can be switched off in the settings.
-- **Protected volumes** – get an alert as soon as Avid creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink), or – per volume – only when your own Media Composer creates its folder there. The Mac's system volume can be protected too. Alerts can be snoozed per volume (5 min … rest of the day).
-- **Warning about a `1` folder on network drives** – a setting: on every connected network drive with `Avid MediaFiles`, an alert as soon as a folder `1` appears in `Avid MediaFiles/MXF` – a sign that someone works without bin locking.
+- **Media Composer Enterprise collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise (from version 2026.8 on) then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Media Composer's Media Creation settings. Can be switched off in the settings.
+- **Protected volumes** – get an alert as soon as Media Composer creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink), or – per volume – only when your own Media Composer creates its folder there. The Mac's system volume can be protected too. Alerts can be snoozed per volume (5 min … rest of the day).
+- **Warning about a `1` folder on network drives** – a setting: on every connected network drive with `Avid MediaFiles`, an alert as soon as a folder `1` appears in `Avid MediaFiles/MXF` – a sign that someone works without the bin locking of Media Composer Enterprise.
 - **Warning about big MXF folders** – a setting: an alert as soon as a folder in `Avid MediaFiles/MXF` holds more than 5000 files, on every connected drive, the system volume and your workspaces. Checked once a minute in the background; unchanged folders are not counted again.
 - **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates. Every update is signed; Mountpoint installs only updates with a valid signature.
+- **Finder sidebar** – mounted workspaces appear under *Locations*, like other drives, and disappear when ejected (can be switched off in the settings).
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do. A drive that stops responding never freezes Mountpoint. Settings → *Show log file* shows what happened – send it along when you report a problem.
-- **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Avid still has files open, the volume stays mounted.
+- **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Media Composer still has files open, the volume stays mounted.
 - English, German, French and Spanish, light and dark appearance, launch at login.
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: a folder “1” appeared on a network drive"></picture></p>
@@ -38,7 +41,7 @@ Built for Avid Media Composer: Avid only finds media in an `Avid MediaFiles` fol
 
 - **Changing settings** applies to volumes the next time they are mounted – eject and mount them once. Updates installed from within the app do this for you (from 1.0.0 beta 8 on).
 - **Use at your own risk:** Mountpoint comes without any warranty; the author is not liable for data loss or other damage. Always keep a backup of your media.
-- **Avid’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Avid hides the workspaces.
+- **Media Composer’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Media Composer hides the workspaces.
 
 ## Requirements
 
@@ -66,20 +69,22 @@ Alternatively, in Terminal:
 xattr -dr com.apple.quarantine /Applications/Mountpoint.app
 ```
 
-The menu bar icon (a drive with a folder) appears at the top right. It is filled while at least one workspace is mounted. On the very first launch a short notice explains the Finder’s delete warning and that you use Mountpoint at your own risk – it appears until you click **I understand**.
+The menu bar icon (a drive with a folder tab) appears at the top right. It is filled while at least one workspace is mounted, and a dot appears when something needs your attention. On the very first launch a short notice explains the Finder’s delete warning and that you use Mountpoint at your own risk – it appears until you click **I understand**.
 
 ## Usage
 
-- **Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
-- **Mount / Eject** – per workspace or per project. Status dots: green = mounted, grey = not mounted, orange = partly mounted or a problem.
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/panel-dark.png"><img src="assets/screenshots/panel-light.png" width="400" alt="Mountpoint panel: a project with three mounted workspaces, a second project and a single workspace"></picture></p>
+
+- **Add… → Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
+- **Mount / Eject** – per workspace or per project. Status dots: filled green = mounted, grey ring = not mounted, half-filled orange = partly mounted or a problem.
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch, clear all its error messages (a single one goes with its ×). Removing a workspace or deleting a project never touches any files.
-- **Settings (gear icon)** – launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom left of the main panel. Settings are saved right away; the panel always reopens on its main page. Changing the language restarts the app for a moment; mounted volumes stay mounted.
+- **Settings (gear icon)** – launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom of the settings. New workspaces and projects are added with **Add…** at the bottom left of the panel. Settings are saved right away; the panel always reopens on its main page. Changing the language takes effect immediately.
 
 ### Protected volumes
 
 Choose per volume what to watch:
 - **Avid MediaFiles** (default) – any `Avid MediaFiles` folder at the top level of the volume.
-- **Workstation folder** (always for the system volume, which has no choice: the Avid installation always creates `Avid MediaFiles` there) – only the folder your own Media Composer writes into in `Avid MediaFiles/MXF`: `1` on local drives, `<computer name>.1` on network drives. Folders other systems write (e.g. on a shared cloud drive) don't alert.
+- **Workstation folder** (always for the system volume, which has no choice: the Media Composer installation always creates `Avid MediaFiles` there) – only the folder your own Media Composer writes into in `Avid MediaFiles/MXF`: `1` on local drives, `<computer name>.1` on network drives. Folders other systems write (e.g. on a shared cloud drive) don't alert.
 
 The system volume (e.g. *Macintosh HD*) is listed under its Finder name; there Media Composer uses `/Users/Shared/AvidMediaComposer/Avid MediaFiles`, so that is the folder Mountpoint watches.
 

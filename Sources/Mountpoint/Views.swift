@@ -10,15 +10,15 @@ struct Theme {
     var background: Color { c(0x1f2225, 0xf5f5f3) }
     var text: Color { c(0xeceded, 0x17191b) }
     var muted: Color { c(0xa9adb1, 0x3f444a) }
-    var faint: Color { c(0x7c8288, 0x60666c) }
+    var faint: Color { c(0x858b91, 0x60666c) }   // dunkel 4.6:1 (vorher 4.1:1)
     var line: Color { c(0x3a3f44, 0xc4c8cc) }
     var disabled: Color { c(0x6a7076, 0x70767c) }
     var primary: Color { c(0xe6e7e8, 0x2e3236) }
     var onPrimary: Color { c(0x1f2225, 0xf5f5f3) }
-    var online: Color { c(0x3fb950, 0x1f883d) }
+    var online: Color { c(0x3fb950, 0x1a7f37) }   // hell 4.9:1, auch als Text („AVID“)
     var warning: Color { c(0xd29922, 0x8a5a00) }
     // Punkt „nicht alle eingehängt / Problem“
-    var partial: Color { c(0xf0883e, 0xe16f24) }
+    var partial: Color { c(0xf0883e, 0xb4530f) }   // hell 4.6:1 (vorher 3.0:1) – auch Text der Update-Meldungen
     var error: Color { c(0xf85149, 0xc62828) }
 }
 
@@ -97,6 +97,8 @@ struct MoreMenu<Content: View>: View {
         Menu(content: content) {
             Image(systemName: "ellipsis")
         }
+        .accessibilityLabel(Text("More actions"))
+        .help(Text("More actions"))
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .foregroundColor(theme.muted)
@@ -120,7 +122,7 @@ struct Switch: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? .isSelected : [])
+        .accessibilityValue(on ? Text("On") : Text("Off"))
     }
 }
 
@@ -140,7 +142,8 @@ struct SwitchRow: View {
         .onTapGesture(perform: action)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(title))
-        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+        .accessibilityValue(on ? Text("On") : Text("Off"))
+        .accessibilityAddTraits(.isButton)
         .accessibilityAction { action() }
     }
 }

@@ -115,7 +115,7 @@ final class Updater: ObservableObject {
                     self.available = nil
                     if manual { self.state = .upToDate }
                 } else if manual {
-                    self.state = .failed(String(localized: "Could not check for updates. Check the internet connection and try again."))
+                    self.state = .failed(loc("Could not check for updates. Check the internet connection and try again."))
                 }
             }
         }.resume()
@@ -140,7 +140,7 @@ final class Updater: ObservableObject {
         if let file, (response as? HTTPURLResponse)?.statusCode == 200 {
             result = Result { try Self.unpack(file, expecting: release.tag, signature: signature) }
         } else {
-            result = .failure(UpdateError(String(localized: "The update could not be downloaded. Check the internet connection and try again.")))
+            result = .failure(UpdateError(loc("The update could not be downloaded. Check the internet connection and try again.")))
         }
         Task { @MainActor in
             switch result {
@@ -170,7 +170,7 @@ final class Updater: ObservableObject {
     /// Unzips into a temporary folder and checks that it really is the expected, intact Mountpoint version.
     nonisolated static func unpack(_ zip: URL, expecting tag: String, signature: Data?, publicKey: String = Updater.publicKey,
                                    bundleID: String? = Bundle.main.bundleIdentifier) throws -> URL {
-        let damaged = UpdateError(String(localized: "The downloaded update is damaged. Please try again later or download it from GitHub."))
+        let damaged = UpdateError(loc("The downloaded update is damaged. Please try again later or download it from GitHub."))
         guard let data = try? Data(contentsOf: zip, options: .mappedIfSafe), signatureValid(data, signature, publicKey: publicKey) else { throw damaged }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("mountpoint-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -192,13 +192,13 @@ final class Updater: ObservableObject {
         do {
             try fm.trashItem(at: current, resultingItemURL: &trashed)
         } catch {
-            throw UpdateError(String(localized: "Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + String(localized: "Details: \(error.localizedDescription)"))
+            throw UpdateError(loc("Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + loc("Details: \(error.localizedDescription)"))
         }
         do {
             try fm.moveItem(at: app, to: current)
         } catch {
             if let trashed = trashed as URL? { try? fm.moveItem(at: trashed, to: current) }
-            throw UpdateError(String(localized: "Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + String(localized: "Details: \(error.localizedDescription)"))
+            throw UpdateError(loc("Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + loc("Details: \(error.localizedDescription)"))
         }
         // start the new version once this one has quit
         let p = Process()
@@ -206,7 +206,7 @@ final class Updater: ObservableObject {
         p.arguments = ["-c", "while /bin/kill -0 $1 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"",
                        current.path, String(ProcessInfo.processInfo.processIdentifier)]
         do { try p.run() } catch {
-            state = .failed(String(localized: "The update is installed. Quit Mountpoint and open it again to finish."))
+            state = .failed(loc("The update is installed. Quit Mountpoint and open it again to finish."))
             return
         }
         Store.shared.rememberMountedForUpdate()

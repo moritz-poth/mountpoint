@@ -4,9 +4,9 @@
 # Requires macFUSE (provides libfuse in /usr/local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=1.0.0          # CFBundleShortVersionString (numbers only)
-RELEASE=1.0.0          # tag and zip name
-BUILD=17
+VERSION=1.0.1          # CFBundleShortVersionString (numbers only)
+RELEASE=1.0.1          # tag and zip name
+BUILD=18
 APP=dist/Mountpoint.app
 
 swift build -c release --arch arm64
@@ -56,6 +56,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 # ad-hoc signed (no Apple Developer account): macOS needs "Open Anyway" once, see README
 codesign --force --deep --sign - "$APP"
+# the bundle is recreated at the same path: without this, Finder keeps showing a cached (blank or old) app icon
+touch "$APP"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
 rm -f "dist/Mountpoint-$RELEASE.zip"
 ditto -c -k --keepParent "$APP" "dist/Mountpoint-$RELEASE.zip"
 # update signature: installed apps only accept zips signed with the key in this Mac's Keychain

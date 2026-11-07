@@ -57,13 +57,13 @@ enum Mounter {
     static func mount(_ w: Workspace, helper: String, network: Bool = true, icon: String? = nil) throws {
         if isMounted(w) { return }
         guard FileManager.default.fileExists(atPath: macFUSE) else {
-            throw MountError(message: String(localized: "macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again."))
+            throw MountError(message: loc("macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again."))
         }
         let source = try resolveSource(w)
         // Ein leerer Ordner ohne Mount ist nur ein Rest (z. B. nach einem Absturz); darüber darf eingehängt werden.
         let leftover = (try? FileManager.default.contentsOfDirectory(atPath: w.volumePath))?.isEmpty == true
         if FileManager.default.fileExists(atPath: w.volumePath) && !leftover {
-            throw MountError(message: String(localized: "Another drive named “\(w.name)” is already connected. Eject it first – two volumes cannot have the same name."))
+            throw MountError(message: loc("Another drive named “\(w.name)” is already connected. Eject it first – two volumes cannot have the same name."))
         }
 
         // Der Helfer kehrt zurück, sobald das Volume steht, und läuft dann im Hintergrund weiter.
@@ -80,13 +80,13 @@ enum Mounter {
         let o = output.lowercased()
         let text: String
         if o.contains("not available") || o.contains("load") && o.contains("fuse") || o.contains("extension") {
-            text = String(localized: "macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again.")
+            text = loc("macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again.")
         } else if o.contains("permission denied") || o.contains("operation not permitted") {
-            text = String(localized: "Mountpoint is not allowed to read the folder of “\(name)”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders.")
+            text = loc("Mountpoint is not allowed to read the folder of “\(name)”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders.")
         } else {
-            text = String(localized: "“\(name)” could not be mounted.")
+            text = loc("“\(name)” could not be mounted.")
         }
-        return output.isEmpty ? text : text + "\n" + String(localized: "Details: \(output)")
+        return output.isEmpty ? text : text + "\n" + loc("Details: \(output)")
     }
 
     /// Nie mit Gewalt auswerfen: hat Avid noch Dateien offen, bleibt das Volume eingehängt.
@@ -96,8 +96,8 @@ enum Mounter {
         let (status, msg) = try run("/sbin/umount", [w.volumePath])
         guard status == 0 else {
             throw MountError(message: msg.localizedCaseInsensitiveContains("busy")
-                ? String(localized: "“\(w.name)” is in use. Quit Media Composer and try again.")
-                : String(localized: "“\(w.name)” could not be ejected.") + (msg.isEmpty ? "" : "\n" + String(localized: "Details: \(msg)")))
+                ? loc("“\(w.name)” is in use. Quit Media Composer and try again.")
+                : loc("“\(w.name)” could not be ejected.") + (msg.isEmpty ? "" : "\n" + loc("Details: \(msg)")))
         }
     }
 
@@ -108,7 +108,7 @@ enum Mounter {
         let err = Pipe()
         p.standardError = err
         do { try p.run() } catch {
-            throw MountError(message: String(localized: "Mountpoint’s helper program could not be started. Please reinstall Mountpoint.") + "\n" + String(localized: "Details: \(error.localizedDescription)"))
+            throw MountError(message: loc("Mountpoint’s helper program could not be started. Please reinstall Mountpoint.") + "\n" + loc("Details: \(error.localizedDescription)"))
         }
         p.waitUntilExit()
         let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
@@ -124,7 +124,7 @@ enum Mounter {
             let sub = w.shareSubpath ?? ""
             let source = sub.isEmpty ? root : root + "/" + sub
             if FileManager.default.fileExists(atPath: source, isDirectory: &isDir), isDir.boolValue { return source }
-            throw MountError(message: String(localized: "The folder “\(w.name)” was not found on the NAS share \(url.host ?? "")\(url.path). It may have been moved or renamed."))
+            throw MountError(message: loc("The folder “\(w.name)” was not found on the NAS share \(url.host ?? "")\(url.path). It may have been moved or renamed."))
         }
         throw MountError(message: missingFolderMessage(w.path, connected: { FileManager.default.fileExists(atPath: $0) }))
     }
@@ -133,10 +133,10 @@ enum Mounter {
     static func missingFolderMessage(_ path: String, connected: (String) -> Bool) -> String {
         let parts = path.split(separator: "/", omittingEmptySubsequences: true)
         if parts.count >= 2, parts[0] == "Volumes", !connected("/Volumes/\(parts[1])") {
-            return String(localized: "The drive “\(String(parts[1]))” is not connected. Connect it and try again.")
+            return loc("The drive “\(String(parts[1]))” is not connected. Connect it and try again.")
         }
         let name = parts.last.map(String.init) ?? path
-        return String(localized: "The folder “\(name)” no longer exists. It may have been moved or renamed: \(path)")
+        return loc("The folder “\(name)” no longer exists. It may have been moved or renamed: \(path)")
     }
 
     /// `interactive: false`: ohne jeden Dialog (Passwort nur aus dem Schlüsselbund) – für Wiederverbinden im Hintergrund.
@@ -158,15 +158,15 @@ enum Mounter {
     static func netfsMessage(_ status: Int32, host: String, share: String) -> String {
         switch status {
         case ECANCELED, -128:
-            return String(localized: "Connecting to “\(host)” was cancelled.")
+            return loc("Connecting to “\(host)” was cancelled.")
         case EAUTH, EACCES, EPERM:
-            return String(localized: "The NAS “\(host)” rejected the login. Check user name and password – Mountpoint uses the ones saved in the Keychain.")
+            return loc("The NAS “\(host)” rejected the login. Check user name and password – Mountpoint uses the ones saved in the Keychain.")
         case ENOENT:
-            return String(localized: "The share “\(share)” does not exist on “\(host)”.")
+            return loc("The share “\(share)” does not exist on “\(host)”.")
         case EHOSTUNREACH, ETIMEDOUT, ENETUNREACH, ECONNREFUSED, EHOSTDOWN, ENETDOWN:
-            return String(localized: "The NAS “\(host)” cannot be reached. Check the network connection and whether the NAS is switched on.")
+            return loc("The NAS “\(host)” cannot be reached. Check the network connection and whether the NAS is switched on.")
         default:
-            return String(localized: "Could not connect to “\(host)” (error \(String(status))).")
+            return loc("Could not connect to “\(host)” (error \(String(status))).")
         }
     }
 

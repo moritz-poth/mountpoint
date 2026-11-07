@@ -92,6 +92,19 @@ func createAvidFolders(in folder: URL) throws {
 /// und den Code in CFBundleLocalizations (scripts/build-app.sh) ergänzen.
 let languages: [(code: String, name: String)] = [("en", "English"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español")]
 
+/// Texte der gewählten Sprache; Englisch (kein .lproj) = die Schlüssel selbst. Wechsel ohne Neustart: Store.setLanguage.
+// geschrieben nur im Main Thread beim Sprachwechsel; gelesen auch von Mount-Threads (ein Zeigertausch)
+nonisolated(unsafe) var languageBundle = bundle(for: UserDefaults.standard.string(forKey: "language") ?? "en")
+
+func bundle(for code: String) -> Bundle {
+    Bundle.main.path(forResource: code, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
+}
+
+/// Übersetzter Text außerhalb von SwiftUI-`Text` (das folgt `.environment(\.locale)`).
+func loc(_ value: String.LocalizationValue) -> String {
+    String(localized: value, bundle: languageBundle)
+}
+
 /// Ende einer Alarm-Pause; „Rest des Tages“ = nächste Mitternacht.
 func snoozeEnd(_ choice: Snooze, from now: Date = Date(), calendar: Calendar = .current) -> Date {
     switch choice {

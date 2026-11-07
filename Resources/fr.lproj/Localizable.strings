@@ -3,8 +3,6 @@
 "Add workspace…" = "Ajouter un workspace…";
 "New project…" = "Nouveau projet…";
 "Launch at login" = "Ouvrir à la connexion";
-"Dark appearance" = "Apparence sombre";
-"Quit Mountpoint" = "Quitter Mountpoint";
 "AT LAUNCH" = "AU DÉMARRAGE";
 "Mount at app launch" = "Monter au démarrage de l’app";
 "Rename…" = "Renommer…";
@@ -45,7 +43,7 @@
 
 /* Choix du dossier */
 "Back" = "Retour";
-"Choose a folder" = "Choisir un dossier";
+"Choose a volume" = "Choisir un volume";
 "Loading…" = "Chargement…";
 "No folders here." = "Aucun dossier ici.";
 "Connect" = "Se connecter";
@@ -58,7 +56,7 @@
 /* Réglages, créer des dossiers */
 "Done" = "Terminé";
 "Add only" = "Ajouter seulement";
-"Avid only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?" = "Avid ne trouve les médias que si « Avid MediaFiles » se trouve directement dans le dossier monté. Y créer « Avid MediaFiles/MXF » ?";
+"Media Composer only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?" = "Media Composer ne trouve les médias que si « Avid MediaFiles » se trouve directement dans le dossier monté. Y créer « Avid MediaFiles/MXF » ?";
 "“Avid MediaFiles” could not be created: %@" = "Impossible de créer « Avid MediaFiles » : %@";
 "New folder…" = "Nouveau dossier…";
 "Folder name" = "Nom du dossier";
@@ -70,7 +68,7 @@
 "Protected volumes" = "Volumes protégés";
 "Add volume…" = "Ajouter un volume…";
 "Remove %@" = "Retirer %@";
-"Avid is writing to “%@”" = "Avid écrit sur « %@ »";
+"Media Composer is writing to “%@”" = "Media Composer écrit sur « %@ »";
 "An “Avid MediaFiles” folder was created on this volume. Check your import or render target." = "Un dossier « Avid MediaFiles » a été créé sur ce volume. Vérifiez la destination de votre import ou de votre rendu.";
 "Snooze alert…" = "Suspendre l’alerte…";
 "%lld minutes" = "%lld minutes";
@@ -93,7 +91,7 @@
 
 /* Lecteur réseau */
 "Mount as network drive" = "Monter comme lecteur réseau";
-"For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted." = "Pour la collaboration avec Media Composer Enterprise : Avid crée alors un dossier « <nom de l’ordinateur>.1 » au lieu de « 1 ». Désactivez le filtrage des lecteurs réseau dans les réglages Media Creation d’Avid. S’applique au prochain montage d’un workspace.";
+"For collaboration with Avid Media Composer Enterprise: it then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Media Composer’s Media Creation settings. Applies the next time a workspace is mounted." = "Pour la collaboration avec Avid Media Composer Enterprise : il crée alors un dossier « <nom de l’ordinateur>.1 » au lieu de « 1 ». Désactivez le filtrage des lecteurs réseau dans les réglages Media Creation de Media Composer. S’applique au prochain montage d’un workspace.";
 
 /* Messages d’erreur */
 "macFUSE is not installed. Install it from macfuse.github.io (Mimiq installs it too), then try again." = "macFUSE n’est pas installé. Installez-le depuis macfuse.github.io (Mimiq l’installe aussi), puis réessayez.";
@@ -116,7 +114,6 @@
 "Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again." = "Impossible d’activer l’ouverture à la connexion. Placez Mountpoint dans le dossier Applications et réessayez.";
 "Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items." = "Impossible de désactiver l’ouverture à la connexion. Retirez Mountpoint dans Réglages Système → Général → Ouverture.";
 "macOS asks you to approve Mountpoint: System Settings → General → Login Items." = "macOS vous demande d’autoriser Mountpoint : Réglages Système → Général → Ouverture.";
-"The language changes the next time Mountpoint starts. Please quit and reopen it." = "La langue changera au prochain démarrage de Mountpoint. Veuillez le quitter et le rouvrir.";
 "Your changes could not be saved. Check the free space on your Mac." = "Vos modifications n’ont pas pu être enregistrées. Vérifiez l’espace libre sur votre Mac.";
 "Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access)." = "Mountpoint n’a pas le droit d’ouvrir ce dossier. Autorisez l’accès dans Réglages Système → Confidentialité et sécurité → Fichiers et dossiers (ou Accès complet au disque).";
 "This folder cannot be read: %@" = "Ce dossier ne peut pas être lu : %@";
@@ -139,7 +136,6 @@
 "The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted." = "Le Finder avertira que les éléments « seront supprimés immédiatement » – c’est exact : les volumes Mountpoint n’ont pas de corbeille. S’applique au prochain montage d’un workspace.";
 
 /* Mises à jour */
-"Updates" = "Mises à jour";
 "Check for updates" = "Rechercher des mises à jour";
 "Mountpoint is up to date." = "Mountpoint est à jour.";
 "Mountpoint checks GitHub for new versions on its own and shows a notice." = "Mountpoint recherche lui-même les nouvelles versions sur GitHub et affiche un avis.";
@@ -155,21 +151,18 @@
 "The update is installed. Quit Mountpoint and open it again to finish." = "La mise à jour est installée. Quittez Mountpoint et rouvrez-le pour terminer.";
 
 /* Apparence */
-"Appearance" = "Apparence";
-"Light" = "Clair";
-"Dark" = "Sombre";
 "Avid MediaFiles" = "Avid MediaFiles";
 "Clear error messages" = "Effacer les messages d’erreur";
 "Clear error message" = "Effacer le message d’erreur";
-"Avid is writing to “%@”: %@" = "Avid écrit sur « %@ » : %@";
+"Media Composer is writing to “%@”: %@" = "Media Composer écrit sur « %@ » : %@";
 "Your Media Composer created its folder in “Avid MediaFiles/MXF” on this volume. Check your import or render target." = "Votre Media Composer a créé son dossier dans « Avid MediaFiles/MXF » sur ce volume. Vérifiez votre cible d’import ou de rendu.";
 "Warn about a “1” folder on network drives" = "Avertir d’un dossier « 1 » sur les disques réseau";
-"On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking." = "Sur chaque disque réseau connecté avec « Avid MediaFiles » : avertit quand un dossier « 1 » apparaît dans MXF – signe que quelqu’un travaille sans verrouillage des chutiers.";
+"On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise." = "Sur chaque disque réseau connecté avec « Avid MediaFiles » : avertit quand un dossier « 1 » apparaît dans MXF – signe que quelqu’un travaille sans le verrouillage des chutiers de Media Composer Enterprise.";
 "Folder “1” on “%@”" = "Dossier « 1 » sur « %@ »";
-"A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without bin locking. Find out who and check their Media Composer settings." = "Un dossier « 1 » est apparu dans « Avid MediaFiles/MXF » sur ce disque réseau. Un système y écrit comme sur un disque local – probablement quelqu’un travaille sans verrouillage des chutiers. Trouvez qui et vérifiez ses réglages Media Composer.";
-"Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write. The system volume always watches the workstation folder." = "Avertit dès qu’Avid crée « Avid MediaFiles » sur l’un de ces volumes, p. ex. LucidLink. « Dossier de la station » : seulement quand votre Media Composer crée son dossier dans MXF – « 1 » sur les disques locaux, « <nom de l’ordinateur>.1 » sur les disques réseau –, pas quand d’autres écrivent. Le volume système surveille toujours le dossier de la station.";
+"A folder “1” appeared in “Avid MediaFiles/MXF” on this network drive. A system writes to it as if it were a local drive – probably someone is working without the bin locking of Media Composer Enterprise. Find out who and check their Media Composer settings." = "Un dossier « 1 » est apparu dans « Avid MediaFiles/MXF » sur ce disque réseau. Un système y écrit comme sur un disque local – probablement quelqu’un travaille sans le verrouillage des chutiers de Media Composer Enterprise. Trouvez qui et vérifiez ses réglages Media Composer.";
+"Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder." = "Avertit dès que Media Composer crée « Avid MediaFiles » sur l’un de ces volumes, p. ex. LucidLink. « Dossier de la station » : seulement quand votre Media Composer crée son dossier dans MXF – « 1 » sur les disques locaux, « <nom de l’ordinateur>.1 » sur les disques réseau avec Media Composer Enterprise –, pas quand d’autres écrivent. Le volume système surveille toujours le dossier de la station.";
 "Workstation folder" = "Dossier de la station";
-"Show log file" = "Afficher le fichier journal";
+"Show log file" = "Afficher le journal";
 "“%@” stopped responding. Quit Media Composer and eject it in the Finder, then mount it again." = "« %@ » ne répond plus. Quittez Media Composer, éjectez-le dans le Finder, puis montez-le à nouveau.";
 "This update has to be installed by hand: download it from GitHub, quit Mountpoint and replace the app in the Applications folder." = "Cette mise à jour doit être installée à la main : téléchargez-la sur GitHub, quittez Mountpoint et remplacez l’app dans le dossier Applications.";
 "Download from GitHub" = "Télécharger sur GitHub";
@@ -179,4 +172,20 @@
 "Warn about MXF folders with more than 5000 files" = "Avertir des dossiers MXF de plus de 5000 fichiers";
 "Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files." = "Vérifie chaque minute les dossiers de « Avid MediaFiles/MXF » sur tous les disques connectés, le volume système et vos espaces de travail – Media Composer ralentit quand l’un d’eux contient plus de 5000 fichiers.";
 "“%@” on “%@” holds %lld files" = "« %@ » sur « %@ » contient %lld fichiers";
-"Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Avid starts a new folder." = "Les dossiers de « Avid MediaFiles/MXF » ne devraient pas contenir plus de 5000 fichiers – au-delà, Media Composer ralentit. Quittez Media Composer et renommez le dossier, p. ex. « 1 » en « 1a » : les médias restent en ligne et Avid crée un nouveau dossier.";
+"Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder." = "Les dossiers de « Avid MediaFiles/MXF » ne devraient pas contenir plus de 5000 fichiers – au-delà, Media Composer ralentit. Quittez Media Composer et renommez le dossier, p. ex. « 1 » en « 1a » : les médias restent en ligne et Media Composer crée un nouveau dossier.";
+"We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)" = "Nous recommandons de rééquilibrer le dossier (rebalancing) avec MediaFiles Check. Vous trouverez le dépôt GitHub à l’adresse suivante : [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)";
+"Mounted" = "Monté";
+"Not mounted" = "Non monté";
+"Partly mounted or problem" = "Partiellement monté ou problème";
+"More actions" = "Autres actions";
+"On" = "Activé";
+"Off" = "Désactivé";
+"Show in the Finder sidebar" = "Afficher dans la barre latérale du Finder";
+"Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected." = "Les espaces de travail montés apparaissent sous « Emplacements », comme vos autres disques, et disparaissent quand ils sont éjectés.";
+"Quit" = "Quitter";
+"Updates & support" = "Mises à jour et assistance";
+"Add…" = "Ajouter…";
+"Protect volume" = "Protéger un volume";
+"Events and errors" = "Événements et erreurs";
+"Avid Media Composer" = "Avid Media Composer";
+"Light/Dark" = "Clair/Sombre";

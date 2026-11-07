@@ -40,7 +40,7 @@ struct AboutView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                SectionTitle(title: String(localized: "Third-party"), theme: t)
+                SectionTitle(title: loc("Third-party"), theme: t)
                 Text("JetBrains Mono font – SIL Open Font License 1.1")
                 Text("Requires macFUSE, which is not included and has its own license.")
                 Text("Avid and Media Composer are trademarks of Avid Technology, Inc. LucidLink is a trademark of LucidLink Corp. Mountpoint is not affiliated with either.")

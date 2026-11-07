@@ -18,7 +18,8 @@ struct Panel: View {
     @ObservedObject private var updater = Updater.shared
     @State private var hideUpdate = false
     let hold: (Bool) -> Void
-    @State private var expanded: Set<UUID> = []
+    /// aufgeklappte Projekte, über Neustarts gemerkt
+    @State private var expanded = Set((UserDefaults.standard.stringArray(forKey: "expanded") ?? []).compactMap(UUID.init(uuidString:)))
     @State private var dialog: Dialog?
     /// Ordnerauswahl offen; Wert = Zielprojekt
     @State private var picking: UUID?? = nil
@@ -40,8 +41,8 @@ struct Panel: View {
                     .tracking(2.5)
                     .foregroundColor(t.text)
                 Spacer()
-                Button { settings = !(settings || about); about = false; picking = nil } label: {
-                    Image(systemName: settings || about ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
+                Button { settings = !(settings && !about); about = false; picking = nil } label: {
+                    Image(systemName: settings && !about ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
                         .frame(width: 26, height: 26).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -96,6 +97,8 @@ struct Panel: View {
         .frame(width: 400)
         .background(t.background)
         .environment(\.colorScheme, store.dark ? .dark : .light)
+        .environment(\.locale, store.locale)
+        .onChange(of: expanded) { UserDefaults.standard.set($0.map(\.uuidString), forKey: "expanded") }
         // settings are saved right away; reopening the panel always starts on the main page
         .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
             settings = false
@@ -117,25 +120,20 @@ struct Panel: View {
             let loose = store.workspaces(in: nil)
             if !loose.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    SectionTitle(title: store.library.projects.isEmpty ? String(localized: "Workspaces") : String(localized: "No project"), theme: t)
+                    SectionTitle(title: store.library.projects.isEmpty ? loc("Workspaces") : loc("No project"), theme: t)
                     ForEach(loose) { row($0, t) }
                 }
-            }
-
-            HStack(spacing: 10) {
-                Button("Add workspace…") { addWorkspace(to: nil) }
-                    .buttonStyle(FerryButtonStyle(theme: t, primary: true))
-                Button("New project…") { show(.newProject) }
-                    .buttonStyle(FerryButtonStyle(theme: t))
             }
 
             Rectangle().fill(t.line).frame(height: 1)
 
             HStack {
-                Button("About Mountpoint") { about = true }
-                    .buttonStyle(FerryButtonStyle(theme: t))
+                Dropdown(title: Text("Add…"), theme: t) {
+                    Button("Add workspace…") { addWorkspace(to: nil) }
+                    Button("New project…") { show(.newProject) }
+                }
                 Spacer()
-                Button("Quit Mountpoint") { NSApp.terminate(nil) }
+                Button("Quit") { NSApp.terminate(nil) }
                     .buttonStyle(FerryButtonStyle(theme: t))
             }
     }
@@ -187,26 +185,12 @@ struct Panel: View {
 
     @ViewBuilder private func settingsContent(_ t: Theme) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(title: String(localized: "Settings"), theme: t)
+            SectionTitle(title: loc("Settings"), theme: t)
             SwitchRow(title: "Launch at login", on: store.launchAtLogin, theme: t) {
                 store.setLaunchAtLogin(!store.launchAtLogin)
             }
-            SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {
-                store.network.toggle()
-                if store.network { show(.networkInfo) }
-            }
-            Text("For Media Composer Enterprise collaboration: Avid then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Avid’s Media Creation settings. Applies the next time a workspace is mounted.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                Text("Appearance").font(.mono()).foregroundColor(t.text)
-                Spacer()
-                Text("Light").font(.mono(12)).foregroundColor(store.dark ? t.faint : t.text)
-                Switch(on: store.dark, theme: t) { store.dark.toggle() }
-                    .accessibilityLabel(Text("Dark appearance"))
-                Text("Dark").font(.mono(12)).foregroundColor(store.dark ? t.text : t.faint)
-            }
+            // Schalter rechtsbündig wie alle anderen; an = dunkel (rechts im Titel)
+            SwitchRow(title: "Light/Dark", on: store.dark, theme: t) { store.dark.toggle() }
             HStack(spacing: 10) {
                 Text("Language").font(.mono()).foregroundColor(t.text)
                 Spacer()
@@ -216,10 +200,40 @@ struct Panel: View {
                     }
                 }
             }
+            SwitchRow(title: "Show in the Finder sidebar", on: store.sidebar, theme: t) { store.sidebar.toggle() }
+            Text("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        VStack(alignment: .leading, spacing: 12) {
+            SectionTitle(title: loc("Avid Media Composer"), theme: t)
+            SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {
+                store.network.toggle()
+                if store.network { show(.networkInfo) }
+            }
+            Text("For collaboration with Avid Media Composer Enterprise: it then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Media Composer’s Media Creation settings. Applies the next time a workspace is mounted.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+            SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
+                store.watchNetwork.toggle()
+            }
+            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
+            SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) {
+                store.watchSize.toggle()
+            }
+            Text("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.")
+                .font(.mono(11))
+                .foregroundColor(t.faint)
+                .fixedSize(horizontal: false, vertical: true)
         }
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: String(localized: "Protected volumes"), theme: t)
-            Text("Warns as soon as Avid creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives – not when others write. The system volume always watches the workstation folder.")
+            SectionTitle(title: loc("Protected volumes"), theme: t)
+            Text("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.")
                 .font(.mono(11))
                 .foregroundColor(t.faint)
                 .fixedSize(horizontal: false, vertical: true)
@@ -247,30 +261,21 @@ struct Panel: View {
                     .accessibilityLabel(Text("Remove \(name)"))
                 }
             }
+            // wie „Version … / Nach Updates suchen“: kurzer Text links, Button rechtsbündig
             let candidates = store.guardCandidates()
-            Dropdown(title: Text("Add volume…"), theme: t) {
-                ForEach(candidates, id: \.self) { name in
-                    Button(guardName(name)) { store.addGuard(name) }
+            HStack(spacing: 10) {
+                Text("Protect volume").font(.mono(12)).foregroundColor(t.text)
+                Spacer()
+                Dropdown(title: Text("Add volume…"), theme: t) {
+                    ForEach(candidates, id: \.self) { name in
+                        Button(guardName(name)) { store.addGuard(name) }
+                    }
                 }
+                .disabled(candidates.isEmpty)
             }
-            .disabled(candidates.isEmpty)
-            SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
-                store.watchNetwork.toggle()
-            }
-            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without bin locking.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-            SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) {
-                store.watchSize.toggle()
-            }
-            Text("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
         }
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: String(localized: "Updates"), theme: t)
+            SectionTitle(title: loc("Updates & support"), theme: t)
             HStack(spacing: 10) {
                 Text("Version \(Updater.current)").font(.mono(12)).foregroundColor(t.text)
                 Spacer()
@@ -289,11 +294,17 @@ struct Panel: View {
             }
             Text("Mountpoint checks GitHub for new versions on its own and shows a notice.")
                 .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
+            // für Fehlerberichte: Ereignisse, Fehler und Alarme stehen dort
+            HStack(spacing: 10) {
+                Text("Events and errors").font(.mono(12)).foregroundColor(t.text)
+                Spacer()
+                Button("Show log file") { Log.reveal() }
+                    .buttonStyle(FerryButtonStyle(theme: t))
+            }
         }
         Rectangle().fill(t.line).frame(height: 1)
         HStack {
-            // für Fehlerberichte: Ereignisse, Fehler und Alarme stehen dort
-            Button("Show log file") { Log.reveal() }
+            Button("About Mountpoint") { about = true }
                 .buttonStyle(FerryButtonStyle(theme: t))
             Spacer()
             Button("Done") { settings = false }
@@ -322,7 +333,7 @@ struct Panel: View {
                         SectionTitle(title: p.name, theme: t)
                         if p.mountAtLaunch {
                             Text("AT LAUNCH")
-                                .font(.mono(9, semibold: true))
+                                .font(.mono(10, semibold: true))
                                 .tracking(0.5)
                                 .foregroundColor(t.faint)
                                 .padding(.horizontal, 5)
@@ -361,10 +372,20 @@ struct Panel: View {
         }
     }
 
+    /// Form trägt den Zustand mit (nicht nur die Farbe): voll = eingehängt, halb = teilweise/Problem, Ring = nicht eingehängt
     private func dot(_ state: MountState, _ t: Theme) -> some View {
-        Circle()
-            .fill(state == .all ? t.online : state == .none ? t.line : t.partial)
-            .frame(width: 8, height: 8)
+        ZStack {
+            switch state {
+            case .all: Circle().fill(t.online)
+            case .none: Circle().strokeBorder(t.faint, lineWidth: 1.5)
+            default:
+                Circle().strokeBorder(t.partial, lineWidth: 1.5)
+                Circle().fill(t.partial).mask(HStack(spacing: 0) { Rectangle(); Color.clear })
+            }
+        }
+        .frame(width: 8, height: 8)
+        .accessibilityElement()
+        .accessibilityLabel(state == .all ? Text("Mounted") : state == .none ? Text("Not mounted") : Text("Partly mounted or problem"))
     }
 
     // MARK: Workspaces
@@ -447,41 +468,41 @@ struct Panel: View {
     private func card(_ d: Dialog, _ t: Theme) -> some View {
         let title: String
         var info: String?
-        var ok = String(localized: "OK")
+        var ok = loc("OK")
         var needsText = false
         var checkbox = false
         var secondary: String?
         var cancel = true
         switch d {
         case .newProject:
-            title = String(localized: "New project")
-            ok = String(localized: "Create")
+            title = loc("New project")
+            ok = loc("Create")
             needsText = true
         case .rename:
-            title = String(localized: "Rename project")
+            title = loc("Rename project")
             needsText = true
         case .deleteProject(let p):
-            title = String(localized: "Delete project “\(p.name)”?")
+            title = loc("Delete project “\(p.name)”?")
             checkbox = !store.workspaces(in: p.id).isEmpty
             info = checkbox && flag
-                ? String(localized: "Its volumes are ejected and its workspaces removed. No files are touched.")
-                : String(localized: "Its workspaces stay and move to “No project”. No files are touched.")
-            ok = String(localized: "Delete")
+                ? loc("Its volumes are ejected and its workspaces removed. No files are touched.")
+                : loc("Its workspaces stay and move to “No project”. No files are touched.")
+            ok = loc("Delete")
         case .removeWorkspace(let w):
-            title = String(localized: "Remove workspace “\(w.name)”?")
-            info = String(localized: "The volume is ejected. The folder and its files are not touched.")
-            ok = String(localized: "Remove")
+            title = loc("Remove workspace “\(w.name)”?")
+            info = loc("The volume is ejected. The folder and its files are not touched.")
+            ok = loc("Remove")
         case .noAvidFolder(let url, _):
-            title = String(localized: "No “Avid MediaFiles” folder in “\(url.lastPathComponent)”.")
-            info = String(localized: "Avid only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?")
-            ok = String(localized: "Create")
-            secondary = String(localized: "Add only")
+            title = loc("No “Avid MediaFiles” folder in “\(url.lastPathComponent)”.")
+            info = loc("Media Composer only finds media if “Avid MediaFiles” lies directly in the mounted folder. Create “Avid MediaFiles/MXF” in it?")
+            ok = loc("Create")
+            secondary = loc("Add only")
         case .error(let message):
             title = message
             cancel = false
         case .networkInfo:
-            title = String(localized: "Mounted as network drive")
-            info = String(localized: "The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
+            title = loc("Mounted as network drive")
+            info = loc("The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
             cancel = false
         }
         let name = text.trimmingCharacters(in: .whitespaces)
@@ -545,7 +566,7 @@ struct Panel: View {
         case .noAvidFolder(let url, let project):
             if !secondary {
                 do { try createAvidFolders(in: url) } catch {
-                    show(.error(String(localized: "“Avid MediaFiles” could not be created: \(error.localizedDescription)")))
+                    show(.error(loc("“Avid MediaFiles” could not be created: \(error.localizedDescription)")))
                     return
                 }
             }

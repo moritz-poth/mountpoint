@@ -16,7 +16,7 @@ enum Welcome {
             panel = nil
         }
         let p = AlertPanel(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
-        p.contentViewController = NSHostingController(rootView: view)
+        p.contentViewController = NSHostingController(rootView: view.environment(\.locale, Store.shared.locale))
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = true

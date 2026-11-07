@@ -34,6 +34,10 @@ final class Store: ObservableObject {
     @Published var watchSize = UserDefaults.standard.bool(forKey: "watchSize") {
         didSet { UserDefaults.standard.set(watchSize, forKey: "watchSize"); Log.write("setting: warn about MXF folders over 5000 files \(watchSize ? "on" : "off")"); notifyGuard() }
     }
+    /// Eingehängte Workspaces in der Finder-Seitenleiste unter „Orte“ zeigen (Sidebar.swift)
+    @Published var sidebar = UserDefaults.standard.object(forKey: "sidebar") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(sidebar, forKey: "sidebar"); Log.write("setting: Finder sidebar \(sidebar ? "on" : "off")"); syncSidebar() }
+    }
     @Published var dark = UserDefaults.standard.object(forKey: "dark") as? Bool ?? true {
         didSet { UserDefaults.standard.set(dark, forKey: "dark"); applyAppearance() }
     }
@@ -60,7 +64,7 @@ final class Store: ObservableObject {
                 let backup = dir.appendingPathComponent("library-unreadable-\(Int(Date().timeIntervalSince1970)).json")
                 try? FileManager.default.moveItem(at: file, to: backup)
                 Log.write("library.json unreadable, set aside as \(backup.lastPathComponent): \(error)")
-                notice = String(localized: "Your workspace list could not be read and was set aside as “\(backup.lastPathComponent)” (in ~/Library/Application Support/Mountpoint). Mountpoint started with an empty list.")
+                notice = loc("Your workspace list could not be read and was set aside as “\(backup.lastPathComponent)” (in ~/Library/Application Support/Mountpoint). Mountpoint started with an empty list.")
             }
         }
         refresh()
@@ -110,7 +114,7 @@ final class Store: ObservableObject {
     func mount(_ w: Workspace) {
         guard !busy.contains(w.id) else { return }
         guard let helper = Bundle.main.url(forAuxiliaryExecutable: "mirror")?.path else {
-            errors[w.id] = String(localized: "Mountpoint is incomplete (its helper program is missing). Please reinstall Mountpoint.")
+            errors[w.id] = loc("Mountpoint is incomplete (its helper program is missing). Please reinstall Mountpoint.")
             return
         }
         busy.insert(w.id)
@@ -150,6 +154,11 @@ final class Store: ObservableObject {
                 self.refresh()
             }
         }
+    }
+
+    private func syncSidebar() {
+        guard isShared else { return }   // Tests fassen die echte Seitenleiste nie an
+        Sidebar.sync(sidebar ? Set(library.workspaces.filter { mounted.contains($0.id) }.map(\.volumePath)) : [])
     }
 
     private func notifyGuard() {
@@ -301,31 +310,26 @@ final class Store: ObservableObject {
             notice = nil
         } catch {
             notice = on
-                ? String(localized: "Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again.") + "\n" + String(localized: "Details: \(error.localizedDescription)")
-                : String(localized: "Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items.")
+                ? loc("Launch at login could not be turned on. Move Mountpoint to the Applications folder and try again.") + "\n" + loc("Details: \(error.localizedDescription)")
+                : loc("Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items.")
         }
         if on && SMAppService.mainApp.status == .requiresApproval {
-            notice = String(localized: "macOS asks you to approve Mountpoint: System Settings → General → Login Items.")
+            notice = loc("macOS asks you to approve Mountpoint: System Settings → General → Login Items.")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
-    var language: String { UserDefaults.standard.string(forKey: "language") ?? "en" }
+    @Published private(set) var language = UserDefaults.standard.string(forKey: "language") ?? "en"
+    var locale: Locale { Locale(identifier: language) }
 
-    /// Texte werden beim Start geladen, darum startet die App für den Wechsel neu (Volumes bleiben eingehängt).
+    /// Sofort: SwiftUI-Texte folgen `locale`, `loc()` dem Bundle. Schon angezeigte Meldungen bleiben in der alten Sprache.
     func setLanguage(_ code: String) {
         guard code != language else { return }
         UserDefaults.standard.set(code, forKey: "language")
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", Bundle.main.bundlePath]
-        do { try p.run() } catch {
-            // ohne Neustart nicht beenden – sonst wäre die App einfach weg
-            notice = String(localized: "The language changes the next time Mountpoint starts. Please quit and reopen it.")
-            return
-        }
-        AppDelegate.relaunching = true
-        NSApp.terminate(nil)
+        UserDefaults.standard.set([code], forKey: "AppleLanguages")   // Systemtexte (z. B. Beenden-Dialog) ab dem nächsten Start
+        languageBundle = bundle(for: code)
+        language = code
+        Log.write("language: \(code)")
     }
 
     func applyAppearance() {
@@ -341,6 +345,7 @@ final class Store: ObservableObject {
             mounted = now
             notifyGuard()   // eingehängte Workspaces beobachten bzw. nicht mehr
         }
+        syncSidebar()   // auch nach Auswerfen im Finder und nach einem Absturz (erster Refresh räumt auf)
         findDeadHelpers()
         reconnectWhenBack(table)
     }
@@ -395,7 +400,7 @@ final class Store: ObservableObject {
     private var lastOddCode: [UUID: Int32] = [:]
 
     static func notResponding(_ name: String) -> String {
-        String(localized: "“\(name)” is not responding. Check the connection to its drive or NAS – the message goes away as soon as it answers again.")
+        loc("“\(name)” is not responding. Check the connection to its drive or NAS – the message goes away as soon as it answers again.")
     }
 
     /// Ist ein Helfer abgestürzt, bleibt sein Volume tot eingehängt („Device not configured“, ENXIO).
@@ -447,10 +452,10 @@ final class Store: ObservableObject {
         Log.write("helper stopped: \(w.volumePath)")
         do {
             try Mounter.unmount(w)
-            errors[w.id] = String(localized: "“\(w.name)” stopped responding and was ejected. Mountpoint mounts it again as soon as its drive is back.")
+            errors[w.id] = loc("“\(w.name)” stopped responding and was ejected. Mountpoint mounts it again as soon as its drive is back.")
             reconnect[w.id] = .distantPast
         } catch {
-            errors[w.id] = String(localized: "“\(w.name)” stopped responding. Quit Media Composer and eject it in the Finder, then mount it again.")
+            errors[w.id] = loc("“\(w.name)” stopped responding. Quit Media Composer and eject it in the Finder, then mount it again.")
         }
         refresh()
     }
@@ -468,7 +473,7 @@ final class Store: ObservableObject {
             try enc.encode(library).write(to: file, options: .atomic)
         } catch {
             Log.write("saving library.json failed: \(error)")
-            notice = String(localized: "Your changes could not be saved. Check the free space on your Mac.") + "\n" + String(localized: "Details: \(error.localizedDescription)")
+            notice = loc("Your changes could not be saved. Check the free space on your Mac.") + "\n" + loc("Details: \(error.localizedDescription)")
         }
     }
 }
