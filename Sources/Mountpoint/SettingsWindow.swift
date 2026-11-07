@@ -36,9 +36,6 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     @Published private(set) var isOpen = false
     /// hält das Panel offen, solange das Fenster offen ist (AppDelegate.hold)
     var hold: (Bool) -> Void = { _ in }
-    /// vor dem kurzen Ausblenden (⌘-Tab-Reihenfolge) und danach: Panel merken und wieder zeigen (AppDelegate)
-    var beforeHide: () -> Void = {}
-    var afterUnhide: () -> Void = {}
     private var window: NSWindow?
     private var tabs: NSTabViewController?
     private var language: AnyCancellable?
@@ -47,34 +44,14 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     func show(_ pane: Pane? = nil) {
         if window == nil { build() }
         if let pane { tabs?.selectedTabViewItemIndex = pane.rawValue }
-        // solange die Einstellungen offen sind: normale App mit Dock-Symbol, ⌘-Tab und App-Menü
-        let becomesRegular = NSApp.activationPolicy() != .regular
-        NSApp.setActivationPolicy(.regular)
+        // bleibt reine Menüleisten-App (kein Dock-Symbol/⌘-Tab: das Umschalten war unzuverlässig, siehe CLAUDE.md);
+        // das Fenster liegt über allem und verschwindet mit Mountpoint beim Wechsel in eine andere App
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
         if !isOpen { isOpen = true; hold(true) }
-        guard becomesRegular else {
-            NSApp.activate(ignoringOtherApps: true)
-            window?.makeKeyAndOrderFront(nil)
-            return
-        }
-        // Mountpoint ist schon aktiv (Klick aufs Menüleisten-Symbol) – das Umschalten zählt für ⌘-Tab nicht als
-        // Aktivierung, es stünde ganz hinten. deactivate() allein reichte nicht (keine andere App übernahm):
-        // kurz ausblenden, damit die vorherige App wirklich aktiv wird, dann wieder einblenden = echte Aktivierung → vorn.
-        reactivating = true
-        beforeHide()
-        NSApp.hide(nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            NSApp.unhide(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            self?.window?.makeKeyAndOrderFront(nil)
-            self?.afterUnhide()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.reactivating = false }
-        }
     }
 
-    /// während `show` Mountpoint kurz abgibt und neu aktiviert: Panel nicht schließen/öffnen (AppDelegate)
-    private(set) var reactivating = false
-
-    /// nach dem Zurückwechseln (⌘-Tab, Dock): Fenster wieder nach vorn
+    /// nach dem Zurückwechseln zu Mountpoint: Fenster wieder nach vorn
     func front() { window?.orderFrontRegardless() }
 
     func close() { window?.performClose(nil) }
@@ -120,7 +97,6 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         isOpen = false
         hold(false)
-        NSApp.setActivationPolicy(.accessory)   // wieder reine Menüleisten-App (kein Dock-Symbol)
     }
 }
 

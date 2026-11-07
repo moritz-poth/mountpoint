@@ -14,7 +14,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var language: AnyCancellable?
     /// Panel war offen, als Mountpoint (mit offenen Einstellungen) in den Hintergrund ging
     private var panelBeforeDeactivate = false
-    private var panelBeforeHide = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var arch = utsname()
@@ -47,14 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.mountAtLaunch()
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
-        SettingsWindow.shared.beforeHide = { [weak self] in self?.panelBeforeHide = self?.popover.isShown ?? false }
-        SettingsWindow.shared.afterUnhide = { [weak self] in
-            guard let self, self.panelBeforeHide, !self.popover.isShown, let button = self.item.button else { return }
-            self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
         VolumeGuard.shared.start()
         Welcome.showIfNeeded { Consent.showIfNeeded() }
-        // App-Menü (sichtbar, solange die Einstellungen offen sind – dann ist Mountpoint eine normale App)
+        // Menü ohne sichtbare Menüleiste (reine Menüleisten-App): liefert ⌘, ⌘C/⌘V (Problem-Formular), ⌘W, ⌘Q
         buildMenu()
         language = store.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
             DispatchQueue.main.async { self?.buildMenu() }
@@ -99,24 +93,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Solange etwas außerhalb des Panels offen ist, schließt es sich nicht bei Klicks daneben.
     private func appResigned() {
-        guard SettingsWindow.shared.isOpen, !SettingsWindow.shared.reactivating else { return }
+        guard SettingsWindow.shared.isOpen else { return }
         panelBeforeDeactivate = popover.isShown
         if popover.isShown { popover.performClose(nil) }
     }
 
     private func appActivated() {
-        guard SettingsWindow.shared.isOpen, !SettingsWindow.shared.reactivating else { return }
+        guard SettingsWindow.shared.isOpen else { return }
         if panelBeforeDeactivate, !popover.isShown, let button = item.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
         panelBeforeDeactivate = false
         SettingsWindow.shared.front()
-    }
-
-    /// Dock-Symbol angeklickt (nur sichtbar, solange die Einstellungen offen sind)
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        SettingsWindow.shared.show()
-        return true
     }
 
     @objc private func showSettings() { SettingsWindow.shared.show() }
