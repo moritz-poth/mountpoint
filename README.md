@@ -1,6 +1,6 @@
-<p align="center"><img src="assets/icon.png" width="128" alt="Mountpoint"></p>
+<h1 align="center"><img src="assets/icon.png" width="72" align="absmiddle" alt="">&nbsp;&nbsp;MOUNTPOINT</h1>
 
-<p align="center"><img src="assets/header.png" alt="Mountpoint – any folder becomes its own volume, so Avid Media Composer finds the media"></p>
+<p align="center"><code>menu bar app</code>&nbsp;&nbsp;<code>macOS 13+</code>&nbsp;&nbsp;<code>free · GPL-3.0</code></p>
 
 A small macOS menu bar app that mounts any folder as its own volume – from a local disk, an archive drive or a NAS.
 
@@ -27,11 +27,6 @@ Built for Avid Media Composer: Media Composer only finds media in an `Avid Media
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do. A drive that stops responding never freezes Mountpoint. Settings → *Show log file* shows what happened – send it along when you report a problem.
 - **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Media Composer still has files open, the volume stays mounted.
 - English, German, French and Spanish, light and dark appearance, launch at login.
-
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: a folder “1” appeared on a network drive"></picture></p>
-
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, warnings, updates"></picture></p>
-
 
 ## Good to know
 
@@ -80,6 +75,8 @@ The menu bar icon (a drive with a folder tab) appears at the top right. It is fi
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch, clear all its error messages (a single one goes with its ×). Removing a workspace or deleting a project never touches any files.
 - **Settings (gear icon)** – launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom of the settings. New workspaces and projects are added with **Add…** at the bottom left of the panel. Settings are saved right away; the panel always reopens on its main page. Changing the language takes effect immediately.
 
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, warnings, updates"></picture></p>
+
 ### Protected volumes
 
 Choose per volume what to watch:
@@ -89,6 +86,8 @@ Choose per volume what to watch:
 The system volume (e.g. *Macintosh HD*) is listed under its Finder name; there Media Composer uses `/Users/Shared/AvidMediaComposer/Avid MediaFiles`, so that is the folder Mountpoint watches.
 
 Mountpoint does not scan your drives. macOS notifies it when something changes at the top level of a protected volume, so it uses no CPU while nothing happens; a single check per minute acts as a safety net. Mountpoint cannot *prevent* the write – it tells you within seconds so you can stop the import or render. It never deletes the folder.
+
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: a folder “1” appeared on a network drive"></picture></p>
 
 ## Build
 
