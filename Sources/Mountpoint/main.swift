@@ -93,13 +93,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Solange etwas außerhalb des Panels offen ist, schließt es sich nicht bei Klicks daneben.
     private func appResigned() {
-        guard SettingsWindow.shared.isOpen else { return }
+        guard SettingsWindow.shared.isOpen, !SettingsWindow.shared.reactivating else { return }
         panelBeforeDeactivate = popover.isShown
         if popover.isShown { popover.performClose(nil) }
     }
 
     private func appActivated() {
-        guard SettingsWindow.shared.isOpen else { return }
+        guard SettingsWindow.shared.isOpen, !SettingsWindow.shared.reactivating else { return }
         if panelBeforeDeactivate, !popover.isShown, let button = item.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }

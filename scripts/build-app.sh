@@ -4,9 +4,9 @@
 # Requires macFUSE (provides libfuse in /usr/local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=1.1.1          # CFBundleShortVersionString (numbers only)
-RELEASE=1.1.1          # tag and zip name
-BUILD=20
+VERSION=1.1.2          # CFBundleShortVersionString (numbers only)
+RELEASE=1.1.2          # tag and zip name
+BUILD=21
 APP=dist/Mountpoint.app
 
 swift build -c release --arch arm64

@@ -45,11 +45,27 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
         if window == nil { build() }
         if let pane { tabs?.selectedTabViewItemIndex = pane.rawValue }
         // solange die Einstellungen offen sind: normale App mit Dock-Symbol, ⌘-Tab und App-Menü
+        let becomesRegular = NSApp.activationPolicy() != .regular
         NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
         if !isOpen { isOpen = true; hold(true) }
+        guard becomesRegular else {
+            NSApp.activate(ignoringOtherApps: true)
+            window?.makeKeyAndOrderFront(nil)
+            return
+        }
+        // Mountpoint ist schon aktiv (Klick aufs Menüleisten-Symbol) – das Umschalten zählt für ⌘-Tab nicht als
+        // Aktivierung, es stünde ganz hinten. Kurz abgeben und neu aktivieren: dann steht es vorn wie jede zuletzt benutzte App.
+        reactivating = true
+        NSApp.deactivate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            NSApp.activate(ignoringOtherApps: true)
+            self?.window?.makeKeyAndOrderFront(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self?.reactivating = false }
+        }
     }
+
+    /// während `show` Mountpoint kurz abgibt und neu aktiviert: Panel nicht schließen/öffnen (AppDelegate)
+    private(set) var reactivating = false
 
     /// nach dem Zurückwechseln (⌘-Tab, Dock): Fenster wieder nach vorn
     func front() { window?.orderFrontRegardless() }
@@ -145,8 +161,10 @@ struct SettingsPane: View {
         }
     }
 
+    /// Erklärung unter einer Zeile – bricht vor der Spalte mit Schaltern und Buttons um (Spalte 560, Text max. 390)
     private func hint(_ text: LocalizedStringKey, _ t: Theme) -> some View {
         Text(text).font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 390, alignment: .leading)
     }
 
     /// Zeile wie „Version … / Nach Updates suchen“: kurzer Text links, Bedienelement rechtsbündig
