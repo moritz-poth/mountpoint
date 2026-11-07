@@ -25,6 +25,32 @@ enum Sidebar {
         queue.sync { apply([]) }
     }
 
+    /// Selbsttest: einen Eintrag für `path` anlegen und wieder entfernen – ohne die Liste der eigenen Einträge zu berühren.
+    static func probe(_ path: String) -> (added: Bool, removed: Bool, note: String) {
+        queue.sync { probeNow(path) }
+    }
+
+    @available(macOS, deprecated: 10.11)
+    private static func probeNow(_ path: String) -> (added: Bool, removed: Bool, note: String) {
+        guard let list = LSSharedFileListCreate(nil, kLSSharedFileListFavoriteVolumes.takeUnretainedValue(), nil)?.takeRetainedValue() else {
+            return (false, false, "list not available")
+        }
+        let flags = UInt32(kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes)
+        func items() -> [LSSharedFileListItem] {
+            var seed: UInt32 = 0
+            return (LSSharedFileListCopySnapshot(list, &seed)?.takeRetainedValue() as? [LSSharedFileListItem]) ?? []
+        }
+        func find() -> LSSharedFileListItem? {
+            items().first { (LSSharedFileListItemCopyResolvedURL($0, flags, nil)?.takeRetainedValue() as URL?)?.path == path }
+        }
+        guard let last = items().last else { return (false, false, "empty list") }
+        guard LSSharedFileListInsertItemURL(list, last, nil, nil, URL(fileURLWithPath: path) as CFURL, nil, nil) != nil, let item = find() else {
+            return (false, false, "insert failed")
+        }
+        LSSharedFileListItemRemove(list, item)
+        return (true, find() == nil, "")
+    }
+
     @available(macOS, deprecated: 10.11, message: "LSSharedFileList ist veraltet, aber die einzige Schnittstelle zur Seitenleiste (getestet unter macOS 15)")
     private static func apply(_ wanted: Set<String>) {
         var owned = Set(UserDefaults.standard.stringArray(forKey: ownedKey) ?? [])

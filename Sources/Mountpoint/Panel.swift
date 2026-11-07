@@ -23,8 +23,7 @@ struct Panel: View {
     @State private var dialog: Dialog?
     /// Ordnerauswahl offen; Wert = Zielprojekt
     @State private var picking: UUID?? = nil
-    @State private var settings = false
-    @State private var about = false
+    @ObservedObject private var settingsWindow = SettingsWindow.shared
     @State private var text = ""
     @State private var flag = true
     @FocusState private var focused: Bool
@@ -41,13 +40,15 @@ struct Panel: View {
                     .tracking(2.5)
                     .foregroundColor(t.text)
                 Spacer()
-                Button { settings = !(settings && !about); about = false; picking = nil } label: {
-                    Image(systemName: settings && !about ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
+                // öffnet das Einstellungsfenster (Panel bleibt offen); gefüllt, solange es offen ist
+                Button { SettingsWindow.shared.show() } label: {
+                    Image(systemName: settingsWindow.isOpen ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
                         .frame(width: 26, height: 26).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 // Mitte des Zahnrads auf Mitte der Großbuchstaben (Titel hat keine Unterlängen)
                 .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + titleCapHeight / 2 }
+                .keyboardShortcut(",", modifiers: .command)
                 .help(Text("Settings"))
                 .accessibilityLabel(Text("Settings"))
             }
@@ -72,11 +73,7 @@ struct Panel: View {
                 updateBanner(release, t)
             }
 
-            if about {
-                AboutView(theme: t) { about = false }
-            } else if settings {
-                settingsContent(t)
-            } else if let target = picking {
+            if let target = picking {
                 // startet dort, wo zuletzt gewählt wurde: mehrere Workspaces liegen meist nebeneinander
                 FolderBrowser(theme: t, start: store.lastFolder, hold: hold, onChoose: { url in
                     picking = nil
@@ -101,8 +98,6 @@ struct Panel: View {
         .onChange(of: expanded) { UserDefaults.standard.set($0.map(\.uuidString), forKey: "expanded") }
         // settings are saved right away; reopening the panel always starts on the main page
         .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
-            settings = false
-            about = false
             picking = nil
         }
     }
@@ -181,136 +176,6 @@ struct Panel: View {
         }
         .padding(12)
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
-    }
-
-    @ViewBuilder private func settingsContent(_ t: Theme) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(title: loc("Settings"), theme: t)
-            SwitchRow(title: "Launch at login", on: store.launchAtLogin, theme: t) {
-                store.setLaunchAtLogin(!store.launchAtLogin)
-            }
-            // Schalter rechtsbündig wie alle anderen; an = dunkel (rechts im Titel)
-            SwitchRow(title: "Light/Dark", on: store.dark, theme: t) { store.dark.toggle() }
-            HStack(spacing: 10) {
-                Text("Language").font(.mono()).foregroundColor(t.text)
-                Spacer()
-                Dropdown(title: Text(verbatim: languages.first { $0.code == store.language }?.name ?? "English"), theme: t) {
-                    ForEach(languages, id: \.code) { l in
-                        Button(l.name) { store.setLanguage(l.code) }.disabled(l.code == store.language)
-                    }
-                }
-            }
-            SwitchRow(title: "Show in the Finder sidebar", on: store.sidebar, theme: t) { store.sidebar.toggle() }
-            Text("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(title: loc("Avid Media Composer"), theme: t)
-            SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {
-                store.network.toggle()
-                if store.network { show(.networkInfo) }
-            }
-            Text("For collaboration with Avid Media Composer Enterprise: it then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Media Composer’s Media Creation settings. Applies the next time a workspace is mounted.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-            SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) {
-                store.watchNetwork.toggle()
-            }
-            Text("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-            SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) {
-                store.watchSize.toggle()
-            }
-            Text("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: loc("Protected volumes"), theme: t)
-            Text("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.")
-                .font(.mono(11))
-                .foregroundColor(t.faint)
-                .fixedSize(horizontal: false, vertical: true)
-            ForEach(store.library.guarded, id: \.self) { name in
-                let own = store.library.watchesOwn(name)
-                HStack(spacing: 10) {
-                    Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
-                    Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
-                        .help(guardRoot(name))
-                        .frame(height: 26)   // so hoch wie die Zeilen mit Auswahl
-                    Spacer()
-                    // Systemvolume ohne Auswahl: „Avid MediaFiles“ gibt es dort immer, es zählt der Workstation-Ordner
-                    if name != systemGuard {
-                        Dropdown(title: own ? Text("Workstation folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
-                            Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
-                            Button("Workstation folder") { store.setGuardOwn(name, true) }.disabled(own)
-                        }
-                    }
-                    Button { store.removeGuard(name) } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                            .frame(width: 18, height: 18).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(Text("Remove"))
-                    .accessibilityLabel(Text("Remove \(name)"))
-                }
-            }
-            // wie „Version … / Nach Updates suchen“: kurzer Text links, Button rechtsbündig
-            let candidates = store.guardCandidates()
-            HStack(spacing: 10) {
-                Text("Protect volume").font(.mono(12)).foregroundColor(t.text)
-                Spacer()
-                Dropdown(title: Text("Add volume…"), theme: t) {
-                    ForEach(candidates, id: \.self) { name in
-                        Button(guardName(name)) { store.addGuard(name) }
-                    }
-                }
-                .disabled(candidates.isEmpty)
-            }
-        }
-        VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: loc("Updates & support"), theme: t)
-            HStack(spacing: 10) {
-                Text("Version \(Updater.current)").font(.mono(12)).foregroundColor(t.text)
-                Spacer()
-                if updater.state == .checking { ProgressView().controlSize(.small) }
-                Button("Check for updates") { hideUpdate = false; updater.check(manual: true) }
-                    .buttonStyle(FerryButtonStyle(theme: t))
-                    .disabled(updater.state == .checking || updater.state == .installing)
-            }
-            switch updater.state {
-            case .upToDate:
-                Text("Mountpoint is up to date.").font(.mono(11)).foregroundColor(t.faint)
-            case .failed(let message) where updater.available == nil:
-                Text(message).font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
-            default:
-                EmptyView()
-            }
-            Text("Mountpoint checks GitHub for new versions on its own and shows a notice.")
-                .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
-            // für Fehlerberichte: Ereignisse, Fehler und Alarme stehen dort
-            HStack(spacing: 10) {
-                Text("Events and errors").font(.mono(12)).foregroundColor(t.text)
-                Spacer()
-                Button("Show log file") { Log.reveal() }
-                    .buttonStyle(FerryButtonStyle(theme: t))
-            }
-        }
-        Rectangle().fill(t.line).frame(height: 1)
-        HStack {
-            Button("About Mountpoint") { about = true }
-                .buttonStyle(FerryButtonStyle(theme: t))
-            Spacer()
-            Button("Done") { settings = false }
-                .buttonStyle(FerryButtonStyle(theme: t, primary: true))
-                .keyboardShortcut(.defaultAction)
-        }
     }
 
     // MARK: Projekte

@@ -8,12 +8,14 @@ enum Welcome {
     private static let key = "welcomeConfirmed2"
     private static var panel: NSPanel?
 
-    static func showIfNeeded() {
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
+    /// `then`: danach (sofort, wenn schon bestätigt) – z. B. die Frage nach dem Selbsttest
+    static func showIfNeeded(then: @escaping @MainActor () -> Void = {}) {
+        guard !UserDefaults.standard.bool(forKey: key) else { then(); return }
         let view = WelcomeView(dark: Store.shared.dark) {
             UserDefaults.standard.set(true, forKey: key)
             panel?.close()
             panel = nil
+            then()
         }
         let p = AlertPanel(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
         p.contentViewController = NSHostingController(rootView: view.environment(\.locale, Store.shared.locale))

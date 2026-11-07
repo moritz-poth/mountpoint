@@ -34,6 +34,10 @@ final class Store: ObservableObject {
     @Published var watchSize = UserDefaults.standard.bool(forKey: "watchSize") {
         didSet { UserDefaults.standard.set(watchSize, forKey: "watchSize"); Log.write("setting: warn about MXF folders over 5000 files \(watchSize ? "on" : "off")"); notifyGuard() }
     }
+    /// Auch Vorabversionen (Testversionen) als Update anbieten – nur für Tester
+    @Published var betas = UserDefaults.standard.bool(forKey: "betas") {
+        didSet { UserDefaults.standard.set(betas, forKey: "betas"); Log.write("setting: test versions \(betas ? "on" : "off")") }
+    }
     /// Eingehängte Workspaces in der Finder-Seitenleiste unter „Orte“ zeigen (Sidebar.swift)
     @Published var sidebar = UserDefaults.standard.object(forKey: "sidebar") as? Bool ?? true {
         didSet { UserDefaults.standard.set(sidebar, forKey: "sidebar"); Log.write("setting: Finder sidebar \(sidebar ? "on" : "off")"); syncSidebar() }

@@ -1,0 +1,18 @@
+# Empfänger für Selbsttest-Berichte und Problem-Meldungen aus Mountpoint (Reporter.swift).
+# Legt jeden Bericht als JSON-Datei und als Issue im privaten Repo REPO ab. Free-Plan, keine Zahlungsdaten.
+name = "mountpoint-reports"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+REPO = "moritz-poth/mountpoint-reports"
+MAX_PER_DAY = "50"      # Berichte pro Tag insgesamt
+MAX_PER_HOUR_IP = "5"   # Berichte pro Stunde und Absender
+
+# Zähler für die Limits (id nach `npx wrangler kv namespace create LIMITS` eintragen)
+[[kv_namespaces]]
+binding = "LIMITS"
+id = "efccd83f7f0b40bc84c2c38ea77948c2"
+
+# Secret (nicht hier eintragen!): npx wrangler secret put GITHUB_TOKEN
+# Fine-grained token, nur Repo mountpoint-reports, Rechte: Contents read/write, Issues read/write.

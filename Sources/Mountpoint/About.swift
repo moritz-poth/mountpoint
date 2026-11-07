@@ -3,7 +3,8 @@ import SwiftUI
 /// Rechtliche Hinweise nach GPL-3.0 §5d: Copyright, keine Gewährleistung, Lizenz, Quellcode.
 struct AboutView: View {
     let theme: Theme
-    let done: () -> Void
+    /// mit „Fertig“-Knopf (im Panel); im Einstellungsfenster ohne
+    var done: (() -> Void)? = nil
 
     static let repo = URL(string: "https://github.com/moritz-poth/mountpoint")!
     static let gpl = URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!
@@ -49,12 +50,14 @@ struct AboutView: View {
             .foregroundColor(t.faint)
             .fixedSize(horizontal: false, vertical: true)
 
-            Rectangle().fill(t.line).frame(height: 1)
-            HStack {
-                Spacer()
-                Button("Done", action: done)
-                    .buttonStyle(FerryButtonStyle(theme: t, primary: true))
-                    .keyboardShortcut(.defaultAction)
+            if let done {
+                Rectangle().fill(t.line).frame(height: 1)
+                HStack {
+                    Spacer()
+                    Button("Done", action: done)
+                        .buttonStyle(FerryButtonStyle(theme: t, primary: true))
+                        .keyboardShortcut(.defaultAction)
+                }
             }
         }
     }

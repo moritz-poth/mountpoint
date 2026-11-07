@@ -15,6 +15,8 @@ enum Mounter {
         let from: String
         let local: Bool
         let hidden: Bool
+        /// Dateisystem, z. B. "smbfs", "apfs", "macfuse"
+        var type = ""
         /// von Mountpoint eingehängt (auch von älteren Versionen ohne Kennung)
         var own: Bool { from.hasPrefix("mountpoint@") || from.hasPrefix("mirror@") }
     }
@@ -33,7 +35,7 @@ enum Mounter {
         for s in list.prefix(Int(max(n, 0))) {
             let flags = UInt64(s.f_flags)
             result.append(Mount(point: text(s.f_mntonname), from: text(s.f_mntfromname),
-                                local: flags & UInt64(MNT_LOCAL) != 0, hidden: flags & UInt64(MNT_DONTBROWSE) != 0))
+                                local: flags & UInt64(MNT_LOCAL) != 0, hidden: flags & UInt64(MNT_DONTBROWSE) != 0, type: text(s.f_fstypename)))
         }
         return result
     }

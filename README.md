@@ -73,9 +73,9 @@ The menu bar icon (a drive with a folder tab) appears at the top right. It is fi
 - **Add… → Add workspace…** – pick the folder that contains `Avid MediaFiles` (folders that do are marked **AVID**). If it is missing, Mountpoint offers to create `Avid MediaFiles/MXF`. The picker remembers where you were last.
 - **Mount / Eject** – per workspace or per project. Status dots: filled green = mounted, grey ring = not mounted, half-filled orange = partly mounted or a problem.
 - **⋯ menus** – move a workspace to a project, show it in Finder, remove it; rename or delete a project, mount it at app launch, clear all its error messages (a single one goes with its ×). Removing a workspace or deleting a project never touches any files.
-- **Settings (gear icon)** – launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom of the settings. New workspaces and projects are added with **Add…** at the bottom left of the panel. Settings are saved right away; the panel always reopens on its main page. Changing the language takes effect immediately.
+- **Settings (gear icon or ⌘,)** – opens the settings window with tabs: launch at login, mount as network drive, appearance (light/dark switch), language, protected volumes, version and *Check for updates*. *About Mountpoint* is at the bottom of the settings. New workspaces and projects are added with **Add…** at the bottom left of the panel. Settings are saved right away; the panel always reopens on its main page. Changing the language takes effect immediately.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="400" alt="Settings: launch at login, network drive, appearance, language, protected volumes, warnings, updates"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/settings-dark.png"><img src="assets/screenshots/settings-light.png" width="640" alt="Settings window with tabs General, Avid Media Composer, Protected volumes, Updates, Support and About"></picture></p>
 
 ### Protected volumes
 
@@ -88,6 +88,12 @@ The system volume (e.g. *Macintosh HD*) is listed under its Finder name; there M
 Mountpoint does not scan your drives. macOS notifies it when something changes at the top level of a protected volume, so it uses no CPU while nothing happens; a single check per minute acts as a safety net. Mountpoint cannot *prevent* the write – it tells you within seconds so you can stop the import or render. It never deletes the folder.
 
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/alert-dark.png"><img src="assets/screenshots/alert-light.png" width="520" alt="Alert: a folder “1” appeared on a network drive"></picture></p>
+
+## Testing and reporting problems
+
+- **Self-test:** Settings → *Run self-test…* checks mounting, files, warnings and updates on a test disk of its own (your workspaces are not touched) and sends an anonymous report. Takes a few minutes, needs macFUSE. The Finder may ask once whether Mountpoint may control it – that tests copying with the Finder.
+- **Report a problem:** Settings → *Report…* – describe what happened, optionally with your email and the anonymized log file. No GitHub account needed.
+- **Test versions:** Settings → *Get test versions* also offers versions that are still being tested.
 
 ## Build
 

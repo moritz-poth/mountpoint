@@ -54,12 +54,13 @@ struct Release {
 }
 
 /// Newest non-draft release with a Mountpoint zip (and its signature), from GitHub's releases JSON.
-func newestRelease(fromJSON data: Data, requireSignature: Bool = true) -> Release? {
+/// Prereleases (test versions) only with `includePrereleases` – setting "Get test versions", or when a test version runs.
+func newestRelease(fromJSON data: Data, requireSignature: Bool = true, includePrereleases: Bool = false) -> Release? {
     struct Asset: Decodable { let name: String; let browser_download_url: URL }
-    struct R: Decodable { let tag_name: String; let html_url: URL; let draft: Bool; let assets: [Asset] }
+    struct R: Decodable { let tag_name: String; let html_url: URL; let draft: Bool; let prerelease: Bool?; let assets: [Asset] }
     guard let list = try? JSONDecoder().decode([R].self, from: data) else { return nil }
     return list
-        .filter { !$0.draft && AppVersion($0.tag_name) != nil }
+        .filter { !$0.draft && AppVersion($0.tag_name) != nil && (includePrereleases || $0.prerelease != true) }
         .compactMap { r -> (AppVersion, Release)? in
             guard let zip = r.assets.first(where: { $0.name.hasPrefix("Mountpoint-") && $0.name.hasSuffix(".zip") }) else { return nil }
             let sig = r.assets.first { $0.name == zip.name + ".sig" }?.browser_download_url
@@ -86,7 +87,7 @@ final class Updater: ObservableObject {
     /// Public half of the update key (`swift scripts/update-key.swift public`). Only zips signed with it are installed:
     /// the codesign check alone proves the app is intact, not who made it (ad-hoc signature).
     nonisolated static let publicKey = "zDauUuX5/5aDuNcfbCFsho7D8dsjhAf5BVBdNRLJhxc="
-    private static let api = URL(string: "https://api.github.com/repos/moritz-poth/mountpoint/releases?per_page=20")!
+    static let api = URL(string: "https://api.github.com/repos/moritz-poth/mountpoint/releases?per_page=20")!
     private var timer: Timer?
 
     /// Checks shortly after launch and then every 6 hours, quietly.
@@ -102,9 +103,10 @@ final class Updater: ObservableObject {
         if manual { state = .checking }
         var request = URLRequest(url: Self.api)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let betas = UserDefaults.standard.bool(forKey: "betas") || AppVersion(Self.current)?.beta != nil
         URLSession.shared.dataTask(with: request) { data, response, error in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200
-            let release = ok ? data.flatMap { newestRelease(fromJSON: $0) } : nil
+            let release = ok ? data.flatMap { newestRelease(fromJSON: $0, includePrereleases: betas) } : nil
             Task { @MainActor in
                 guard self.state != .installing else { return }
                 if let release, let new = AppVersion(release.tag), let mine = AppVersion(Self.current), mine < new {

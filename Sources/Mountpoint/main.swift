@@ -42,8 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         store.mountAtLaunch()
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
+        SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()
-        Welcome.showIfNeeded()
+        Welcome.showIfNeeded { Consent.showIfNeeded() }
         Updater.shared.start()
     }
 
