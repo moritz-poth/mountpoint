@@ -40,7 +40,7 @@ struct Workspace: Codable, Identifiable, Hashable {
     }
 }
 
-struct Library: Codable {
+struct Library: Codable, Equatable {
     var projects: [Project] = []
     var workspaces: [Workspace] = []
     /// Volume-Namen, auf denen kein „Avid MediaFiles“ entstehen soll (z. B. LucidLink); `systemGuard` = Systemvolume
@@ -88,13 +88,24 @@ func createAvidFolders(in folder: URL) throws {
     try FileManager.default.createDirectory(at: folder.appendingPathComponent("Avid MediaFiles/MXF"), withIntermediateDirectories: true)
 }
 
+/// Bundle-Kennung der App. Die Einstellungs-App (`…settings`, Mountpoint.app/Contents/Helpers/Mountpoint Settings.app)
+/// ist derselbe Code; sie zeigt nur das Einstellungsfenster (SettingsApp.swift).
+let mainBundleID = "io.github.moritz-poth.mountpoint"
+let settingsMode = Bundle.main.bundleIdentifier == mainBundleID + ".settings"
+/// Einstellungen beider Programme in einer Domäne – der der App (die Einstellungs-App schreibt in sie hinein)
+let defaults: UserDefaults = settingsMode ? (UserDefaults(suiteName: mainBundleID) ?? .standard) : .standard
+/// Mountpoint.app – auch aus der Einstellungs-App heraus (Helfer, Volume-Symbol)
+let mainBundleURL: URL = settingsMode
+    ? Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    : Bundle.main.bundleURL
+
 /// Verfügbare Sprachen. Neue Sprache: Resources/<code>.lproj/Localizable.strings anlegen, hier eintragen,
 /// und den Code in CFBundleLocalizations (scripts/build-app.sh) ergänzen.
 let languages: [(code: String, name: String)] = [("en", "English"), ("de", "Deutsch"), ("fr", "Français"), ("es", "Español")]
 
 /// Texte der gewählten Sprache; Englisch (kein .lproj) = die Schlüssel selbst. Wechsel ohne Neustart: Store.setLanguage.
 // geschrieben nur im Main Thread beim Sprachwechsel; gelesen auch von Mount-Threads (ein Zeigertausch)
-nonisolated(unsafe) var languageBundle = bundle(for: UserDefaults.standard.string(forKey: "language") ?? "en")
+nonisolated(unsafe) var languageBundle = bundle(for: defaults.string(forKey: "language") ?? "en")
 
 func bundle(for code: String) -> Bundle {
     Bundle.main.path(forResource: code, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main

@@ -274,3 +274,14 @@
 "Paste" = "Coller";
 "Select All" = "Tout sélectionner";
 "Window" = "Fenêtre";
+"Hide Mountpoint Settings" = "Masquer Réglages Mountpoint";
+"Quit Mountpoint Settings" = "Quitter Réglages Mountpoint";
+"A self-test is already running – in Mountpoint or in the settings. Wait until it is done." = "Un autotest est déjà en cours – dans Mountpoint ou dans les réglages. Attendez qu’il soit terminé.";
+"Show in Mountpoint" = "Afficher dans Mountpoint";
+"Mountpoint did not answer, so launch at login was not changed. Open Mountpoint and try again." = "Mountpoint n’a pas répondu : le lancement à l’ouverture de session n’a pas été modifié. Ouvrez Mountpoint et réessayez.";
+"The self-test is still running. The settings close by themselves when it is done." = "L’autotest est encore en cours. Les réglages se fermeront d’eux-mêmes une fois terminé.";
+"A self-test is running. Install the update when it is done." = "Un autotest est en cours. Installez la mise à jour une fois qu’il est terminé.";
+"Your workspace list could not be read and could not be set aside either. Mountpoint does not change it. Check the folder ~/Library/Application Support/Mountpoint." = "Votre liste de workspaces n’a pas pu être lue ni mise de côté. Mountpoint ne la modifie pas. Vérifiez le dossier ~/Library/Application Support/Mountpoint.";
+"Your workspace list could not be read and was set aside as “%@” (in ~/Library/Application Support/Mountpoint). Mountpoint saved the list it had open." = "Votre liste de workspaces n’a pas pu être lue et a été mise de côté sous « %@ » (dans ~/Library/Application Support/Mountpoint). Mountpoint a enregistré la liste qu’il avait ouverte.";
+"Your workspace list could not be read, so changes to protected volumes cannot be saved right now. Mountpoint repairs the list while it runs – open Mountpoint if it is not running. If this message stays, check the folder ~/Library/Application Support/Mountpoint." = "Votre liste de workspaces n’a pas pu être lue : les modifications des volumes protégés ne peuvent pas être enregistrées pour le moment. Mountpoint répare la liste tant qu’il est ouvert – ouvrez Mountpoint s’il ne l’est pas. Si ce message persiste, vérifiez le dossier ~/Library/Application Support/Mountpoint.";
+"Mountpoint could not be opened. Open it from the Applications folder." = "Mountpoint n’a pas pu être ouvert. Ouvrez-le depuis le dossier Applications.";

@@ -16,14 +16,13 @@ private let titleCapHeight = NSFont(name: "HelveticaNeue-Light", size: 26)?.capH
 struct Panel: View {
     @ObservedObject var store: Store
     @ObservedObject private var updater = Updater.shared
-    @State private var hideUpdate = false
     let hold: (Bool) -> Void
     /// aufgeklappte Projekte, über Neustarts gemerkt
-    @State private var expanded = Set((UserDefaults.standard.stringArray(forKey: "expanded") ?? []).compactMap(UUID.init(uuidString:)))
+    @State private var expanded = Set((defaults.stringArray(forKey: "expanded") ?? []).compactMap(UUID.init(uuidString:)))
     @State private var dialog: Dialog?
     /// Ordnerauswahl offen; Wert = Zielprojekt
     @State private var picking: UUID?? = nil
-    @ObservedObject private var settingsWindow = SettingsWindow.shared
+    @ObservedObject private var settings = SettingsLauncher.shared
     @State private var text = ""
     @State private var flag = true
     @FocusState private var focused: Bool
@@ -41,8 +40,8 @@ struct Panel: View {
                     .foregroundColor(t.text)
                 Spacer()
                 // öffnet das Einstellungsfenster (Panel bleibt offen); gefüllt, solange es offen ist
-                Button { SettingsWindow.shared.show() } label: {
-                    Image(systemName: settingsWindow.isOpen ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
+                Button { SettingsLauncher.shared.open() } label: {
+                    Image(systemName: settings.isOpen ? "gearshape.fill" : "gearshape").font(.system(size: 15)).foregroundColor(t.muted)
                         .frame(width: 26, height: 26).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -69,7 +68,7 @@ struct Panel: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
             }
 
-            if let release = updater.available, !hideUpdate || updater.state == .installing {
+            if let release = updater.available, !updater.dismissed || updater.state == .installing {
                 updateBanner(release, t)
             }
 
@@ -95,7 +94,7 @@ struct Panel: View {
         .background(t.background)
         .environment(\.colorScheme, store.dark ? .dark : .light)
         .environment(\.locale, store.locale)
-        .onChange(of: expanded) { UserDefaults.standard.set($0.map(\.uuidString), forKey: "expanded") }
+        .onChange(of: expanded) { defaults.set($0.map(\.uuidString), forKey: "expanded") }
         // settings are saved right away; reopening the panel always starts on the main page
         .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
             picking = nil
@@ -150,7 +149,7 @@ struct Panel: View {
                 }
                 Spacer(minLength: 0)
                 if updater.state != .installing {
-                    Button { hideUpdate = true } label: {
+                    Button { updater.dismissed = true } label: {
                         Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
                             .frame(width: 18, height: 18).contentShape(Rectangle())
                     }

@@ -46,8 +46,18 @@ struct UpdaterTests {
 
     /// Uses the zip from scripts/build-app.sh, if there is one.
     @Test func unpackAcceptsOnlyTheExpectedIntactApp() throws {
-        let dist = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("dist")
-        guard let zipName = try? FileManager.default.contentsOfDirectory(atPath: dist.path).first(where: { $0.hasSuffix(".zip") }) else { return }
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let dist = root.appendingPathComponent("dist")
+        // das Zip der Version, die build-app.sh gerade baut – nicht irgendein altes
+        let script = try String(contentsOf: root.appendingPathComponent("scripts/build-app.sh"), encoding: .utf8)
+        guard let release = script.split(separator: "\n").first(where: { $0.hasPrefix("RELEASE=") })?
+                .dropFirst("RELEASE=".count).split(separator: " ").first.map(String.init) else { Issue.record("no RELEASE in build-app.sh"); return }
+        let zipName = "Mountpoint-\(release).zip"
+        guard FileManager.default.fileExists(atPath: dist.appendingPathComponent(zipName).path) else {
+            // vor einem Release (MOUNTPOINT_RELEASE=1) muss der Build da sein, sonst wäre der Test still „grün“
+            if ProcessInfo.processInfo.environment["MOUNTPOINT_RELEASE"] == "1" { Issue.record("\(zipName) missing – run scripts/build-app.sh first") }
+            return
+        }
         let zip = dist.appendingPathComponent(zipName)
         let tag = "v" + zipName.dropFirst("Mountpoint-".count).dropLast(".zip".count)
         let id = "io.github.moritz-poth.mountpoint"
@@ -61,6 +71,12 @@ struct UpdaterTests {
         }
         let app = try unpack(zip, tag, sig)
         #expect(FileManager.default.fileExists(atPath: app.appendingPathComponent("Contents/MacOS/mirror").path))
+        // eingebettete Einstellungs-App: eigene Kennung, gleiche Version
+        let nested = app.appendingPathComponent("Contents/Helpers/Mountpoint Settings.app/Contents")
+        let info = NSDictionary(contentsOf: nested.appendingPathComponent("Info.plist"))
+        #expect(info?["CFBundleIdentifier"] as? String == id + ".settings")
+        #expect(info?["MountpointRelease"] as? String == release)
+        #expect(FileManager.default.isExecutableFile(atPath: nested.appendingPathComponent("MacOS/Mountpoint Settings").path))
         #expect(throws: Updater.UpdateError.self) { try unpack(zip, "v9.9.9", sig) }
         #expect(throws: Updater.UpdateError.self) { try unpack(zip, tag, sig, "other.app") }
         // unsigned, signed by someone else, or signature of another file: refused
@@ -74,6 +90,13 @@ struct UpdaterTests {
         p.arguments = ["-c", "-k", "--keepParent", bad.path, tampered.path]; try p.run(); p.waitUntilExit()
         #expect(throws: Updater.UpdateError.self) { try unpack(tampered, tag, try sign(tampered)) }
         #expect(throws: Updater.UpdateError.self) { try unpack(tampered, tag, sig) }
+        // eine veränderte Datei in der eingebetteten App bricht die Signatur ebenso
+        let bad2 = try unpack(zip, tag, sig)
+        try Data("x".utf8).write(to: bad2.appendingPathComponent("Contents/Helpers/Mountpoint Settings.app/Contents/Resources/de.lproj/InfoPlist.strings"))
+        let tampered2 = bad2.deletingLastPathComponent().appendingPathComponent("t2.zip")
+        let p2 = Process(); p2.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        p2.arguments = ["-c", "-k", "--keepParent", bad2.path, tampered2.path]; try p2.run(); p2.waitUntilExit()
+        #expect(throws: Updater.UpdateError.self) { try unpack(tampered2, tag, try sign(tampered2)) }
     }
 
     /// The zip from build-app.sh is signed with the key the app trusts (if build-app.sh could sign it).

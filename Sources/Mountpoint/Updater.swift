@@ -81,6 +81,8 @@ final class Updater: ObservableObject {
     }
 
     @Published var available: Release?
+    /// Hinweis im Panel weggeklickt; „In Mountpoint zeigen“ (Einstellungs-App) holt ihn zurück
+    @Published var dismissed = false
     @Published var state = State.idle
 
     static let current = Bundle.main.object(forInfoDictionaryKey: "MountpointRelease") as? String ?? "dev"
@@ -103,7 +105,7 @@ final class Updater: ObservableObject {
         if manual { state = .checking }
         var request = URLRequest(url: Self.api)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        let betas = UserDefaults.standard.bool(forKey: "betas") || AppVersion(Self.current)?.beta != nil
+        let betas = defaults.bool(forKey: "betas") || AppVersion(Self.current)?.beta != nil
         URLSession.shared.dataTask(with: request) { data, response, error in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200
             let release = ok ? data.flatMap { newestRelease(fromJSON: $0, includePrereleases: betas) } : nil
@@ -127,6 +129,7 @@ final class Updater: ObservableObject {
     /// The old version goes to the Trash. Mounted workspaces are ejected and mounted again by the new version.
     func install() {
         guard let release = available, !release.manual, let sigURL = release.signature, state != .installing else { return }
+        guard !SelfTest.runningAnywhere else { state = .failed(Self.waitForSelfTest); return }
         state = .installing
         Log.write("installing update \(release.tag)")
         Task {
@@ -187,7 +190,13 @@ final class Updater: ObservableObject {
         return app
     }
 
+    static var waitForSelfTest: String { loc("A self-test is running. Install the update when it is done.") }
+
     private func swapAndRestart(with app: URL) throws {
+        // inzwischen gestartet? Dann nicht: der Test bräche ab und die Einstellungs-App müsste hart beendet werden
+        guard !SelfTest.runningAnywhere else { throw UpdateError(Self.waitForSelfTest) }
+        // die eingebettete Einstellungs-App liegt im Bundle, das gleich in den Papierkorb geht – vorher beenden
+        SettingsLauncher.terminateRunning(wait: true)
         let fm = FileManager.default
         let current = Bundle.main.bundleURL
         var trashed: NSURL?

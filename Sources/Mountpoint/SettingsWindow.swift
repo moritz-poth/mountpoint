@@ -4,7 +4,8 @@ import SwiftUI
 
 /// Einstellungen in einem eigenen Fenster (macOS HIG „Settings“): Werkzeugleiste mit Reitern, die immer zeigt, welcher
 /// Reiter aktiv ist; Fenstertitel = Reiter; Minimieren/Zoomen ausgegraut; zuletzt benutzter Reiter beim Öffnen; ⌘,.
-/// 16:9 auf Wunsch des Nutzers (statt Höhe je Reiter) – längere Reiter scrollen. Das Panel bleibt offen (hold).
+/// 16:9 auf Wunsch des Nutzers (statt Höhe je Reiter); kein Reiter scrollt, nur die Liste der geschützten Volumes.
+/// Seit 1.2 läuft das Fenster in der Einstellungs-App (SettingsApp.swift); im Mountpoint-Prozess nur bei Entwicklungs-Builds.
 @MainActor
 final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     static let shared = SettingsWindow()
@@ -67,15 +68,17 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
             item.image = NSImage(systemSymbolName: pane.symbol, accessibilityDescription: pane.title)
             tabs.addTabViewItem(item)
         }
-        tabs.selectedTabViewItemIndex = min(UserDefaults.standard.integer(forKey: "settingsPane"), Pane.allCases.count - 1)
+        tabs.selectedTabViewItemIndex = min(defaults.integer(forKey: "settingsPane"), Pane.allCases.count - 1)
         let w = NSWindow(contentViewController: tabs)
         w.styleMask = [.titled, .closable]   // ohne miniaturizable/resizable: Minimieren und Zoomen sind ausgegraut
         w.toolbar?.allowsUserCustomization = false
         w.toolbarStyle = .preference
         w.isReleasedWhenClosed = false
-        // über dem Panel (Popover), verschwindet mit der App beim Wechsel in eine andere und kommt mit ihr zurück
-        w.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
-        w.hidesOnDeactivate = true
+        if !settingsMode {
+            // im Mountpoint-Prozess (Entwicklungs-Build ohne Einstellungs-App): über dem Panel, verschwindet mit der App
+            w.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
+            w.hidesOnDeactivate = true
+        }
         w.delegate = self
         w.setFrame(NSRect(origin: .zero, size: Self.size), display: false)
         w.center()
@@ -94,6 +97,20 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
         }
     }
 
+    static var closesAfterTest: String { loc("The self-test is still running. The settings close by themselves when it is done.") }
+    private var closeAfterTest: AnyCancellable?
+
+    /// Einstellungs-App: während des Selbsttests offen bleiben (sie beendet sich mit dem Fenster) und danach selbst schließen
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard settingsMode, SelfTest.shared.phase == .running else { return true }
+        Store.shared.notice = Self.closesAfterTest
+        IPC.post("noReopen")   // das Panel soll nicht erst Minuten später, nach dem Test, aufspringen
+        closeAfterTest = SelfTest.shared.$phase.filter { $0 != .running }.first().sink { [weak self] _ in
+            DispatchQueue.main.async { self?.window?.close() }
+        }
+        return false
+    }
+
     func windowWillClose(_ notification: Notification) {
         isOpen = false
         hold(false)
@@ -109,7 +126,7 @@ final class SettingsTabs: NSTabViewController {
 
     override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
         super.tabView(tabView, didSelect: tabViewItem)
-        UserDefaults.standard.set(selectedTabViewItemIndex, forKey: "settingsPane")
+        defaults.set(selectedTabViewItemIndex, forKey: "settingsPane")
         if let w = view.window, w.frame.size != SettingsWindow.size {
             w.setFrame(NSRect(origin: w.frame.origin, size: SettingsWindow.size), display: true)
         }
@@ -129,7 +146,25 @@ struct SettingsPane: View {
     var body: some View {
         let t = Theme(dark: store.dark)
         // nie scrollen: jeder Reiter passt ins Fenster; nur die Volume-Liste scrollt in sich
-        VStack(alignment: .leading, spacing: 14) { content(t) }
+        VStack(alignment: .leading, spacing: 14) {
+            // Fehler der Einstellungs-App (Speichern, unlesbare Liste, Anmeldeobjekt) – sonst wären sie unsichtbar
+            if let notice = store.notice {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(t.partial)
+                    Text(notice).font(.mono(11)).foregroundColor(t.text).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button { store.notice = nil } label: {
+                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
+                            .frame(width: 18, height: 18).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Close"))
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(t.partial.opacity(0.12)))
+            }
+            content(t)
+        }
             .frame(maxWidth: 560, alignment: .leading)
             .padding(.horizontal, 32)
             .padding(.vertical, 24)
@@ -144,10 +179,11 @@ struct SettingsPane: View {
         }
     }
 
-    /// Erklärung unter einer Zeile – bricht vor der Spalte mit Schaltern und Buttons um (Spalte 560, Text max. 390)
-    private func hint(_ text: LocalizedStringKey, _ t: Theme) -> some View {
+    /// Erklärung unter einer Zeile – bricht vor der Spalte mit Schaltern und Buttons um (Spalte 560, Text max. 390);
+    /// `fullWidth`, wo daneben kein Schalter steht (Einleitung der geschützten Volumes)
+    private func hint(_ text: LocalizedStringKey, _ t: Theme, fullWidth: Bool = false) -> some View {
         Text(text).font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: 390, alignment: .leading)
+            .frame(maxWidth: fullWidth ? .infinity : 390, alignment: .leading)
     }
 
     /// Zeile wie „Version … / Nach Updates suchen“: kurzer Text links, Bedienelement rechtsbündig
@@ -188,7 +224,7 @@ struct SettingsPane: View {
             hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.", t)
 
         case .protected:
-            hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t)
+            hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)
             // nur die Liste scrollt (ab etwa 5 Volumes); „Volume hinzufügen“ bleibt darunter immer sichtbar
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
@@ -234,6 +270,13 @@ struct SettingsPane: View {
                 Button("Check for updates") { updater.check(manual: true) }
                     .buttonStyle(FerryButtonStyle(theme: t))
                     .disabled(updater.state == .checking || updater.state == .installing)
+            }
+            if let release = updater.available, settingsMode {
+                // installieren kann nur Mountpoint selbst – Panel mit dem Update-Hinweis öffnen
+                row(Text("Mountpoint \(release.tag.hasPrefix("v") ? String(release.tag.dropFirst()) : release.tag) is available."), t) {
+                    Button("Show in Mountpoint") { SettingsLauncher.showUpdateInMountpoint() }
+                        .buttonStyle(FerryButtonStyle(theme: t, primary: true))
+                }
             }
             switch updater.state {
             case .upToDate:

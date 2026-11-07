@@ -14,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var language: AnyCancellable?
     /// Panel war offen, als Mountpoint (mit offenen Einstellungen) in den Hintergrund ging
     private var panelBeforeDeactivate = false
+    private let actions = MenuActions()
+    /// Panel war offen, als die Einstellungs-App aufging – es geht wieder auf, wenn sie geschlossen wird
+    private var reopenPanel = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var arch = utsname()
@@ -23,7 +26,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: "fonts") ?? [] {
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
+        // Einstellungs-App: Änderungen übernehmen, Aufträge ausführen. Erst zuhören, dann laden (Store.shared liest die
+        // Datei): was eine offene Einstellungs-App währenddessen speichert, geht sonst verloren.
+        IPC.listen { [weak self] what, info in
+            guard let self else { return }
+            switch what {
+            case "settings": Store.shared.reloadSettings()
+            case "library": Store.shared.reloadLibrary()
+            case "launchAtLogin": Store.shared.setLaunchAtLogin(info["on"] == "1", request: info["id"] ?? "")
+            case "launchAtLoginQuery": Store.shared.publishLaunchAtLogin()
+            case "noReopen": self.reopenPanel = false   // Einstellungen schließen erst nach dem Selbsttest
+            case "showUpdate":
+                // aus der Einstellungs-App: Panel mit dem Update-Hinweis zeigen
+                Updater.shared.dismissed = false
+                Updater.shared.check(manual: false)
+                self.showPanel()
+            default: break
+            }
+        }
         let store = Store.shared
+        store.reloadSettings()   // Einstellungen, die vor dem Zuhören geändert wurden
         store.applyAppearance()
 
         let host = NSHostingController(rootView: Panel(store: store, hold: { [weak self] on in self?.hold(on) }))
@@ -49,9 +71,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         VolumeGuard.shared.start()
         Welcome.showIfNeeded { Consent.showIfNeeded() }
         // Menü ohne sichtbare Menüleiste (reine Menüleisten-App): liefert ⌘, ⌘C/⌘V (Problem-Formular), ⌘W, ⌘Q
-        buildMenu()
+        buildMainMenu(actions)
         language = store.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
-            DispatchQueue.main.async { self?.buildMenu() }
+            DispatchQueue.main.async { if let self { buildMainMenu(self.actions) } }
+        }
+        store.publishLaunchAtLogin()
+        IPC.post("library")   // eine offene Einstellungs-App lädt den aktuellen Stand (z. B. nach dem Beiseitelegen)
+        // Das Panel geht zu, wenn die Einstellungs-App aufgeht, und wieder auf, wenn sie geschlossen wird
+        let launcher = SettingsLauncher.shared
+        launcher.willOpen = { [weak self] in self?.reopenPanel = self?.popover.isShown ?? false }
+        launcher.openFailed = { [weak self] in self?.reopenPanel = false }
+        launcher.openChanged = { [weak self] open in
+            guard let self, !open, self.reopenPanel else { return }
+            self.reopenPanel = false
+            guard !self.popover.isShown, let button = self.item.button else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            self.popover.contentViewController?.view.window?.makeKey()
         }
         // Einstellungen und Panel gehen gemeinsam in den Hintergrund und kommen gemeinsam zurück
         let nc = NotificationCenter.default
@@ -62,11 +98,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { self?.appActivated() }
         }
         Updater.shared.start()
+        // aus der Einstellungs-App gestartet („In Mountpoint zeigen“)
+        if CommandLine.arguments.contains("--show-update") {
+            Updater.shared.dismissed = false
+            Updater.shared.check(manual: false)
+            showPanel()
+        }
+    }
+
+    private var waitForTest: AnyCancellable?
+
+    /// Ein laufender Selbsttest (nach der Zustimmungsfrage) räumt erst auf – sonst blieben Testvolumes zurück.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard SelfTest.shared.phase == .running else { quit(); return .terminateNow }
+        Log.write("quit waits for the self-test")
+        waitForTest = SelfTest.shared.$phase.filter { $0 != .running }.first().sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.quit()
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
+        }
+        return .terminateLater
     }
 
     /// Beim Beenden auswerfen; was noch benutzt wird, bleibt eingehängt – und das sagen wir.
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    private func quit() {
         Log.write("quit")
+        SettingsLauncher.terminateRunning()
         let still = Store.shared.unmountAllOnQuit()
         Sidebar.removeAll()   // der nächste Start trägt noch eingehängte Volumes wieder ein
         if !still.isEmpty {
@@ -77,7 +135,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             a.informativeText = loc("These volumes are still in use and stay mounted: \(still.joined(separator: ", ")). Quit Media Composer and eject them in the Finder.")
             a.runModal()
         }
-        return .terminateNow
+    }
+
+    func showPanel() {
+        guard !popover.isShown, let button = item.button else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     @objc private func togglePanel() {
@@ -105,46 +169,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         panelBeforeDeactivate = false
         SettingsWindow.shared.front()
-    }
-
-    @objc private func showSettings() { SettingsWindow.shared.show() }
-    @objc private func showAbout() { SettingsWindow.shared.show(.about) }
-
-    /// HIG: Einstellungen im App-Menü (⌘,); „Bearbeiten“ für Kopieren/Einfügen in Textfeldern; ⌘W schließt das Fenster.
-    private func buildMenu() {
-        let main = NSMenu()
-        func menu(_ title: String, _ items: [NSMenuItem]) {
-            let m = NSMenu(title: title)
-            items.forEach(m.addItem)
-            let holder = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-            holder.submenu = m
-            main.addItem(holder)
-        }
-        func item(_ title: String, _ action: Selector, _ key: String, target: AnyObject? = nil, mods: NSEvent.ModifierFlags = .command) -> NSMenuItem {
-            let i = NSMenuItem(title: title, action: action, keyEquivalent: key)
-            i.keyEquivalentModifierMask = mods
-            i.target = target
-            return i
-        }
-        menu("Mountpoint", [
-            item(loc("About Mountpoint"), #selector(showAbout), "", target: self),
-            .separator(),
-            item(loc("Settings…"), #selector(showSettings), ",", target: self),
-            .separator(),
-            item(loc("Hide Mountpoint"), #selector(NSApplication.hide(_:)), "h"),
-            item(loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
-        ])
-        menu(loc("Edit"), [
-            item(loc("Undo"), Selector(("undo:")), "z"),
-            item(loc("Redo"), Selector(("redo:")), "z", mods: [.command, .shift]),
-            .separator(),
-            item(loc("Cut"), #selector(NSText.cut(_:)), "x"),
-            item(loc("Copy"), #selector(NSText.copy(_:)), "c"),
-            item(loc("Paste"), #selector(NSText.paste(_:)), "v"),
-            item(loc("Select All"), #selector(NSText.selectAll(_:)), "a"),
-        ])
-        menu(loc("Window"), [item(loc("Close"), #selector(NSWindow.performClose(_:)), "w")])
-        NSApp.mainMenu = main
     }
 
     private func hold(_ on: Bool) {
@@ -206,12 +230,20 @@ func menuBarIcon(mounted: Bool, problem: Bool = false) -> NSImage {
 }
 
 // Sprache der App (Standard Englisch) – muss vor dem ersten übersetzten Text gesetzt sein.
-UserDefaults.standard.set([UserDefaults.standard.string(forKey: "language") ?? "en"], forKey: "AppleLanguages")
+UserDefaults.standard.set([defaults.string(forKey: "language") ?? "en"], forKey: "AppleLanguages")
 
 MainActor.assumeIsolated {
     let app = NSApplication.shared
-    let delegate = AppDelegate()
-    app.delegate = delegate
-    app.setActivationPolicy(.accessory)
-    app.run()
+    if settingsMode {
+        // Einstellungs-App: normale App (Dock, ⌘-Tab, Menüleiste), nur das Einstellungsfenster
+        let delegate = SettingsAppDelegate()
+        app.delegate = delegate
+        app.setActivationPolicy(.regular)
+        app.run()
+    } else {
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.setActivationPolicy(.accessory)
+        app.run()
+    }
 }

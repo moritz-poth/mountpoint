@@ -5,7 +5,7 @@ import AppKit
 enum Log {
     static let folder = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Mountpoint")
     static let file = folder.appendingPathComponent("Mountpoint.log")
-    private static let enabled = Bundle.main.bundleIdentifier == "io.github.moritz-poth.mountpoint"
+    private static let enabled = Bundle.main.bundleIdentifier?.hasPrefix(mainBundleID) == true   // App und Einstellungs-App
     private static let queue = DispatchQueue(label: "Mountpoint.log")
     private static let stamp: DateFormatter = {
         let f = DateFormatter()
@@ -14,26 +14,30 @@ enum Log {
         return f
     }()
 
+    /// Zwei Prozesse (App und Einstellungs-App) schreiben dieselbe Datei: O_APPEND (eine Zeile = ein write, nichts
+    /// überschreibt sich), Rotation unter einer Dateisperre; Zeilen der Einstellungs-App tragen „[settings]“.
     static func write(_ message: String) {
         guard enabled else { return }
         let now = Date()
         queue.async {
             // DateFormatter nur in dieser Warteschlange: er ist nicht thread-sicher
-            let line = "\(stamp.string(from: now)) \(message.replacingOccurrences(of: "\n", with: " | "))\n"
+            let tag = settingsMode ? " [settings]" : ""
+            let line = "\(stamp.string(from: now))\(tag) \(message.replacingOccurrences(of: "\n", with: " | "))\n"
             let fm = FileManager.default
             try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+            let lock = open(folder.appendingPathComponent(".lock").path, O_CREAT | O_RDWR, 0o644)
+            if lock >= 0 { flock(lock, LOCK_EX) }
+            defer { if lock >= 0 { flock(lock, LOCK_UN); close(lock) } }
             if let size = try? fm.attributesOfItem(atPath: file.path)[.size] as? Int, size > 1_000_000 {
                 let old = folder.appendingPathComponent("Mountpoint.old.log")
                 try? fm.removeItem(at: old)
                 try? fm.moveItem(at: file, to: old)
             }
-            if let h = try? FileHandle(forWritingTo: file) {
-                _ = try? h.seekToEnd()
-                try? h.write(contentsOf: Data(line.utf8))
-                try? h.close()
-            } else {
-                try? Data(line.utf8).write(to: file)
-            }
+            let fd = open(file.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+            guard fd >= 0 else { return }
+            let bytes = Array(line.utf8)
+            _ = bytes.withUnsafeBytes { Foundation.write(fd, $0.baseAddress, $0.count) }
+            close(fd)
         }
     }
 

@@ -65,8 +65,35 @@ final class SelfTest: ObservableObject {
         let run: @MainActor (SelfTest) async throws -> String
     }
 
-    func start() {
-        guard phase != .running else { return }
+    /// Sperrdatei für alle Prozesse dieses Benutzers: die Testvolumes heißen fest „MPSelftest-…“ und das Aufräumen
+    /// wirft alle aus – zwei Tests gleichzeitig würden sich gegenseitig stören.
+    private var lockFD: Int32 = -1
+    /// läuft gerade in der App oder der Einstellungs-App schon einer
+    @Published private(set) var blocked = false
+
+    nonisolated static let lockPath = NSTemporaryDirectory() + "Mountpoint-Selftest.lock"
+
+    /// läuft in irgendeinem Prozess (auch diesem) ein Selbsttest? – ein zweites open+flock scheitert dann
+    nonisolated static var runningAnywhere: Bool {
+        let fd = open(lockPath, O_CREAT | O_RDWR, 0o644)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { return true }
+        flock(fd, LOCK_UN)
+        return false
+    }
+
+    @discardableResult
+    func start() -> Bool {
+        guard phase != .running else { return false }
+        let fd = open(Self.lockPath, O_CREAT | O_RDWR, 0o644)
+        guard fd >= 0, flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+            if fd >= 0 { close(fd) }
+            blocked = true
+            return false
+        }
+        lockFD = fd
+        blocked = false
         phase = .running
         results = []
         report = nil
@@ -74,6 +101,7 @@ final class SelfTest: ObservableObject {
         started = Date()
         Log.write("self-test started")
         Task { await runAll() }
+        return true
     }
 
     func reset() { if phase == .done { phase = .idle; results = []; report = nil } }
@@ -104,6 +132,7 @@ final class SelfTest: ObservableObject {
             autoSend = false
             sendOutcome = await Reporter.send(report)
         }
+        if lockFD >= 0 { flock(lockFD, LOCK_UN); close(lockFD); lockFD = -1 }
         phase = .done
     }
 
@@ -112,10 +141,13 @@ final class SelfTest: ObservableObject {
     nonisolated static var build: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "dev" }
     /// Helfer und Volume-Symbol aus dem App-Bundle (beim Entwickeln: aus .build)
     nonisolated static var helper: String {
-        let inApp = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/mirror").path
+        let inApp = mainBundleURL.appendingPathComponent("Contents/MacOS/mirror").path
         return FileManager.default.fileExists(atPath: inApp) ? inApp : ".build/helper/mirror"
     }
-    nonisolated static var icon: String? { Bundle.main.url(forResource: "VolumeIcon", withExtension: "icns")?.path }
+    nonisolated static var icon: String? {
+        let path = mainBundleURL.appendingPathComponent("Contents/Resources/VolumeIcon.icns").path
+        return FileManager.default.fileExists(atPath: path) ? path : nil
+    }
 
     /// Blockierende Arbeit außerhalb des Hauptthreads: die App bleibt bedienbar.
     func off<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
@@ -195,7 +227,7 @@ final class SelfTest: ObservableObject {
         s["arch"] = sysctl("hw.optional.arm64") == "" ? "x86_64" : "arm64"
         s["memoryGB"] = String(ProcessInfo.processInfo.physicalMemory / 1_073_741_824)
         s["language"] = Locale.preferredLanguages.first ?? "?"
-        s["appLanguage"] = UserDefaults.standard.string(forKey: "language") ?? "en"
+        s["appLanguage"] = defaults.string(forKey: "language") ?? "en"
         s["macFUSE"] = plistVersion(Mounter.macFUSE + "/Contents/Info.plist") ?? "not installed"
         let avid = (try? fm.contentsOfDirectory(atPath: "/Applications"))?.filter { $0.hasPrefix("Avid Media Composer") } ?? []
         s["mediaComposer"] = avid.isEmpty ? "not installed" : avid.compactMap { dir -> String? in
@@ -209,7 +241,7 @@ final class SelfTest: ObservableObject {
         s["networkVolumes"] = String(mounts.filter { !$0.local && !$0.own }.count)
         s["mountpointVolumes"] = String(mounts.filter(\.own).count)
         // nur in der echten App: Store.shared liest die Bibliothek und richtet Seitenleiste/Wächter ein (Tests fassen das nie an)
-        if Bundle.main.bundleIdentifier == "io.github.moritz-poth.mountpoint" {
+        if Bundle.main.bundleIdentifier?.hasPrefix(mainBundleID) == true {
             s["workspaces"] = String(Store.shared.library.workspaces.count)
             s["networkDriveSetting"] = Store.shared.network ? "on" : "off"
             s["sidebarSetting"] = Store.shared.sidebar ? "on" : "off"
@@ -545,7 +577,7 @@ final class SelfTest: ObservableObject {
                 try FileManager.default.removeItem(at: src.appendingPathComponent("Avid MediaFiles"))
                 let w = try await t.mount(src)
                 var fired = false
-                let guardian = VolumeGuard(names: { [w.name] }, numbered: { [] })
+                let guardian = VolumeGuard(names: { [w.name] }, numbered: { [] }, sizeRoots: { [] }, persist: false)
                 guardian.present = { _ in fired = true }
                 guardian.refresh()
                 for _ in 0..<50 where !guardian.idle { await t.sleep(0.05) }
@@ -561,7 +593,7 @@ final class SelfTest: ObservableObject {
                 let mxf = w.volumePath + "/Avid MediaFiles/MXF"
                 let watch = FolderWatch(key: "selftest:\(UUID())", name: w.name, mxf: mxf, kind: .network, matches: { $0 == "1" })
                 var got: [String] = []
-                let guardian = VolumeGuard(names: { [] }, numbered: { [watch] })
+                let guardian = VolumeGuard(names: { [] }, numbered: { [watch] }, sizeRoots: { [] }, persist: false)
                 guardian.presentNumbered = { _, new in got += new }
                 guardian.refresh()
                 for _ in 0..<50 where !guardian.idle { await t.sleep(0.05) }
@@ -579,7 +611,7 @@ final class SelfTest: ObservableObject {
                     for i in 0..<5100 { FileManager.default.createFile(atPath: folder + "/f\(i).mxf", contents: nil) }
                 }
                 var alerts: [Int] = []
-                let guardian = VolumeGuard(names: { [] }, numbered: { [] }, sizeRoots: { [SizeRoot(name: "MPSelftest", root: src.path)] })
+                let guardian = VolumeGuard(names: { [] }, numbered: { [] }, sizeRoots: { [SizeRoot(name: "MPSelftest", root: src.path)] }, persist: false)
                 guardian.presentSize = { _, _, n in alerts.append(n) }
                 let t0 = Date()
                 guardian.checkSizes()

@@ -10,7 +10,7 @@ enum Consent {
 
     static func showIfNeeded() {
         let version = Updater.current
-        guard version != "dev", UserDefaults.standard.string(forKey: key) != version, SelfTest.shared.phase == .idle else { return }
+        guard version != "dev", defaults.string(forKey: key) != version, SelfTest.shared.phase == .idle else { return }
         show()
     }
 
@@ -33,7 +33,7 @@ enum Consent {
         panel = p
     }
 
-    static func answered() { UserDefaults.standard.set(Updater.current, forKey: key) }
+    static func answered() { defaults.set(Updater.current, forKey: key) }
 
     static func close() {
         panel?.close()
@@ -59,6 +59,10 @@ struct ConsentView: View {
                     .font(.mono(12)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
                 Text("The test uses a test disk of its own and does not touch your workspaces or files. It takes a few minutes. Only system details, test results and an anonymized log are sent – no names of users, folders or drives.")
                     .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
+                if test.blocked {
+                    Text("A self-test is already running – in Mountpoint or in the settings. Wait until it is done.")
+                        .font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
+                }
             case .running:
                 ProgressView(value: Double(test.results.count), total: Double(max(test.total, 1)))
                     .tint(t.online)
@@ -86,7 +90,7 @@ struct ConsentView: View {
                         .buttonStyle(FerryButtonStyle(theme: t, height: 32))
                         .keyboardShortcut(.cancelAction)
                     Spacer()
-                    Button("Run self-test") { Consent.answered(); test.autoSend = true; test.start() }
+                    Button("Run self-test") { test.autoSend = true; if test.start() { Consent.answered() } else { test.autoSend = false } }
                         .buttonStyle(FerryButtonStyle(theme: t, primary: true, height: 32))
                         .keyboardShortcut(.defaultAction)
                 case .running:

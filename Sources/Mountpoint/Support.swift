@@ -21,6 +21,10 @@ struct SelfTestView: View {
                     .font(.mono(12)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
                 Text("The Finder may ask once whether Mountpoint may control it – please allow it, that tests copying with the Finder.")
                     .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
+                if test.blocked {
+                    Text("A self-test is already running – in Mountpoint or in the settings. Wait until it is done.")
+                        .font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
+                }
                 if let nas {
                     SwitchRow(title: "Also test on “\((nas as NSString).lastPathComponent)”", on: test.includeNAS, theme: t) { test.includeNAS.toggle() }
                     Text("Creates a test folder on this network share and deletes it afterwards.")

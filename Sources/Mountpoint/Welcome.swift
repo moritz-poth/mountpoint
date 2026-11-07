@@ -10,9 +10,9 @@ enum Welcome {
 
     /// `then`: danach (sofort, wenn schon bestätigt) – z. B. die Frage nach dem Selbsttest
     static func showIfNeeded(then: @escaping @MainActor () -> Void = {}) {
-        guard !UserDefaults.standard.bool(forKey: key) else { then(); return }
+        guard !defaults.bool(forKey: key) else { then(); return }
         let view = WelcomeView(dark: Store.shared.dark) {
-            UserDefaults.standard.set(true, forKey: key)
+            defaults.set(true, forKey: key)
             panel?.close()
             panel = nil
             then()

@@ -53,7 +53,7 @@ enum Sidebar {
 
     @available(macOS, deprecated: 10.11, message: "LSSharedFileList ist veraltet, aber die einzige Schnittstelle zur Seitenleiste (getestet unter macOS 15)")
     private static func apply(_ wanted: Set<String>) {
-        var owned = Set(UserDefaults.standard.stringArray(forKey: ownedKey) ?? [])
+        var owned = Set(defaults.stringArray(forKey: ownedKey) ?? [])
         guard let list = LSSharedFileListCreate(nil, kLSSharedFileListFavoriteVolumes.takeUnretainedValue(), nil)?.takeRetainedValue() else {
             Log.write("sidebar: list not available")
             return
@@ -87,6 +87,6 @@ enum Sidebar {
             owned.insert(path)
             Log.write("sidebar: added \(path)")
         }
-        UserDefaults.standard.set(owned.sorted(), forKey: ownedKey)
+        defaults.set(owned.sorted(), forKey: ownedKey)
     }
 }

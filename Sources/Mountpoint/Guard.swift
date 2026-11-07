@@ -77,13 +77,16 @@ final class VolumeGuard {
 
     private var mxfWatchers: [String: DispatchSourceFileSystemObject] = [:]
     /// bereits bekannte bzw. bestätigte Ordner je Beobachtung (Warnung nur bei neuen)
-    private var knownNumbered: [String: [String]] = (UserDefaults.standard.dictionary(forKey: "numberedKnown") as? [String: [String]]) ?? [:] {
-        didSet { UserDefaults.standard.set(knownNumbered, forKey: "numberedKnown") }
+    /// false (Selbsttest): Bestätigungen und Pausen nur im Speicher – nie die gespeicherten von Mountpoint überschreiben
+    private let persist: Bool
+    private lazy var knownNumbered: [String: [String]] = persist ? (defaults.dictionary(forKey: "numberedKnown") as? [String: [String]]) ?? [:] : [:] {
+        didSet { if persist { defaults.set(knownNumbered, forKey: "numberedKnown") } }
     }
 
     init(names: @escaping @MainActor () -> [String] = { Store.shared.library.guarded.filter { !Store.shared.library.watchesOwn($0) } },
          numbered: @escaping @MainActor () -> [FolderWatch] = { Store.shared.folderWatches() },
-         sizeRoots: @escaping @MainActor () -> [SizeRoot] = { Store.shared.sizeRoots() }) {
+         sizeRoots: @escaping @MainActor () -> [SizeRoot] = { Store.shared.sizeRoots() }, persist: Bool = true) {
+        self.persist = persist
         self.names = names
         self.numbered = numbered
         self.sizeRoots = sizeRoots
@@ -103,8 +106,8 @@ final class VolumeGuard {
     /// keine Größenprüfung unterwegs (für Tests)
     var sizeIdle: Bool { !sizing }
     /// mit „OK“ bestätigt: erst wieder, wenn der Ordner unter die Grenze fällt und erneut darüber steigt
-    private var bigKnown: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "bigKnown") ?? []) {
-        didSet { UserDefaults.standard.set(bigKnown.sorted(), forKey: "bigKnown") }
+    private lazy var bigKnown: Set<String> = persist ? Set(defaults.stringArray(forKey: "bigKnown") ?? []) : [] {
+        didSet { if persist { defaults.set(bigKnown.sorted(), forKey: "bigKnown") } }
     }
 
     /// Zählt die Dateien in jedem Unterordner von „Avid MediaFiles/MXF“ – neu gezählt wird nur ein Ordner,
@@ -187,8 +190,8 @@ final class VolumeGuard {
 
     private var watchers: [String: DispatchSourceFileSystemObject] = [:]
     /// gespeichert, damit eine Pause („Rest des Tages“) einen Neustart übersteht
-    private var snoozed: [String: Date] = (UserDefaults.standard.dictionary(forKey: "snoozed") as? [String: Date]) ?? [:] {
-        didSet { UserDefaults.standard.set(snoozed, forKey: "snoozed") }
+    private lazy var snoozed: [String: Date] = persist ? (defaults.dictionary(forKey: "snoozed") as? [String: Date]) ?? [:] : [:] {
+        didSet { if persist { defaults.set(snoozed, forKey: "snoozed") } }
     }
     /// mit „OK“ bestätigt: erst wieder Alarm, wenn der Ordner neu angelegt wird
     private var acknowledged: Set<String> = []

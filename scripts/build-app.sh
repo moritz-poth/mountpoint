@@ -4,9 +4,9 @@
 # Requires macFUSE (provides libfuse in /usr/local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=1.1.4          # CFBundleShortVersionString (numbers only)
-RELEASE=1.1.4          # tag and zip name
-BUILD=23
+VERSION=1.2.0          # CFBundleShortVersionString (numbers only)
+RELEASE=1.2.0          # tag and zip name
+BUILD=24
 APP=dist/Mountpoint.app
 
 swift build -c release --arch arm64
@@ -54,8 +54,50 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+# settings app: the same binary in its own bundle (regular app: Dock icon, ⌘-Tab, menu bar), see SettingsApp.swift
+SET="$APP/Contents/Helpers/Mountpoint Settings.app"
+mkdir -p "$SET/Contents/MacOS" "$SET/Contents/Resources"
+cp .build/universal/Mountpoint "$SET/Contents/MacOS/Mountpoint Settings"
+cp -R Resources/fonts Resources/*.lproj "$SET/Contents/Resources/"
+cp "$APP/Contents/Resources/AppIcon.icns" "$SET/Contents/Resources/"
+cp LICENSE "$SET/Contents/Resources/LICENSE.txt"   # About in the settings app links to it
+for l in en de fr es; do
+  case $l in en) n="Mountpoint Settings";; de) n="Mountpoint-Einstellungen";; fr) n="Réglages Mountpoint";; es) n="Ajustes de Mountpoint";; esac
+  mkdir -p "$SET/Contents/Resources/$l.lproj"
+  printf '"CFBundleDisplayName" = "%s";\n"CFBundleName" = "%s";\n' "$n" "$n" > "$SET/Contents/Resources/$l.lproj/InfoPlist.strings"
+done
+cat > "$SET/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Mountpoint Settings</string>
+  <key>CFBundleDisplayName</key><string>Mountpoint Settings</string>
+  <key>LSHasLocalizedDisplayName</key><true/>
+  <key>CFBundleExecutable</key><string>Mountpoint Settings</string>
+  <key>CFBundleIdentifier</key><string>io.github.moritz-poth.mountpoint.settings</string>
+  <key>CFBundleVersion</key><string>$BUILD</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>MountpointRelease</key><string>$RELEASE</string>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Moritz Poth. GPL-3.0-or-later.</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleLocalizations</key><array><string>en</string><string>de</string><string>fr</string><string>es</string></array>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>
+PLIST
 # ad-hoc signed (no Apple Developer account): macOS needs "Open Anyway" once, see README
 codesign --force --deep --sign - "$APP"
+# what installed updaters check: the whole bundle incl. the nested settings app verifies, versions match
+codesign --verify --deep --strict "$APP"
+NESTED_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$SET/Contents/Info.plist")
+NESTED_REL=$(/usr/libexec/PlistBuddy -c "Print :MountpointRelease" "$SET/Contents/Info.plist")
+if [ "$NESTED_ID" != "io.github.moritz-poth.mountpoint.settings" ] || [ "$NESTED_REL" != "$RELEASE" ]; then
+  echo "settings app bundle is wrong: $NESTED_ID $NESTED_REL" >&2; exit 1
+fi
 # the bundle is recreated at the same path: without this, Finder keeps showing a cached (blank or old) app icon
 touch "$APP"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"

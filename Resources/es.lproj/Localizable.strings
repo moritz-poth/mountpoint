@@ -274,3 +274,14 @@
 "Paste" = "Pegar";
 "Select All" = "Seleccionar todo";
 "Window" = "Ventana";
+"Hide Mountpoint Settings" = "Ocultar Ajustes de Mountpoint";
+"Quit Mountpoint Settings" = "Salir de Ajustes de Mountpoint";
+"A self-test is already running – in Mountpoint or in the settings. Wait until it is done." = "Ya hay una autoprueba en curso, en Mountpoint o en los ajustes. Espera a que termine.";
+"Show in Mountpoint" = "Mostrar en Mountpoint";
+"Mountpoint did not answer, so launch at login was not changed. Open Mountpoint and try again." = "Mountpoint no ha respondido, así que el inicio al iniciar sesión no ha cambiado. Abre Mountpoint e inténtalo de nuevo.";
+"The self-test is still running. The settings close by themselves when it is done." = "La autoprueba sigue en curso. Los ajustes se cerrarán solos cuando termine.";
+"A self-test is running. Install the update when it is done." = "Hay una autoprueba en curso. Instala la actualización cuando termine.";
+"Your workspace list could not be read and could not be set aside either. Mountpoint does not change it. Check the folder ~/Library/Application Support/Mountpoint." = "No se ha podido leer tu lista de workspaces ni apartarla. Mountpoint no la modifica. Revisa la carpeta ~/Library/Application Support/Mountpoint.";
+"Your workspace list could not be read and was set aside as “%@” (in ~/Library/Application Support/Mountpoint). Mountpoint saved the list it had open." = "No se ha podido leer tu lista de workspaces y se ha apartado como «%@» (en ~/Library/Application Support/Mountpoint). Mountpoint ha guardado la lista que tenía abierta.";
+"Your workspace list could not be read, so changes to protected volumes cannot be saved right now. Mountpoint repairs the list while it runs – open Mountpoint if it is not running. If this message stays, check the folder ~/Library/Application Support/Mountpoint." = "No se ha podido leer tu lista de workspaces, así que ahora no se pueden guardar cambios en los volúmenes protegidos. Mountpoint repara la lista mientras está abierto: abre Mountpoint si no lo está. Si este mensaje no desaparece, revisa la carpeta ~/Library/Application Support/Mountpoint.";
+"Mountpoint could not be opened. Open it from the Applications folder." = "No se ha podido abrir Mountpoint. Ábrelo desde la carpeta Aplicaciones.";
