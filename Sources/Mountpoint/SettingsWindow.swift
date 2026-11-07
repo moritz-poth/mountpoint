@@ -36,6 +36,9 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     @Published private(set) var isOpen = false
     /// hält das Panel offen, solange das Fenster offen ist (AppDelegate.hold)
     var hold: (Bool) -> Void = { _ in }
+    /// vor dem kurzen Ausblenden (⌘-Tab-Reihenfolge) und danach: Panel merken und wieder zeigen (AppDelegate)
+    var beforeHide: () -> Void = {}
+    var afterUnhide: () -> Void = {}
     private var window: NSWindow?
     private var tabs: NSTabViewController?
     private var language: AnyCancellable?
@@ -54,13 +57,17 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
             return
         }
         // Mountpoint ist schon aktiv (Klick aufs Menüleisten-Symbol) – das Umschalten zählt für ⌘-Tab nicht als
-        // Aktivierung, es stünde ganz hinten. Kurz abgeben und neu aktivieren: dann steht es vorn wie jede zuletzt benutzte App.
+        // Aktivierung, es stünde ganz hinten. deactivate() allein reichte nicht (keine andere App übernahm):
+        // kurz ausblenden, damit die vorherige App wirklich aktiv wird, dann wieder einblenden = echte Aktivierung → vorn.
         reactivating = true
-        NSApp.deactivate()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+        beforeHide()
+        NSApp.hide(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
             self?.window?.makeKeyAndOrderFront(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self?.reactivating = false }
+            self?.afterUnhide()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.reactivating = false }
         }
     }
 

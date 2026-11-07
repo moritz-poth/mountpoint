@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var language: AnyCancellable?
     /// Panel war offen, als Mountpoint (mit offenen Einstellungen) in den Hintergrund ging
     private var panelBeforeDeactivate = false
+    private var panelBeforeHide = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var arch = utsname()
@@ -46,6 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.mountAtLaunch()
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
+        SettingsWindow.shared.beforeHide = { [weak self] in self?.panelBeforeHide = self?.popover.isShown ?? false }
+        SettingsWindow.shared.afterUnhide = { [weak self] in
+            guard let self, self.panelBeforeHide, !self.popover.isShown, let button = self.item.button else { return }
+            self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
         VolumeGuard.shared.start()
         Welcome.showIfNeeded { Consent.showIfNeeded() }
         // App-Menü (sichtbar, solange die Einstellungen offen sind – dann ist Mountpoint eine normale App)

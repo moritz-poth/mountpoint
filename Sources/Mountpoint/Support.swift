@@ -124,7 +124,6 @@ struct ProblemView: View {
     @State private var contact = ""
     @State private var attach = true
     @State private var sending = false
-    @State private var outcome: Reporter.Outcome?
 
     var body: some View {
         let t = theme
@@ -150,22 +149,41 @@ struct ProblemView: View {
             SwitchRow(title: "Attach system info and log file", on: attach, theme: t) { attach.toggle() }
             Text("Anonymized: your user name and folder names are replaced.")
                 .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
-            switch outcome {
-            case .sent?: Text("Sent – thank you!").font(.mono(11)).foregroundColor(t.online)
-            case .failed(let path)?:
-                Text(path.isEmpty ? loc("The report could not be sent or saved.") : loc("The report could not be sent. It is saved in Downloads as “\((path as NSString).lastPathComponent)” – please try again later or send us the file."))
-                    .font(.mono(11)).foregroundColor(t.partial).fixedSize(horizontal: false, vertical: true)
-            default: EmptyView()
-            }
             Rectangle().fill(t.line).frame(height: 1)
             HStack(spacing: 10) {
                 Button("Back", action: done).buttonStyle(FerryButtonStyle(theme: t))
                 Spacer()
                 Button(sending ? "Sending…" : "Send") { send() }
                     .buttonStyle(FerryButtonStyle(theme: t, primary: true))
-                    .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || outcome == .sent(""))
+                    .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let toast {
+                Text(toast.text)
+                    .font(.mono(11, semibold: true))
+                    .foregroundColor(toast.ok ? t.onPrimary : t.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(toast.ok ? t.online : t.background))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(toast.ok ? Color.clear : t.partial, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                    .padding(.bottom, 44)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: toast?.text)
+    }
+
+    struct Toast { let text: String; let ok: Bool }
+    @State private var toast: Toast?
+
+    /// Ergebnis kurz einblenden; Fehler bleiben länger stehen (Dateiname lesbar)
+    private func flash(_ t: Toast) {
+        toast = t
+        let shown = t.text
+        DispatchQueue.main.asyncAfter(deadline: .now() + (t.ok ? 3 : 8)) { if toast?.text == shown { toast = nil } }
     }
 
     private func send() {
@@ -173,7 +191,12 @@ struct ProblemView: View {
         sending = true
         Task {
             let result = await Reporter.send(report)
-            if case .sent = result { outcome = .sent(""); text = "" } else { outcome = result }
+            switch result {
+            case .sent: text = ""; flash(Toast(text: loc("Sent – thank you!"), ok: true))
+            case .failed(let path) where !path.isEmpty:
+                flash(Toast(text: loc("The report could not be sent. It is saved in Downloads as “\((path as NSString).lastPathComponent)” – please try again later or send us the file."), ok: false))
+            default: flash(Toast(text: loc("The report could not be sent or saved."), ok: false))
+            }
             sending = false
         }
     }
