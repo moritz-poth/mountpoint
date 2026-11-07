@@ -261,3 +261,16 @@
 "The report was sent. Thank you for helping!" = "Le rapport a été envoyé. Merci de votre aide !";
 "Not now" = "Pas maintenant";
 "Run self-test" = "Lancer l’autotest";
+"Starts Mountpoint when you log in, so projects set to “Mount at app launch” are ready right away." = "Lance Mountpoint à l’ouverture de session, pour que les projets « Monter au lancement » soient prêts tout de suite.";
+"Switches the panel, the settings and the alerts between a light and a dark look." = "Fait passer le panneau, les réglages et les alertes entre un aspect clair et sombre.";
+"Settings…" = "Réglages…";
+"Hide Mountpoint" = "Masquer Mountpoint";
+"Quit Mountpoint" = "Quitter Mountpoint";
+"Edit" = "Édition";
+"Undo" = "Annuler";
+"Redo" = "Rétablir";
+"Cut" = "Couper";
+"Copy" = "Copier";
+"Paste" = "Coller";
+"Select All" = "Tout sélectionner";
+"Window" = "Fenêtre";

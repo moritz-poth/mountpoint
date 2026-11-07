@@ -416,6 +416,7 @@ final class VolumeGuard {
         panel.hasShadow = true
         // über allem, auch über Media Composer im Vollbild
         panel.level = .statusBar
+        panel.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist (Start nach Update, Systemabfrage)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isReleasedWhenClosed = false
         panel.setContentSize(panel.contentViewController!.view.fittingSize)

@@ -11,6 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var watch: AnyCancellable?
     private var appearance: AnyCancellable?
     private var holds = 0
+    private var language: AnyCancellable?
+    /// Panel war offen, als Mountpoint (mit offenen Einstellungen) in den Hintergrund ging
+    private var panelBeforeDeactivate = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var arch = utsname()
@@ -45,6 +48,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()
         Welcome.showIfNeeded { Consent.showIfNeeded() }
+        // App-Menü (sichtbar, solange die Einstellungen offen sind – dann ist Mountpoint eine normale App)
+        buildMenu()
+        language = store.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
+            DispatchQueue.main.async { self?.buildMenu() }
+        }
+        // Einstellungen und Panel gehen gemeinsam in den Hintergrund und kommen gemeinsam zurück
+        let nc = NotificationCenter.default
+        nc.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.appResigned() }
+        }
+        nc.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.appActivated() }
+        }
         Updater.shared.start()
     }
 
@@ -76,6 +92,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Solange etwas außerhalb des Panels offen ist, schließt es sich nicht bei Klicks daneben.
+    private func appResigned() {
+        guard SettingsWindow.shared.isOpen else { return }
+        panelBeforeDeactivate = popover.isShown
+        if popover.isShown { popover.performClose(nil) }
+    }
+
+    private func appActivated() {
+        guard SettingsWindow.shared.isOpen else { return }
+        if panelBeforeDeactivate, !popover.isShown, let button = item.button {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        panelBeforeDeactivate = false
+        SettingsWindow.shared.front()
+    }
+
+    /// Dock-Symbol angeklickt (nur sichtbar, solange die Einstellungen offen sind)
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        SettingsWindow.shared.show()
+        return true
+    }
+
+    @objc private func showSettings() { SettingsWindow.shared.show() }
+    @objc private func showAbout() { SettingsWindow.shared.show(.about) }
+
+    /// HIG: Einstellungen im App-Menü (⌘,); „Bearbeiten“ für Kopieren/Einfügen in Textfeldern; ⌘W schließt das Fenster.
+    private func buildMenu() {
+        let main = NSMenu()
+        func menu(_ title: String, _ items: [NSMenuItem]) {
+            let m = NSMenu(title: title)
+            items.forEach(m.addItem)
+            let holder = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            holder.submenu = m
+            main.addItem(holder)
+        }
+        func item(_ title: String, _ action: Selector, _ key: String, target: AnyObject? = nil, mods: NSEvent.ModifierFlags = .command) -> NSMenuItem {
+            let i = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            i.keyEquivalentModifierMask = mods
+            i.target = target
+            return i
+        }
+        menu("Mountpoint", [
+            item(loc("About Mountpoint"), #selector(showAbout), "", target: self),
+            .separator(),
+            item(loc("Settings…"), #selector(showSettings), ",", target: self),
+            .separator(),
+            item(loc("Hide Mountpoint"), #selector(NSApplication.hide(_:)), "h"),
+            item(loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
+        ])
+        menu(loc("Edit"), [
+            item(loc("Undo"), Selector(("undo:")), "z"),
+            item(loc("Redo"), Selector(("redo:")), "z", mods: [.command, .shift]),
+            .separator(),
+            item(loc("Cut"), #selector(NSText.cut(_:)), "x"),
+            item(loc("Copy"), #selector(NSText.copy(_:)), "c"),
+            item(loc("Paste"), #selector(NSText.paste(_:)), "v"),
+            item(loc("Select All"), #selector(NSText.selectAll(_:)), "a"),
+        ])
+        menu(loc("Window"), [item(loc("Close"), #selector(NSWindow.performClose(_:)), "w")])
+        NSApp.mainMenu = main
+    }
+
     private func hold(_ on: Bool) {
         holds = max(0, holds + (on ? 1 : -1))
         popover.behavior = holds > 0 ? .applicationDefined : .transient

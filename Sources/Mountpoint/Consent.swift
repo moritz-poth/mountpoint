@@ -24,6 +24,7 @@ enum Consent {
         p.backgroundColor = .clear
         p.hasShadow = true
         p.level = .floating
+        p.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist (Start nach Update, Systemabfrage)
         p.isReleasedWhenClosed = false
         p.setContentSize(host.view.fittingSize)
         p.center()

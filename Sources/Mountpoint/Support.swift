@@ -4,6 +4,8 @@ import SwiftUI
 struct SelfTestView: View {
     let theme: Theme
     @ObservedObject var test: SelfTest
+    /// Höhe der Fortschrittsliste – im Einstellungsfenster so, dass das Fenster selbst nie scrollt
+    var listHeight: CGFloat = 280
     let done: () -> Void
     @State private var nas = SelfTest.nasRoot()
     @State private var outcome: Reporter.Outcome?
@@ -78,7 +80,7 @@ struct SelfTestView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(10)
             }
-            .frame(height: 280)
+            .frame(height: listHeight)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             .onChange(of: test.results.count) { _ in withAnimation { proxy.scrollTo(test.current == nil ? test.results.last?.id : "current", anchor: .bottom) } }
         }
@@ -116,6 +118,7 @@ struct SelfTestView: View {
 /// „Problem melden“: Beschreibung, optional E-Mail, optional Systeminfo und Log – ohne GitHub-Konto.
 struct ProblemView: View {
     let theme: Theme
+    var editorHeight: CGFloat = 130
     let done: () -> Void
     @State private var text = ""
     @State private var contact = ""
@@ -134,7 +137,7 @@ struct ProblemView: View {
                 .foregroundColor(t.text)
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .frame(height: 130)
+                .frame(height: editorHeight)
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
                 .accessibilityLabel(Text("Description"))
             TextField("", text: $contact, prompt: Text("Email for questions (optional)"))

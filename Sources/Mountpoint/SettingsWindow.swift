@@ -44,10 +44,15 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     func show(_ pane: Pane? = nil) {
         if window == nil { build() }
         if let pane { tabs?.selectedTabViewItemIndex = pane.rawValue }
+        // solange die Einstellungen offen sind: normale App mit Dock-Symbol, ⌘-Tab und App-Menü
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         if !isOpen { isOpen = true; hold(true) }
     }
+
+    /// nach dem Zurückwechseln (⌘-Tab, Dock): Fenster wieder nach vorn
+    func front() { window?.orderFrontRegardless() }
 
     func close() { window?.performClose(nil) }
 
@@ -68,6 +73,9 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
         w.toolbar?.allowsUserCustomization = false
         w.toolbarStyle = .preference
         w.isReleasedWhenClosed = false
+        // über dem Panel (Popover), verschwindet mit der App beim Wechsel in eine andere und kommt mit ihr zurück
+        w.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
+        w.hidesOnDeactivate = true
         w.delegate = self
         w.setFrame(NSRect(origin: .zero, size: Self.size), display: false)
         w.center()
@@ -89,6 +97,7 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         isOpen = false
         hold(false)
+        NSApp.setActivationPolicy(.accessory)   // wieder reine Menüleisten-App (kein Dock-Symbol)
     }
 }
 
@@ -120,14 +129,13 @@ struct SettingsPane: View {
 
     var body: some View {
         let t = Theme(dark: store.dark)
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) { content(t) }
-                .frame(maxWidth: 560, alignment: .leading)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 28)
-                .frame(maxWidth: .infinity)
-        }
-        .background(t.background)
+        // nie scrollen: jeder Reiter passt ins Fenster; nur die Volume-Liste scrollt in sich
+        VStack(alignment: .leading, spacing: 14) { content(t) }
+            .frame(maxWidth: 560, alignment: .leading)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(t.background)
         .environment(\.colorScheme, store.dark ? .dark : .light)
         .environment(\.locale, store.locale)
         .alert(loc("Mounted as network drive"), isPresented: $networkInfo) {
@@ -154,7 +162,9 @@ struct SettingsPane: View {
         switch pane {
         case .general:
             SwitchRow(title: "Launch at login", on: store.launchAtLogin, theme: t) { store.setLaunchAtLogin(!store.launchAtLogin) }
+            hint("Starts Mountpoint when you log in, so projects set to “Mount at app launch” are ready right away.", t)
             SwitchRow(title: "Light/Dark", on: store.dark, theme: t) { store.dark.toggle() }
+            hint("Switches the panel, the settings and the alerts between a light and a dark look.", t)
             row(Text("Language"), t) {
                 Dropdown(title: Text(verbatim: languages.first { $0.code == store.language }?.name ?? "English"), theme: t) {
                     ForEach(languages, id: \.code) { l in
@@ -178,30 +188,37 @@ struct SettingsPane: View {
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t)
-            ForEach(store.library.guarded, id: \.self) { name in
-                let own = store.library.watchesOwn(name)
-                HStack(spacing: 10) {
-                    Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
-                    Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
-                        .help(guardRoot(name))
-                        .frame(height: 26)
-                    Spacer()
-                    // Systemvolume ohne Auswahl: „Avid MediaFiles“ gibt es dort immer, es zählt der Workstation-Ordner
-                    if name != systemGuard {
-                        Dropdown(title: own ? Text("Workstation folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
-                            Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
-                            Button("Workstation folder") { store.setGuardOwn(name, true) }.disabled(own)
+            // nur die Liste scrollt (ab etwa 5 Volumes); „Volume hinzufügen“ bleibt darunter immer sichtbar
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(store.library.guarded, id: \.self) { name in
+                        let own = store.library.watchesOwn(name)
+                        HStack(spacing: 10) {
+                            Image(systemName: "shield").font(.system(size: 11)).foregroundColor(t.muted).frame(width: 14)
+                            Text(guardName(name)).font(.mono(12)).foregroundColor(t.text).lineLimit(1).truncationMode(.middle)
+                                .help(guardRoot(name))
+                                .frame(height: 26)
+                            Spacer()
+                            // Systemvolume ohne Auswahl: „Avid MediaFiles“ gibt es dort immer, es zählt der Workstation-Ordner
+                            if name != systemGuard {
+                                Dropdown(title: own ? Text("Workstation folder") : Text(verbatim: "Avid MediaFiles"), theme: t) {
+                                    Button("Avid MediaFiles") { store.setGuardOwn(name, false) }.disabled(!own)
+                                    Button("Workstation folder") { store.setGuardOwn(name, true) }.disabled(own)
+                                }
+                            }
+                            Button { store.removeGuard(name) } label: {
+                                Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
+                                    .frame(width: 18, height: 18).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help(Text("Remove"))
+                            .accessibilityLabel(Text("Remove \(name)"))
                         }
                     }
-                    Button { store.removeGuard(name) } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                            .frame(width: 18, height: 18).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(Text("Remove"))
-                    .accessibilityLabel(Text("Remove \(name)"))
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(height: min(CGFloat(store.library.guarded.count) * 36, 180))
             let candidates = store.guardCandidates()
             row(Text("Protect volume"), t) {
                 Dropdown(title: Text("Add volume…"), theme: t) {
@@ -232,9 +249,9 @@ struct SettingsPane: View {
         case .support:
             switch support {
             case .selfTest:
-                SelfTestView(theme: t, test: test) { support = .main; test.reset() }
+                SelfTestView(theme: t, test: test, listHeight: 200) { support = .main; test.reset() }
             case .problem:
-                ProblemView(theme: t) { support = .main }
+                ProblemView(theme: t, editorHeight: 110) { support = .main }
             case .main:
                 row(test.phase == .running ? Text("Self-test running…") : Text("Test this Mac"), t) {
                     Button("Run self-test…") { support = .selfTest }.buttonStyle(FerryButtonStyle(theme: t))

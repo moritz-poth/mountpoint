@@ -23,6 +23,7 @@ enum Welcome {
         p.backgroundColor = .clear
         p.hasShadow = true
         p.level = .floating
+        p.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist (Start nach Update, Systemabfrage)
         p.isReleasedWhenClosed = false
         p.setContentSize(p.contentViewController!.view.fittingSize)
         p.center()
