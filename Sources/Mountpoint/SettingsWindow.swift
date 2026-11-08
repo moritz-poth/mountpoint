@@ -250,7 +250,7 @@ struct SettingsPane: View {
             SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) { store.watchNetwork.toggle() }
             hint("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.", t)
             SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) { store.watchSize.toggle() }
-            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files. A first warning comes at 4500 files.", t)
+            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 4500 files.", t)
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)

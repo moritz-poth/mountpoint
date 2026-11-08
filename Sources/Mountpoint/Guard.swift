@@ -183,9 +183,10 @@ final class VolumeGuard {
         let early = count <= sizeLimit
         let view = GuardAlert(title: loc("“\(name)” on “\(volume)” holds \(count) files"),
             message: early
-                ? loc("Soon this folder holds more than 5000 files – Media Composer gets slow with bigger ones. Start a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder.")
-                : loc("Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
-            note: loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
+                ? loc("Soon this folder holds more than 5000 files. We recommend starting a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder.")
+                : loc("We recommend no more than 5000 files per folder in “Avid MediaFiles/MXF”. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
+            // MediaFiles Check rebalanciert erst über 5000 – bei der Vorwarnung kein Hinweis darauf
+            note: early ? nil : loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
             dark: Store.shared.dark,
             showInFinder: { NSWorkspace.shared.selectFile(folder, inFileViewerRootedAtPath: "") },
             snooze: { [weak self] choice in
