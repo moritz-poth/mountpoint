@@ -2,6 +2,8 @@
 
 <p align="center"><code>menu bar app</code>&nbsp;&nbsp;<code>macOS 13+</code>&nbsp;&nbsp;<code>free · GPL-3.0</code></p>
 
+<p align="center">☕ If you use Mountpoint and like it, I would be glad if you <a href="https://buymeacoffee.com/moritzpoth">bought me a coffee</a>.</p>
+
 A small macOS menu bar app that mounts any folder as its own volume – from a local disk, an archive drive or a NAS.
 
 Built for Avid Media Composer: Media Composer only finds media in an `Avid MediaFiles` folder at the **root** of a volume. With Mountpoint, a folder like `/Volumes/Archive/2024/Documentary/AI_Media` becomes the volume `AI_Media`, with `Avid MediaFiles` right at its top.
@@ -21,7 +23,7 @@ Built for Avid Media Composer: Media Composer only finds media in an `Avid Media
 - **Media Composer Enterprise collaboration** – by default workspaces are mounted as *network drives*. Media Composer Enterprise (from version 2026.8 on) then creates a `<computer name>.1` media folder instead of `1`, like on shared storage, so several systems (e.g. synced with Syncthing) never write into the same folder. Turn off *filter network drives* in Media Composer's Media Creation settings. Can be switched off in the settings.
 - **Protected volumes** – get an alert as soon as Media Composer creates `Avid MediaFiles` on a volume where it should never write (e.g. LucidLink), or – per volume – only when your own Media Composer creates its folder there. The Mac's system volume can be protected too. Alerts can be snoozed per volume (5 min … rest of the day).
 - **Warning about a `1` folder on network drives** – a setting: on every connected network drive with `Avid MediaFiles`, an alert as soon as a folder `1` appears in `Avid MediaFiles/MXF` – a sign that someone works without the bin locking of Media Composer Enterprise.
-- **Warning about big MXF folders** – a setting: an alert as soon as a folder in `Avid MediaFiles/MXF` holds more than 5000 files, on every connected drive, the system volume and your workspaces. Checked once a minute in the background; unchanged folders are not counted again.
+- **Warning about big MXF folders** – a setting: an alert as soon as a folder in `Avid MediaFiles/MXF` holds more than 5000 files (a first warning at 4500, so you can start a new folder in time), on every connected drive, the system volume and your workspaces. Checked once a minute in the background; unchanged folders are not counted again.
 - **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates. Every update is signed; Mountpoint installs only updates with a valid signature.
 - **Finder sidebar** – mounted workspaces appear under *Locations*, like other drives, and disappear when ejected (can be switched off in the settings).
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do. A drive that stops responding never freezes Mountpoint. Settings → *Show log file* shows what happened – send it along when you report a problem.

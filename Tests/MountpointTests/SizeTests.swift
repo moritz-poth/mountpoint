@@ -30,6 +30,7 @@ struct SizeTests {
         }
         let guardian = VolumeGuard(names: { [] }, numbered: { [] }, sizeRoots: { [SizeRoot(name: "Test", root: root.path)] })
         guardian.sizeLimit = 10
+        guardian.earlyLimit = 10   // nur die Warnung über der Grenze
         var alerts: [(String, String, Int)] = []
         guardian.presentSize = { alerts.append(($0, $1, $2)) }
         func check() async throws {
@@ -52,5 +53,43 @@ struct SizeTests {
         try await check()
         #expect(alerts.count == 2 && alerts.last?.2 == 15, "dropped below and crossed again")
         guardian.acknowledgeSize(folder.path)
+    }
+
+    /// Vorwarnung über earlyLimit; ihr „OK“ hält still bis sizeLimit, dann warnt es noch einmal.
+    @Test func warnsEarlyThenAgainAtLimit() async throws {
+        let root = fm.temporaryDirectory.appendingPathComponent("mp-early-\(UUID())")
+        let folder = root.appendingPathComponent("Avid MediaFiles/MXF/1")
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        func files(_ n: Int) throws {
+            for f in try fm.contentsOfDirectory(atPath: folder.path) { try fm.removeItem(atPath: folder.path + "/" + f) }
+            for i in 0..<n { fm.createFile(atPath: folder.path + "/f\(i).mxf", contents: nil) }
+        }
+        let guardian = VolumeGuard(names: { [] }, numbered: { [] }, sizeRoots: { [SizeRoot(name: "Test", root: root.path)] }, persist: false)
+        guardian.earlyLimit = 8
+        guardian.sizeLimit = 10
+        var alerts: [Int] = []
+        guardian.presentSize = { _, _, n in alerts.append(n) }
+        func check() async throws {
+            guardian.checkSizes()
+            for _ in 0..<50 where !guardian.sizeIdle { try await Task.sleep(nanoseconds: 20_000_000) }
+        }
+        try files(8)
+        try await check()
+        #expect(alerts.isEmpty)
+        try files(9)
+        try await check()
+        #expect(alerts == [9], "early warning")
+        guardian.acknowledgeSize(folder.path, early: true)
+        try files(10)
+        try await check()
+        #expect(alerts == [9], "early warning acknowledged, not over the limit yet")
+        try files(11)
+        try await check()
+        #expect(alerts == [9, 11], "over the limit: warns again")
+        guardian.acknowledgeSize(folder.path)
+        try files(12)
+        try await check()
+        #expect(alerts == [9, 11])
     }
 }

@@ -7,6 +7,8 @@ struct SelfTestView: View {
     /// Höhe der Fortschrittsliste – im Einstellungsfenster so, dass das Fenster selbst nie scrollt
     var listHeight: CGFloat = 280
     let done: () -> Void
+    /// Ergebnis des Sendens (Einstellungen: Toast, bei Erfolg zurück zu „Support“)
+    let sent: (Reporter.Outcome) -> Void
     @State private var nas = SelfTest.nasRoot()
     @State private var outcome: Reporter.Outcome?
     @State private var sending = false
@@ -115,7 +117,7 @@ struct SelfTestView: View {
     private func send() {
         guard let r = test.report else { return }
         sending = true
-        Task { outcome = await Reporter.send(r); sending = false }
+        Task { let result = await Reporter.send(r); sending = false; sent(result) }
     }
 }
 
@@ -124,6 +126,8 @@ struct ProblemView: View {
     let theme: Theme
     var editorHeight: CGFloat = 130
     let done: () -> Void
+    /// Ergebnis des Sendens (Einstellungen: Toast, bei Erfolg zurück zu „Support“)
+    let sent: (Reporter.Outcome) -> Void
     @State private var text = ""
     @State private var contact = ""
     @State private var attach = true
@@ -162,32 +166,6 @@ struct ProblemView: View {
                     .disabled(sending || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .overlay(alignment: .bottom) {
-            if let toast {
-                Text(toast.text)
-                    .font(.mono(11, semibold: true))
-                    .foregroundColor(toast.ok ? t.onPrimary : t.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 14).padding(.vertical, 9)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(toast.ok ? t.online : t.background))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(toast.ok ? Color.clear : t.partial, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
-                    .padding(.bottom, 44)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .accessibilityAddTraits(.updatesFrequently)
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: toast?.text)
-    }
-
-    struct Toast { let text: String; let ok: Bool }
-    @State private var toast: Toast?
-
-    /// Ergebnis kurz einblenden; Fehler bleiben länger stehen (Dateiname lesbar)
-    private func flash(_ t: Toast) {
-        toast = t
-        let shown = t.text
-        DispatchQueue.main.asyncAfter(deadline: .now() + (t.ok ? 3 : 8)) { if toast?.text == shown { toast = nil } }
     }
 
     private func send() {
@@ -195,13 +173,51 @@ struct ProblemView: View {
         sending = true
         Task {
             let result = await Reporter.send(report)
-            switch result {
-            case .sent: text = ""; flash(Toast(text: loc("Sent – thank you!"), ok: true))
-            case .failed(let path) where !path.isEmpty:
-                flash(Toast(text: loc("The report could not be sent. It is saved in Downloads as “\((path as NSString).lastPathComponent)” – please try again later or send us the file."), ok: false))
-            default: flash(Toast(text: loc("The report could not be sent or saved."), ok: false))
-            }
+            if case .sent = result { text = "" }
             sending = false
+            sent(result)
         }
+    }
+}
+
+/// Kurze Meldung nach dem Senden (Selbsttest, Problem melden): Erfolg 3 s, Fehler 8 s (Dateiname lesbar).
+struct Toast: Equatable {
+    let text: String
+    let ok: Bool
+
+    init(_ outcome: Reporter.Outcome) {
+        switch outcome {
+        case .sent: (text, ok) = (loc("Sent – thank you!"), true)
+        case .failed(let path) where !path.isEmpty:
+            (text, ok) = (loc("The report could not be sent. It is saved in Downloads as “\((path as NSString).lastPathComponent)” – please try again later or send us the file."), false)
+        default: (text, ok) = (loc("The report could not be sent or saved."), false)
+        }
+    }
+}
+
+extension View {
+    /// zeigt `toast` unten über dem Inhalt und blendet ihn nach 3 s (Fehler: 8 s) aus
+    func toast(_ toast: Binding<Toast?>, theme t: Theme) -> some View {
+        overlay(alignment: .bottom) {
+            if let shown = toast.wrappedValue {
+                Text(shown.text)
+                    .font(.mono(11, semibold: true))
+                    .foregroundColor(shown.ok ? t.onPrimary : t.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(shown.ok ? t.online : t.background))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(shown.ok ? Color.clear : t.partial, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                    .padding(.bottom, 44)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityAddTraits(.updatesFrequently)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + (shown.ok ? 3 : 8)) {
+                            if toast.wrappedValue == shown { toast.wrappedValue = nil }
+                        }
+                    }
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: toast.wrappedValue)
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 /// Nachrichten zwischen Mountpoint und der Einstellungs-App (DistributedNotificationCenter, nur auf diesem Mac).
 /// "settings": Einstellungen geändert → neu lesen · "library": library.json geändert → neu laden ·
 /// "launchAtLogin" (on=1/0, id) → Antwort "launchAtLoginResult" (on, error, id); "launchAtLoginQuery"; "showUpdate";
-/// "noReopen" (Schließen wartet auf den Selbsttest: Panel danach nicht öffnen); "pane" (an die Einstellungs-App). Aufträge an Mountpoint, weil nur die App selbst das darf.
+/// "pane" (an die Einstellungs-App). Aufträge an Mountpoint, weil nur die App selbst das darf.
 enum IPC {
     static let name = Notification.Name(mainBundleID + ".ipc")
 

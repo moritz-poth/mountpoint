@@ -8,6 +8,7 @@ struct AboutView: View {
 
     static let repo = URL(string: "https://github.com/moritz-poth/mountpoint")!
     static let gpl = URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!
+    static let coffee = URL(string: "https://buymeacoffee.com/moritzpoth")!
 
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "MountpointRelease") as? String

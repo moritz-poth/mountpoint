@@ -15,8 +15,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Panel war offen, als Mountpoint (mit offenen Einstellungen) in den Hintergrund ging
     private var panelBeforeDeactivate = false
     private let actions = MenuActions()
-    /// Panel war offen, als die Einstellungs-App aufging – es geht wieder auf, wenn sie geschlossen wird
-    private var reopenPanel = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         var arch = utsname()
@@ -35,7 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case "library": Store.shared.reloadLibrary()
             case "launchAtLogin": Store.shared.setLaunchAtLogin(info["on"] == "1", request: info["id"] ?? "")
             case "launchAtLoginQuery": Store.shared.publishLaunchAtLogin()
-            case "noReopen": self.reopenPanel = false   // Einstellungen schließen erst nach dem Selbsttest
             case "showUpdate":
                 // aus der Einstellungs-App: Panel mit dem Update-Hinweis zeigen
                 Updater.shared.dismissed = false
@@ -77,18 +74,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         store.publishLaunchAtLogin()
         IPC.post("library")   // eine offene Einstellungs-App lädt den aktuellen Stand (z. B. nach dem Beiseitelegen)
-        // Das Panel geht zu, wenn die Einstellungs-App aufgeht, und wieder auf, wenn sie geschlossen wird
-        let launcher = SettingsLauncher.shared
-        launcher.willOpen = { [weak self] in self?.reopenPanel = self?.popover.isShown ?? false }
-        launcher.openFailed = { [weak self] in self?.reopenPanel = false }
-        launcher.openChanged = { [weak self] open in
-            guard let self, !open, self.reopenPanel else { return }
-            self.reopenPanel = false
-            guard !self.popover.isShown, let button = self.item.button else { return }
-            NSApp.activate(ignoringOtherApps: true)
-            self.popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            self.popover.contentViewController?.view.window?.makeKey()
-        }
         // Einstellungen und Panel gehen gemeinsam in den Hintergrund und kommen gemeinsam zurück
         let nc = NotificationCenter.default
         nc.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in

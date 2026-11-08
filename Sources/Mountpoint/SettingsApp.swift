@@ -16,12 +16,6 @@ final class SettingsLauncher: ObservableObject {
     static var appURL: URL { mainBundleURL.appendingPathComponent("Contents/Helpers/Mountpoint Settings.app") }
 
     @Published private(set) var isOpen = false
-    /// kurz bevor die Einstellungs-App aufgeht (AppDelegate merkt sich, ob das Panel offen war)
-    var willOpen: () -> Void = {}
-    /// Einstellungs-App gestartet/beendet (AppDelegate: Panel nach dem Schließen wieder zeigen)
-    var openChanged: (Bool) -> Void = { _ in }
-    /// Öffnen gescheitert (AppDelegate vergisst dann, das Panel wieder zu öffnen)
-    var openFailed: () -> Void = {}
 
     /// Beim Beenden von Mountpoint: eine offene Einstellungs-App mit beenden (läuft dort ein Selbsttest, beendet sie sich
     /// danach). Vor einem Update (`wait`): bis 5 s warten, dann hart beenden – sonst liefe die alte Version aus dem
@@ -85,12 +79,10 @@ final class SettingsLauncher: ObservableObject {
     private func set(_ open: Bool) {
         guard open != isOpen else { return }
         isOpen = open
-        openChanged(open)
     }
 
     func open(_ pane: SettingsWindow.Pane? = nil) {
         guard external else { SettingsWindow.shared.show(pane); return }
-        if !running { willOpen() }
         if let pane, running { IPC.post("pane", ["pane": String(pane.rawValue)]) }
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
@@ -101,7 +93,6 @@ final class SettingsLauncher: ObservableObject {
             // z. B. Gatekeeper blockiert die eingebettete App: Einstellungen im eigenen Fenster statt gar nichts
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    SettingsLauncher.shared.openFailed()
                     SettingsWindow.shared.show(pane)
                 }
             }
@@ -149,7 +140,6 @@ final class SettingsAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard SelfTest.shared.phase == .running else { return .terminateNow }
         Store.shared.notice = SettingsWindow.closesAfterTest
-        IPC.post("noReopen")
         SettingsWindow.shared.show()
         waitForTest = SelfTest.shared.$phase.filter { $0 != .running }.first().sink { _ in
             DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: true) }

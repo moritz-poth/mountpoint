@@ -114,7 +114,8 @@ final class Updater: ObservableObject {
                 if let release, let new = AppVersion(release.tag), let mine = AppVersion(Self.current), mine < new {
                     if self.available?.tag != release.tag { Log.write("update available: \(release.tag)" + (release.manual ? " (install by hand)" : "")) }
                     self.available = release
-                    if manual { self.state = .idle }
+                    // also clears "up to date" from an earlier check (test versions switched on afterwards)
+                    if manual || self.state == .upToDate { self.state = .idle }
                 } else if release != nil {
                     self.available = nil
                     if manual { self.state = .upToDate }

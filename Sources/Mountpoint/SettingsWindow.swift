@@ -104,7 +104,6 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard settingsMode, SelfTest.shared.phase == .running else { return true }
         Store.shared.notice = Self.closesAfterTest
-        IPC.post("noReopen")   // das Panel soll nicht erst Minuten später, nach dem Test, aufspringen
         closeAfterTest = SelfTest.shared.$phase.filter { $0 != .running }.first().sink { [weak self] _ in
             DispatchQueue.main.async { self?.window?.close() }
         }
@@ -141,6 +140,7 @@ struct SettingsPane: View {
     @ObservedObject private var test = SelfTest.shared
     @State private var support = Support.main
     @State private var networkInfo = false
+    @State private var toast: Toast?
     enum Support { case main, selfTest, problem }
 
     var body: some View {
@@ -170,13 +170,42 @@ struct SettingsPane: View {
             .padding(.vertical, 24)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(t.background)
+            .toast($toast, theme: Theme(dark: store.dark))
+            .overlay { if networkInfo { networkCard(Theme(dark: store.dark)) } }
         .environment(\.colorScheme, store.dark ? .dark : .light)
         .environment(\.locale, store.locale)
-        .alert(loc("Mounted as network drive"), isPresented: $networkInfo) {
-            Button("OK") {}
-        } message: {
-            Text("The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
+    }
+
+    /// Hinweis nach dem Einschalten von „Als Netzlaufwerk“ – als Karte im Mountpoint-Stil wie im Panel, kein Systemdialog
+    private func networkCard(_ t: Theme) -> some View {
+        ZStack {
+            Color.black.opacity(0.25).contentShape(Rectangle()).onTapGesture { networkInfo = false }
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Mounted as network drive").font(.mono(13, semibold: true)).foregroundColor(t.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
+                    .font(.mono(12)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Button("OK") { networkInfo = false }
+                        .buttonStyle(FerryButtonStyle(theme: t, primary: true))
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(18)
+            .frame(width: 420)
+            .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+            .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
         }
+    }
+
+    /// Senden fertig: Meldung zeigen, bei Erfolg zurück zur Support-Übersicht (wie nach „Zurück“)
+    private func reported(_ outcome: Reporter.Outcome) {
+        toast = Toast(outcome)
+        guard case .sent = outcome else { return }
+        if support == .selfTest { test.reset() }
+        support = .main
     }
 
     /// Erklärung unter einer Zeile – bricht vor der Spalte mit Schaltern und Buttons um (Spalte 560, Text max. 390);
@@ -221,7 +250,7 @@ struct SettingsPane: View {
             SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) { store.watchNetwork.toggle() }
             hint("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.", t)
             SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) { store.watchSize.toggle() }
-            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files.", t)
+            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – Media Composer gets slow when one holds more than 5000 files. A first warning comes at 4500 files.", t)
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)
@@ -293,9 +322,9 @@ struct SettingsPane: View {
         case .support:
             switch support {
             case .selfTest:
-                SelfTestView(theme: t, test: test, listHeight: 200) { support = .main; test.reset() }
+                SelfTestView(theme: t, test: test, listHeight: 200, done: { support = .main; test.reset() }, sent: reported)
             case .problem:
-                ProblemView(theme: t, editorHeight: 110) { support = .main }
+                ProblemView(theme: t, editorHeight: 110, done: { support = .main }, sent: reported)
             case .main:
                 row(test.phase == .running ? Text("Self-test running…") : Text("Test this Mac"), t) {
                     Button("Run self-test…") { support = .selfTest }.buttonStyle(FerryButtonStyle(theme: t))
@@ -309,6 +338,10 @@ struct SettingsPane: View {
                 row(Text("Events and errors"), t) {
                     Button("Show log file") { Log.reveal() }.buttonStyle(FerryButtonStyle(theme: t))
                 }
+                row(Text("Like Mountpoint?"), t) {
+                    Button("Buy me a coffee") { NSWorkspace.shared.open(AboutView.coffee) }.buttonStyle(FerryButtonStyle(theme: t))
+                }
+                hint("If you use Mountpoint and like it, I would be glad if you bought me a coffee.", t)
             }
 
         case .about:

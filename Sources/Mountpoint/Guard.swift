@@ -99,13 +99,16 @@ final class VolumeGuard {
     var presentSize: ((String, String, Int) -> Void)?
     /// mehr Dateien als das in einem MXF-Unterordner: Warnung
     var sizeLimit = 5000
+    /// mehr als das: Vorwarnung („bald neuen Ordner anfangen“); bei sizeLimit warnt es noch einmal
+    var earlyLimit = 4500
     // eigene Warteschlange: ein hängendes Laufwerk hält weder die App noch die anderen Wächter auf
     private let sizeIO = DispatchQueue(label: "Mountpoint.size")
     private let sizeCache = SizeCache()
     private var sizing = false
     /// keine Größenprüfung unterwegs (für Tests)
     var sizeIdle: Bool { !sizing }
-    /// mit „OK“ bestätigt: erst wieder, wenn der Ordner unter die Grenze fällt und erneut darüber steigt
+    /// mit „OK“ bestätigt: erst wieder, wenn der Ordner unter die Grenze fällt und erneut darüber steigt.
+    /// Pfad = über sizeLimit bestätigt, "~" + Pfad = Vorwarnung bestätigt (ältere Einträge sind reine Pfade)
     private lazy var bigKnown: Set<String> = persist ? Set(defaults.stringArray(forKey: "bigKnown") ?? []) : [] {
         didSet { if persist { defaults.set(bigKnown.sorted(), forKey: "bigKnown") } }
     }
@@ -147,12 +150,14 @@ final class VolumeGuard {
 
     private func applySizes(_ found: [(String, String, Int)]) {
         sizing = false
-        let over = found.filter { $0.2 > sizeLimit }
+        let over = found.filter { $0.2 > min(earlyLimit, sizeLimit) }
         let overPaths = Set(over.map(\.1))
+        // Bestätigungen, die noch gelten: Vorwarnung solange über earlyLimit, Warnung solange über sizeLimit
+        let valid = Set(over.flatMap { _, folder, n in n > sizeLimit ? ["~" + folder, folder] : ["~" + folder] })
         // wieder unter der Grenze (oder Laufwerk weg): vergessen, damit ein neues Überschreiten wieder warnt
-        if !bigKnown.isSubset(of: overPaths) { bigKnown = bigKnown.intersection(overPaths) }
+        if !bigKnown.isSubset(of: valid) { bigKnown = bigKnown.intersection(valid) }
         for key in active where key.hasPrefix("s:") && !overPaths.contains(String(key.dropFirst(2))) { closeAlert(key) }
-        for (volume, folder, n) in over where !bigKnown.contains(folder) {
+        for (volume, folder, n) in over where !bigKnown.contains(n > sizeLimit ? folder : "~" + folder) {
             let key = "s:" + folder
             if let until = snoozed[key] {
                 if until > Date() { continue }
@@ -165,17 +170,21 @@ final class VolumeGuard {
         }
     }
 
-    /// „OK“: dieser Ordner ist bekannt, gewarnt wird erst wieder, wenn er unter die Grenze fällt und erneut darüber steigt
-    func acknowledgeSize(_ folder: String) {
-        bigKnown.insert(folder)
+    /// „OK“: dieser Ordner ist bekannt, gewarnt wird erst wieder, wenn er unter die Grenze fällt und erneut darüber steigt;
+    /// nach der Vorwarnung (`early`) noch einmal, sobald er sizeLimit überschreitet
+    func acknowledgeSize(_ folder: String, early: Bool = false) {
+        bigKnown.insert(early ? "~" + folder : folder)
         closeAlert("s:" + folder)
     }
 
     private func showSizeAlert(_ volume: String, _ folder: String, _ count: Int) {
         let key = "s:" + folder
         let name = (folder as NSString).lastPathComponent
+        let early = count <= sizeLimit
         let view = GuardAlert(title: loc("“\(name)” on “\(volume)” holds \(count) files"),
-            message: loc("Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
+            message: early
+                ? loc("Soon this folder holds more than 5000 files – Media Composer gets slow with bigger ones. Start a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder.")
+                : loc("Folders in “Avid MediaFiles/MXF” should hold no more than 5000 files – Media Composer gets slow with bigger ones. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
             note: loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
             dark: Store.shared.dark,
             showInFinder: { NSWorkspace.shared.selectFile(folder, inFileViewerRootedAtPath: "") },
@@ -184,7 +193,7 @@ final class VolumeGuard {
                 Log.write("alert snoozed until \(snoozeEnd(choice)): \(key)")
                 self?.closeAlert(key)
             },
-            dismiss: { [weak self] in self?.acknowledgeSize(folder) })
+            dismiss: { [weak self] in self?.acknowledgeSize(folder, early: early) })
         presentPanel(view, key: key)
     }
 
