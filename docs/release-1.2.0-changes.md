@@ -177,6 +177,8 @@ Mountpoint into a regular app while it was open, to get a Dock icon and a ⌘-Ta
   window is hidden; if the settings app cannot be opened, the settings still appear.
 - G5.2 The panel reopens after closing the settings only when it was open before; it never pops up unasked – also not
   minutes later when a close waited for a self-test (the settings app posts `noReopen`).
+  *Superseded in 1.2.1:* the panel no longer reopens when the settings close (user request); `willOpen`/`openChanged`/
+  `openFailed` and the `noReopen` message were removed.
 - G5.3 After an update no settings process of the old version keeps running; quitting Mountpoint also quits the
   settings app (after its self-test, if one runs). No update or quit of Mountpoint cuts a self-test short.
 
@@ -208,7 +210,7 @@ Mountpoint into a regular app while it was open, to get a Dock icon and a ⌘-Ta
 - Closing the settings window or pressing ⌘Q during a self-test keeps the window open with the notice "The self-test is
   still running. The settings close by themselves when it is done."; when the test is done the window closes and the
   app quits. So the settings app never runs without its window. Because the close was deferred, it posts `noReopen`:
-  Mountpoint's panel does not pop up when the test ends.
+  Mountpoint's panel does not pop up when the test ends. (Since 1.2.1 the panel never reopens, so `noReopen` is gone.)
 - The consent panel (`Consent.swift`) appears after the welcome panel on first launch and once per new version, stays
   visible while Mountpoint is in the background (`hidesOnDeactivate = false`), and auto-sends the report after consent.
 
