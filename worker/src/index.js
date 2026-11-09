@@ -1,5 +1,6 @@
-// Mountpoint report receiver (Cloudflare Worker, free plan).
-// POST /report with a JSON report from the app → JSON file + issue in a private GitHub repo.
+// Report receiver for Moe's apps (Cloudflare Worker, free plan): Mountpoint, MediaFiles Check, …
+// POST /report with a JSON report from an app → JSON file + issue in that app's private GitHub repo
+// (`product` → REPOS in wrangler.toml; reports without `product` come from Mountpoint).
 // Abuse protection: size limit, strict validation, per-IP and per-day limits. The GitHub token lives only here.
 
 const MAX_BYTES = 1_000_000;
@@ -19,6 +20,8 @@ export default {
     try { report = JSON.parse(text); } catch { return json({ error: "invalid json" }, 400); }
     const problem = validate(report);
     if (problem) return json({ error: problem }, 400);
+    const repo = JSON.parse(env.REPOS)[report.product || "mountpoint"];
+    if (!repo) return json({ error: "unknown product" }, 400);
 
     // Limits (KV is eventually consistent – good enough to stop floods, nothing is billed on the free plan)
     const ip = request.headers.get("cf-connecting-ip") || "unknown";
@@ -36,11 +39,11 @@ export default {
     const id = `${now.toISOString().replace(/[:.]/g, "-")}-${crypto.randomUUID().slice(0, 6)}`;
     const path = `reports/${now.toISOString().slice(0, 10)}/${report.kind}-${id}.json`;
     try {
-      await github(env, `/repos/${env.REPO}/contents/${encodeURI(path)}`, "PUT", {
+      await github(env, `/repos/${repo}/contents/${encodeURI(path)}`, "PUT", {
         message: `${report.kind} ${report.app}`,
         content: base64(JSON.stringify(report, null, 2)),
       });
-      const issue = await github(env, `/repos/${env.REPO}/issues`, "POST", {
+      const issue = await github(env, `/repos/${repo}/issues`, "POST", {
         title: title(report),
         body: body(report, path),
         labels: labels(report),
@@ -55,6 +58,7 @@ export default {
 function validate(r) {
   if (!r || typeof r !== "object" || Array.isArray(r)) return "not an object";
   if (!["selftest", "problem"].includes(r.kind)) return "unknown kind";
+  if (r.product != null && (typeof r.product !== "string" || !/^[a-z-]{1,40}$/.test(r.product))) return "bad product";
   if (typeof r.app !== "string" || !/^[0-9A-Za-z.\-]{1,32}$/.test(r.app)) return "bad app version";
   if (typeof r.build !== "string" || r.build.length > 16) return "bad build";
   if (typeof r.date !== "string" || r.date.length > 40) return "bad date";
@@ -113,7 +117,7 @@ async function github(env, path, method, payload) {
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "mountpoint-reports-worker",
+      "User-Agent": "moe-apps-reports-worker",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
