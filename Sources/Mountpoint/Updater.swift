@@ -133,18 +133,30 @@ final class Updater: ObservableObject {
         guard !SelfTest.runningAnywhere else { state = .failed(Self.waitForSelfTest); return }
         state = .installing
         Log.write("installing update \(release.tag)")
+        let started = Date()
         Task {
-            let signature = try? await URLSession.shared.data(from: sigURL).0
-            URLSession.shared.downloadTask(with: release.zip) { file, response, error in
+            let signature = try? await Self.session.data(from: sigURL).0
+            Self.session.downloadTask(with: release.zip) { file, response, error in
+                Log.write(String(format: "update downloaded in %.1f s", Date().timeIntervalSince(started)) + (error.map { ": \($0.localizedDescription)" } ?? ""))
                 self.installDownloaded(file, response, release, signature)
             }.resume()
         }
     }
 
+    /// Ein hängender Download (langsames GitHub-CDN) endet nach 2 Minuten mit einer Meldung statt unbegrenzt zu warten.
+    nonisolated private static let session: URLSession = {
+        let c = URLSessionConfiguration.default
+        c.timeoutIntervalForRequest = 30
+        c.timeoutIntervalForResource = 120
+        return URLSession(configuration: c)
+    }()
+
     nonisolated private func installDownloaded(_ file: URL?, _ response: URLResponse?, _ release: Release, _ signature: Data?) {
         let result: Result<URL, Error>
         if let file, (response as? HTTPURLResponse)?.statusCode == 200 {
+            let started = Date()
             result = Result { try Self.unpack(file, expecting: release.tag, signature: signature) }
+            Log.write(String(format: "update checked and unpacked in %.1f s", Date().timeIntervalSince(started)))
         } else {
             result = .failure(UpdateError(loc("The update could not be downloaded. Check the internet connection and try again.")))
         }
@@ -197,7 +209,9 @@ final class Updater: ObservableObject {
         // inzwischen gestartet? Dann nicht: der Test bräche ab und die Einstellungs-App müsste hart beendet werden
         guard !SelfTest.runningAnywhere else { throw UpdateError(Self.waitForSelfTest) }
         // die eingebettete Einstellungs-App liegt im Bundle, das gleich in den Papierkorb geht – vorher beenden
+        let started = Date()
         SettingsLauncher.terminateRunning(wait: true)
+        Log.write(String(format: "settings app closed in %.1f s", Date().timeIntervalSince(started)))
         let fm = FileManager.default
         let current = Bundle.main.bundleURL
         var trashed: NSURL?
@@ -222,6 +236,7 @@ final class Updater: ObservableObject {
             return
         }
         Store.shared.rememberMountedForUpdate()
+        Log.write(String(format: "update in place after %.1f s, restarting", Date().timeIntervalSince(started)))
         NSApp.terminate(nil)   // ejects the volumes; the new version mounts them again
     }
 

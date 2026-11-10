@@ -275,7 +275,7 @@
 "Paste" = "Einsetzen";
 "Select All" = "Alles auswählen";
 "Hide Settings" = "Einstellungen ausblenden";
-"Quit Settings" = "Einstellungen beenden";
+"Close Settings" = "Einstellungen schließen";
 "A self-test is already running – in Mountpoint or in the settings. Wait until it is done." = "Es läuft schon ein Selbsttest – in Mountpoint oder in den Einstellungen. Warte, bis er fertig ist.";
 "Show in Mountpoint" = "In Mountpoint zeigen";
 "Mountpoint did not answer, so launch at login was not changed. Open Mountpoint and try again." = "Mountpoint hat nicht geantwortet, daher wurde „Beim Anmelden starten“ nicht geändert. Öffne Mountpoint und versuche es noch einmal.";

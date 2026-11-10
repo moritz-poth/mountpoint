@@ -184,13 +184,14 @@ func buildMainMenu(_ actions: MenuActions) {
     let close = item(loc("Close"), #selector(NSWindow.performClose(_:)), "w")
     close.isHidden = true
     close.allowsKeyEquivalentWhenHidden = true
+    // in der Einstellungs-App kein „Einstellungen…“ (sie ist es ja) und „Einstellungen schließen“ statt „beenden“ (Nutzerwunsch)
+    let settingsItems: [NSMenuItem] = settingsMode ? [] : [item(loc("Settings…"), #selector(MenuActions.settings), ",", target: actions), .separator()]
     menu("Mountpoint", [
         item(loc("About Mountpoint"), #selector(MenuActions.about), "", target: actions),
         .separator(),
-        item(loc("Settings…"), #selector(MenuActions.settings), ",", target: actions),
-        .separator(),
+    ] + settingsItems + [
         item(settingsMode ? loc("Hide Settings") : loc("Hide Mountpoint"), #selector(NSApplication.hide(_:)), "h"),
-        item(settingsMode ? loc("Quit Settings") : loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
+        item(settingsMode ? loc("Close Settings") : loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
         close,
     ])
     menu(loc("Edit"), [
