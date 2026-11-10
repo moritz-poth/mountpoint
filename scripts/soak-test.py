@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Overnight soak test: uses a workspace mounted by the real Mountpoint app the way Media Composer would.
 
-  python3 scripts/soak-test.py /Volumes/<workspace> [--hours 10] [--cap-gb 20] [--keep]
+  python3 scripts/soak-test.py /Volumes/<workspace> [--hours 10] [--cap-gb 20] [--rate 60] [--clip-scale 1] [--keep]
 
 Setup: create an EMPTY folder (local SSD, RAID or NAS), add it in Mountpoint as a workspace, mount it, run this.
 The script only works in an empty workspace (or one it used before, marker file `.mountpoint-soak`) and only
@@ -16,7 +16,8 @@ What runs in parallel, until the time is up or Ctrl-C:
             through the volume AND in the source folder (the mirror must show the same bytes)
   monitor   every minute: mounted?, stat latency, RSS/CPU of Mountpoint and its helper, new log errors
 
-Report: ~/Library/Logs/Mountpoint/soak-<time>/ (events.log, samples.csv, summary.txt).
+Report: ~/Library/Logs/Mountpoint/soak-<time>-<volume>/ (events.log, samples.csv, summary.txt).
+Several volumes at once: start one instance per volume (each has its own report folder).
 The Mac is kept awake with caffeinate while it runs.
 """
 import argparse, hashlib, json, os, random, re, shutil, subprocess, sys, threading, time
@@ -32,6 +33,7 @@ p.add_argument("volume", help="mount point of the test workspace, e.g. /Volumes/
 p.add_argument("--hours", type=float, default=10)
 p.add_argument("--cap-gb", type=float, default=20, help="max. test media on the volume (oldest clips are deleted)")
 p.add_argument("--rate", type=float, default=60, help="capture write speed in MB/s")
+p.add_argument("--clip-scale", type=float, default=1, help="clip size factor, e.g. 0.25 for cloud volumes")
 p.add_argument("--keep", action="store_true", help="keep the test files at the end")
 p.add_argument("--small", action="store_true", help=argparse.SUPPRESS)   # quick check of the script itself: tiny files, short pauses
 args = p.parse_args()
@@ -75,7 +77,7 @@ project = os.path.join(vol, "Soak Project")
 os.makedirs(mxf, exist_ok=True)
 os.makedirs(os.path.join(project, "Avid Attic"), exist_ok=True)
 
-report = os.path.expanduser(f"~/Library/Logs/Mountpoint/soak-{datetime.now():%Y-%m-%d-%H%M}")
+report = os.path.expanduser(f"~/Library/Logs/Mountpoint/soak-{datetime.now():%Y-%m-%d-%H%M}-{os.path.basename(vol)}")
 os.makedirs(report, exist_ok=True)
 lock = threading.Lock()
 stop = threading.Event()
@@ -97,11 +99,11 @@ def log(level, text):
         print(line, flush=True)
 
 
-def timed(kind, fn, *a):
-    """runs fn, keeps the slowest time per kind, notes anything over 2 s"""
+def timed(kind, fn, *a, planned=0):
+    """runs fn, keeps the slowest time per kind, notes anything over 2 s (beyond the planned throttle time)"""
     t = time.time()
     result = fn(*a)
-    d = time.time() - t
+    d = time.time() - t - planned
     with lock:
         maxlat[kind] = max(maxlat.get(kind, 0), d)
         if d > 2:
@@ -174,8 +176,8 @@ def capture():
     files = []
     for suffix, lo, hi in [("V01", 50, 300), ("A01", 10, 30), ("A02", 10, 30)]:
         path = os.path.join(mxf, f"{tape}_{suffix}.{stamp}.mxf")
-        size = int(random.randint(lo, hi) * MB * scale) + random.randint(0, 4095)
-        files.append((path, timed("write clip file", write_file, path, size), size))
+        size = int(random.randint(lo, hi) * MB * scale * args.clip_scale) + random.randint(0, 4095)
+        files.append((path, timed("write clip file", write_file, path, size, planned=size / (args.rate * MB)), size))
     with lock:
         clips.append((tape, files))
         stats["clips"] += 1
