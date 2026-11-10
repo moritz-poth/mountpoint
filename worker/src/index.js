@@ -26,7 +26,8 @@ export default {
     // Limits (KV is eventually consistent – good enough to stop floods, nothing is billed on the free plan)
     const ip = request.headers.get("cf-connecting-ip") || "unknown";
     const now = new Date();
-    const hourKey = `ip:${ip}:${now.toISOString().slice(0, 13)}`;
+    // per app: a tester who tries several apps in one hour must not lock himself out of the next one
+    const hourKey = `ip:${ip}:${report.product || "mountpoint"}:${now.toISOString().slice(0, 13)}`;
     const dayKey = `day:${now.toISOString().slice(0, 10)}`;
     const [perIp, perDay] = await Promise.all([env.LIMITS.get(hourKey), env.LIMITS.get(dayKey)]);
     if (Number(perIp || 0) >= Number(env.MAX_PER_HOUR_IP)) return json({ error: "rate limited" }, 429);

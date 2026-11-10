@@ -8,7 +8,7 @@ compatibility_date = "2026-10-01"
 [vars]
 REPOS = '{"mountpoint": "moritz-poth/mountpoint-reports", "mediafiles-check": "moritz-poth/mediafiles-check-reports"}'
 MAX_PER_DAY = "50"      # Berichte pro Tag insgesamt
-MAX_PER_HOUR_IP = "5"   # Berichte pro Stunde und Absender
+MAX_PER_HOUR_IP = "10"  # Berichte pro Stunde, Absender und App (5 für alle Apps zusammen reichte beim Testen nicht)
 
 # Zähler für die Limits (id nach `npx wrangler kv namespace create LIMITS` eintragen)
 [[kv_namespaces]]
