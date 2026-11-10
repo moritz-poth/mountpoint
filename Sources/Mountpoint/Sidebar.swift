@@ -28,7 +28,15 @@ enum Sidebar {
         known = names
         if applied == nil {
             // einmal pro Start: alte Einträge wirklich löschen, erst danach beobachten (der Neustart des Dienstes trennt Beobachter)
-            queue.async { _ = purge(names: names); DispatchQueue.main.async { observe() } }
+            queue.async {
+                let status = inspect(names: names)
+                record(status)
+                switch status {
+                case .success: _ = purge(names: names)
+                case .failure(let problem): Log.write("sidebar: \(problem.reason), not cleaned")
+                }
+                DispatchQueue.main.async { observe() }
+            }
         }
         guard wanted != applied else { return }
         applied = wanted
@@ -141,11 +149,30 @@ enum Sidebar {
         return items.count - kept.count
     }
 
-    struct ListProblem: Error { let reason: String }
+    struct ListProblem: Error {
+        let reason: String
+        /// macOS gibt den Ordner nur Apps mit Festplattenvollzugriff frei (Datenschutz, getestet macOS 15)
+        var noAccess = false
+    }
+
+    /// Ergebnis der Prüfung beim Start – für die Einstellungs-App (eigene App, eigene Rechte: sie kann es nicht selbst prüfen)
+    /// und den Selbsttest. `sidebarAccess` false = Festplattenvollzugriff fehlt.
+    static let statusKey = "sidebarList", accessKey = "sidebarAccess"
+    private static func record(_ status: Result<String, ListProblem>) {
+        switch status {
+        case .success(let summary): defaults.set("ok: " + summary, forKey: statusKey); defaults.set(true, forKey: accessKey)
+        case .failure(let problem): defaults.set(problem.reason, forKey: statusKey); defaults.set(!problem.noAccess, forKey: accessKey)
+        }
+    }
 
     /// Liest die sfl3-Datei wie `purge` – auch für den Selbsttest, der so prüft, ob das Aufräumen auf diesem macOS geht.
     static func readList(_ list: URL = listFile) -> Result<(data: Data, root: [String: Any], items: [[String: Any]]), ListProblem> {
-        guard let data = try? Data(contentsOf: list) else { return .failure(ListProblem(reason: "list file missing or not readable")) }
+        let data: Data
+        do { data = try Data(contentsOf: list) } catch {
+            let denied = (error as NSError).code == NSFileReadNoPermissionError
+            return .failure(ListProblem(reason: denied ? "no permission to read the list (Full Disk Access needed)" : "list file missing or not readable",
+                                        noAccess: denied))
+        }
         guard let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { return .failure(ListProblem(reason: "list file not readable")) }
         u.requiresSecureCoding = false
         // ein Fehler (z. B. unbekannte Klasse in einem neuen Format) wirft einen Swift-Fehler statt die App abstürzen zu lassen
@@ -168,7 +195,7 @@ enum Sidebar {
                 return .failure(ListProblem(reason: "\(r.items.count) entries, none with the Finder's markers – cleanup would not be safe"))
             }
             let stale = r.items.filter { isStale($0, names: purgeNames(workspaceNames)) }.count
-            return .success("\(r.items.count) entries readable, \(finders) from the Finder, \(stale) to clean at next launch")
+            return .success("\(r.items.count) entries readable, \(finders) from the Finder, \(stale) stale")
         }
     }
 

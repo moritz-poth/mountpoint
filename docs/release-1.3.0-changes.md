@@ -428,3 +428,15 @@ would kill the mount helpers.
 - M5 Update – passed: 1.2.2 → 1.3.0 via the updater (log 21:20–21:21); later updates 1.3.0 → 1.3.1 → 1.3.2 → 1.3.3
   also worked, the last one in 4 s (download 3.5 s – the earlier 46–57 s were slow GitHub downloads).
 - Self-test: 25 checks, 0 failed on 1.3.0 and 1.3.1.
+
+### Follow-up in 1.3.4: Full Disk Access (owner decision 2026-11-10, option a)
+
+- On the first `sync` Mountpoint runs `Sidebar.inspect` (read-only) and records the result in the shared defaults
+  (`sidebarList` = "ok: …" or the reason, `sidebarAccess` = false when macOS denied reading). The purge runs only when the
+  inspection passed – so it also never runs when no entry carries the Finder's markers.
+- Settings → General: only when `sidebarAccess` is false, the sidebar hint says that ejected volumes come back unless
+  Mountpoint has Full Disk Access, and a row "Remove old entries for good" with "Allow…" opens System Settings →
+  Privacy & Security → Full Disk Access (the user adds Mountpoint with +; it takes effect at Mountpoint's next start).
+- The self-test check "Finder sidebar cleanup" shows Mountpoint's recorded result (the settings app has its own,
+  different permissions): skipped without Full Disk Access or before Mountpoint checked, failed for any other reason.
+- Test: `SidebarTests.inspectList` (unreadable file → `noAccess`).

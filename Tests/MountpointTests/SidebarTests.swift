@@ -108,12 +108,16 @@ struct SidebarTests {
         try write([own, finders])
         let before = try Data(contentsOf: list)
         guard case .success(let summary) = Sidebar.inspect(names: [], list: list) else { Issue.record("readable list failed"); return }
-        #expect(summary.hasPrefix("2 entries readable, 1 from the Finder"))
+        #expect(summary == "2 entries readable, 1 from the Finder, 0 stale")
         #expect(try Data(contentsOf: list) == before)                    // nur lesend
         try write([own])
         guard case .failure = Sidebar.inspect(names: [], list: list) else { Issue.record("list without Finder markers passed"); return }
+        try fm.setAttributes([.posixPermissions: 0], ofItemAtPath: list.path)   // wie ohne Festplattenvollzugriff
+        guard case .failure(let denied) = Sidebar.inspect(names: [], list: list) else { Issue.record("unreadable list passed"); return }
+        #expect(denied.noAccess)
         try fm.removeItem(at: list)
-        guard case .failure = Sidebar.inspect(names: [], list: list) else { Issue.record("missing list passed"); return }
+        guard case .failure(let missing) = Sidebar.inspect(names: [], list: list) else { Issue.record("missing list passed"); return }
+        #expect(!missing.noAccess)
     }
 
     @Test func temporaryPlace() {

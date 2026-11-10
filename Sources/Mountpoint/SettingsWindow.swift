@@ -290,7 +290,17 @@ struct SettingsPane: View {
                 }
             }
             SwitchRow(title: "Show in the Finder sidebar", on: store.sidebar, theme: t) { store.sidebar.toggle() }
-            hint("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
+            // nur wenn Mountpoint beim Start keinen Zugriff auf die Liste hatte (Sidebar.accessKey); kein eigener Hinweis – die Seite scrollt nie
+            if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
+                hint("Mounted workspaces appear under “Locations”. Ejected ones come back when the Finder shows all external disks – unless Mountpoint has Full Disk Access (add it with +).", t)
+                row(Text("Remove old entries for good"), t) {
+                    Button("Allow…") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
+                    }.buttonStyle(FerryButtonStyle(theme: t))
+                }
+            } else {
+                hint("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
+            }
 
         case .mediaComposer:
             SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {

@@ -363,13 +363,14 @@ final class SelfTest: ObservableObject {
                 return "added and removed under Locations"
             },
             // nur lesend: zeigt auf einem neuen macOS, ob das Aufräumen der Seitenleiste dort funktionieren kann
-            Check(id: "sidebar.list", title: "Finder sidebar cleanup") { t in
-                let names = Set(Store.shared.library.workspaces.map(\.name))
-                // im Hintergrund: der Test fragt eingehängte Pfade ab (ein hängendes NAS darf den Selbsttest nicht einfrieren)
-                switch try await t.off({ Sidebar.inspect(names: names) }) {
-                case .success(let summary): return summary
-                case .failure(let problem): throw CheckFailed(reason: problem.reason)
+            // was Mountpoint beim letzten Start über die Liste herausfand (die Einstellungs-App hat andere Rechte als Mountpoint)
+            Check(id: "sidebar.list", title: "Finder sidebar cleanup") { _ in
+                guard let status = defaults.string(forKey: Sidebar.statusKey) else { throw SkipCheck(reason: "Mountpoint has not checked the list yet") }
+                if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
+                    throw SkipCheck(reason: "Mountpoint needs Full Disk Access to clean the list (Settings → General)")
                 }
+                guard status.hasPrefix("ok: ") else { throw CheckFailed(reason: status) }
+                return String(status.dropFirst(4))
             },
             Check(id: "files.integrity", title: "Data integrity (64 files)") { t in
                 try t.needFUSE()
