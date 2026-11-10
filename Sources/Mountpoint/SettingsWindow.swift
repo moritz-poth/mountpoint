@@ -22,6 +22,15 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
             case .about: return "info.circle"
             }
         }
+        /// gleicht die erste Zeile an die Zeilen mit Button (Updates, Support) an: in jedem Reiter dieselbe Höhe
+        var firstLine: CGFloat {
+            switch self {
+            case .general, .mediaComposer: return 3   // Schalter 20 statt Button 26 hoch
+            case .protected: return 4.5               // beginnt mit einem Hinweis in 11 pt
+            case .about: return 1.5                   // Titel 15 pt neben dem Symbol
+            case .updates, .support: return 0
+            }
+        }
         var title: String {
             switch self {
             case .general: return loc("General")
@@ -59,6 +68,7 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
 
     private func build() {
         let tabs = SettingsTabs(tabStyle: .toolbar)
+        tabs.canPropagateSelectedChildViewControllerTitle = false   // Fenstertitel bleibt „Mountpoint“ (Nutzerwunsch), nicht der Reiter
         for pane in Pane.allCases {
             let host = NSHostingController(rootView: SettingsPane(pane: pane))
             host.sizingOptions = []
@@ -73,6 +83,7 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
         w.styleMask = [.titled, .closable]   // ohne miniaturizable/resizable: Minimieren und Zoomen sind ausgegraut
         w.toolbar?.allowsUserCustomization = false
         w.toolbarStyle = .preference
+        w.title = "Mountpoint"
         w.isReleasedWhenClosed = false
         if !settingsMode {
             // im Mountpoint-Prozess (Entwicklungs-Build ohne Einstellungs-App): über dem Panel, verschwindet mit der App
@@ -84,7 +95,7 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
         w.center()
         window = w
         self.tabs = tabs
-        // Sprachwechsel ohne Neustart: Reiter und Fenstertitel mitziehen
+        // Sprachwechsel ohne Neustart: Reiter mitziehen
         language = Store.shared.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
             DispatchQueue.main.async {
                 guard let self, let tabs = self.tabs else { return }
@@ -92,7 +103,6 @@ final class SettingsWindow: NSObject, ObservableObject, NSWindowDelegate {
                     item.label = pane.title
                     item.viewController?.title = pane.title
                 }
-                self.window?.title = Pane(rawValue: tabs.selectedTabViewItemIndex)?.title ?? ""
             }
         }
     }
@@ -132,6 +142,46 @@ final class SettingsTabs: NSTabViewController {
     }
 }
 
+/// „Warnen bei MXF-Ordnern mit mehr als [5000] Dateien“ – Grenze wie in MediaFiles Check (100…50000), in der Schalterzeile,
+/// damit der Reiter nicht wächst. Gilt erst nach Enter oder beim Verlassen des Felds (sonst würde „500“ unterwegs schon warnen);
+/// ungültige Eingaben: roter Rahmen, danach zurück auf den alten Wert.
+private struct SizeLimitRow: View {
+    @ObservedObject var store: Store
+    let theme: Theme
+    @State private var text = ""
+    @FocusState private var focused: Bool
+    private var valid: Bool { Int(text).map(Store.limitRange.contains) ?? false }
+
+    var body: some View {
+        let t = theme
+        HStack(spacing: 8) {
+            Text("Warn about MXF folders with more than").font(.mono()).foregroundColor(t.text).fixedSize(horizontal: false, vertical: true)
+            TextField("", text: $text)
+                .textFieldStyle(.plain)
+                .font(.mono())
+                .foregroundColor(t.text)
+                .multilineTextAlignment(.center)
+                .focused($focused)
+                .onSubmit(commit)
+                .frame(width: 58, height: 20)   // so hoch wie der Schalter: der Reiter ist in fr fast voll
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(valid ? t.line : t.error, lineWidth: 1))
+                .accessibilityLabel(Text("Files per folder"))
+            Text("files").font(.mono()).foregroundColor(t.text)
+            Spacer(minLength: 8)
+            Switch(on: store.watchSize, theme: t) { store.watchSize.toggle() }
+                .accessibilityLabel(Text("Warn about MXF folders with more than"))
+        }
+        .onAppear { text = String(store.sizeLimit) }
+        .onDisappear(perform: commit)
+        .onChange(of: focused) { if !$0 { commit() } }
+        .onChange(of: store.sizeLimit) { text = String($0) }
+    }
+
+    private func commit() {
+        if valid, let n = Int(text), n != store.sizeLimit { store.sizeLimit = n } else { text = String(store.sizeLimit) }
+    }
+}
+
 /// Inhalt eines Reiters: Ferry-Look (Theme, Mono-Schrift), Spalte mittig, scrollt bei Bedarf.
 struct SettingsPane: View {
     let pane: SettingsWindow.Pane
@@ -163,11 +213,12 @@ struct SettingsPane: View {
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8).fill(t.partial.opacity(0.12)))
             }
-            content(t)
+            content(t).padding(.top, pane.firstLine)
         }
             .frame(maxWidth: 560, alignment: .leading)
             .padding(.horizontal, 32)
-            .padding(.vertical, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 16)   // Platz für die längeren Texte in de/fr/es, damit „Avid Media Composer“ nicht überläuft
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(t.background)
             .toast($toast, theme: Theme(dark: store.dark))
@@ -249,8 +300,8 @@ struct SettingsPane: View {
             hint("For collaboration with Avid Media Composer Enterprise: it then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Media Composer’s Media Creation settings. Applies the next time a workspace is mounted.", t)
             SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) { store.watchNetwork.toggle() }
             hint("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.", t)
-            SwitchRow(title: "Warn about MXF folders with more than 5000 files", on: store.watchSize, theme: t) { store.watchSize.toggle() }
-            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 4500 files.", t)
+            SizeLimitRow(store: store, theme: t)
+            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 90 %.", t)
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)
@@ -322,7 +373,8 @@ struct SettingsPane: View {
         case .support:
             switch support {
             case .selfTest:
-                SelfTestView(theme: t, test: test, listHeight: 200, done: { support = .main; test.reset() }, sent: reported)
+                // Liste 190: mit Zusammenfassung und Buttons passt die Ergebnisseite sonst nicht ganz ins Fenster
+                SelfTestView(theme: t, test: test, listHeight: 190, done: { support = .main; test.reset() }, sent: reported)
             case .problem:
                 ProblemView(theme: t, editorHeight: 110, done: { support = .main }, sent: reported)
             case .main:

@@ -63,8 +63,11 @@ struct SelfTestView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(test.results) { r in
                         HStack(alignment: .top, spacing: 8) {
+                            // genau 12 × 12 wie in MediaFiles Check (als Schriftgröße 12 wird das Symbol größer)
                             Image(systemName: r.status == .pass ? "checkmark.circle.fill" : r.status == .fail ? "xmark.circle.fill" : "minus.circle")
-                                .font(.system(size: 12))
+                                .resizable()
+                                .frame(width: 12, height: 12)
+                                .padding(.top, 2)
                                 .foregroundColor(r.status == .pass ? t.online : r.status == .fail ? t.error : t.faint)
                                 .accessibilityLabel(r.status == .pass ? Text("Passed") : r.status == .fail ? Text("Failed") : Text("Skipped"))
                             VStack(alignment: .leading, spacing: 2) {
@@ -87,6 +90,7 @@ struct SelfTestView: View {
                 .padding(10)
             }
             .frame(height: listHeight)
+            .thinScroller(dark: t.dark)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
             .onChange(of: test.results.count) { _ in withAnimation { proxy.scrollTo(test.current == nil ? test.results.last?.id : "current", anchor: .bottom) } }
         }
@@ -145,6 +149,7 @@ struct ProblemView: View {
                 .scrollContentBackground(.hidden)
                 .padding(6)
                 .frame(height: editorHeight)
+                .thinScroller(dark: t.dark)
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
                 .accessibilityLabel(Text("Description"))
             TextField("", text: $contact, prompt: Text("Email for questions (optional)"))

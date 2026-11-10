@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds "dist/Mountpoint.app" (menu bar app + mirror helper) as a universal binary (Apple Silicon + Intel)
-# and "dist/Mountpoint-<version>.zip". Usage: scripts/build-app.sh
+# , "dist/Mountpoint-<version>.zip" (updater) and "dist/Mountpoint-<version>.dmg" (download). Usage: scripts/build-app.sh
 # Requires macFUSE (provides libfuse in /usr/local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -103,11 +103,57 @@ touch "$APP"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
 rm -f "dist/Mountpoint-$RELEASE.zip"
 ditto -c -k --keepParent "$APP" "dist/Mountpoint-$RELEASE.zip"
+# download image: the classic window with the app next to an Applications link (the updater keeps using the zip)
+DMG="dist/Mountpoint-$RELEASE.dmg"
+STAGE=.build/dmg; RW=.build/Mountpoint-rw.dmg
+rm -rf "$STAGE" "$RW" "$DMG"; mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/Mountpoint.app"
+ln -s /Applications "$STAGE/Applications"
+mkdir "$STAGE/.background"
+swift scripts/make-dmg-background.swift .build/dmg-bg.png 1
+swift scripts/make-dmg-background.swift .build/dmg-bg@2x.png 2
+tiffutil -cathidpicheck .build/dmg-bg.png .build/dmg-bg@2x.png -out "$STAGE/.background/background.tiff" 2>/dev/null
+hdiutil detach "/Volumes/Mountpoint" -quiet 2>/dev/null || true
+hdiutil create -quiet -volname Mountpoint -srcfolder "$STAGE" -fs HFS+ -format UDRW "$RW"
+hdiutil attach -quiet -noautoopen -mountpoint "/Volumes/Mountpoint" "$RW"
+# window layout is stored by Finder in .DS_Store (needs Finder automation for the terminal once)
+osascript <<'OSA' || echo "warning: DMG window layout not set (Finder automation denied?)" >&2
+tell application "Finder"
+  repeat 20 times -- Finder sees a fresh image only after a moment
+    if exists disk "Mountpoint" then exit repeat
+    delay 0.5
+  end repeat
+  tell disk "Mountpoint"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set opts to icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 128
+    set background picture of opts to file ".background:background.tiff"
+    set position of item "Mountpoint.app" of container window to {140, 160}
+    set position of item "Applications" of container window to {400, 160}
+    set bounds of container window to {200, 120, 740, 460}
+    update without registering applications
+    delay 2
+    close
+    -- Finder writes the window size to .DS_Store only reliably after a second open/close
+    open
+    delay 1
+    close
+  end tell
+end tell
+OSA
+sync
+hdiutil detach "/Volumes/Mountpoint" -quiet
+hdiutil convert -quiet "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG"
+rm -rf "$STAGE" "$RW"
 # update signature: installed apps only accept zips signed with the key in this Mac's Keychain
 rm -f "dist/Mountpoint-$RELEASE.zip.sig"
 if PUB=$(swift scripts/update-key.swift public 2>/dev/null) && grep -q "\"$PUB\"" Sources/Mountpoint/Updater.swift \
    && swift scripts/update-key.swift sign "dist/Mountpoint-$RELEASE.zip"; then
-  echo "Done: $APP, dist/Mountpoint-$RELEASE.zip (+ .sig – upload both)"
+  echo "Done: $APP, $DMG, dist/Mountpoint-$RELEASE.zip (+ .sig – upload all three)"
 else
   echo "Done: $APP, dist/Mountpoint-$RELEASE.zip – NOT SIGNED (no update key, or it differs from Updater.publicKey): not releasable" >&2
 fi

@@ -64,7 +64,11 @@ private final class SizeCache: @unchecked Sendable {
 /// dazu einmal pro Minute ein einzelner Dateizugriff als Sicherheitsnetz.
 @MainActor
 final class VolumeGuard {
-    static let shared = VolumeGuard()
+    static let shared: VolumeGuard = {
+        let g = VolumeGuard()
+        g.sizeLimit = Store.validLimit(defaults.integer(forKey: "sizeLimit"))   // danach setzt Store.sizeLimit sie
+        return g
+    }()
 
     private let names: @MainActor () -> [String]
     /// MXF-Ordner, in denen neue nummerierte bzw. eigene Ordner warnen
@@ -97,10 +101,12 @@ final class VolumeGuard {
     private let sizeRoots: @MainActor () -> [SizeRoot]
     /// Anzeige des Alarms „zu viele Dateien“ (Tests ersetzen sie): Volume, Ordnerpfad, Anzahl
     var presentSize: ((String, String, Int) -> Void)?
-    /// mehr Dateien als das in einem MXF-Unterordner: Warnung
+    /// mehr Dateien als das in einem MXF-Unterordner: Warnung (Einstellung Store.sizeLimit)
     var sizeLimit = 5000
-    /// mehr als das: Vorwarnung („bald neuen Ordner anfangen“); bei sizeLimit warnt es noch einmal
-    var earlyLimit = 4500
+    /// mehr als das, aber weniger als sizeLimit: Vorwarnung („bald neuen Ordner anfangen“); nil = 90 % von sizeLimit.
+    /// Genau sizeLimit warnt nie – so voll füllt MediaFiles Check beim Rebalancing.
+    var earlyLimit: Int?
+    private var early: Int { earlyLimit ?? sizeLimit * 9 / 10 }
     // eigene Warteschlange: ein hängendes Laufwerk hält weder die App noch die anderen Wächter auf
     private let sizeIO = DispatchQueue(label: "Mountpoint.size")
     private let sizeCache = SizeCache()
@@ -150,7 +156,8 @@ final class VolumeGuard {
 
     private func applySizes(_ found: [(String, String, Int)]) {
         sizing = false
-        let over = found.filter { $0.2 > min(earlyLimit, sizeLimit) }
+        let early = self.early
+        let over = found.filter { $0.2 > sizeLimit || ($0.2 > early && $0.2 < sizeLimit) }
         let overPaths = Set(over.map(\.1))
         // Bestätigungen, die noch gelten: Vorwarnung solange über earlyLimit, Warnung solange über sizeLimit
         let valid = Set(over.flatMap { _, folder, n in n > sizeLimit ? ["~" + folder, folder] : ["~" + folder] })
@@ -180,12 +187,13 @@ final class VolumeGuard {
     private func showSizeAlert(_ volume: String, _ folder: String, _ count: Int) {
         let key = "s:" + folder
         let name = (folder as NSString).lastPathComponent
-        let early = count <= sizeLimit
+        let early = count < sizeLimit
+        let limit = String(sizeLimit)
         let view = GuardAlert(title: loc("“\(name)” on “\(volume)” holds \(count) files"),
             message: early
-                ? loc("Soon this folder holds more than 5000 files. We recommend starting a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder.")
-                : loc("We recommend no more than 5000 files per folder in “Avid MediaFiles/MXF”. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
-            // MediaFiles Check rebalanciert erst über 5000 – bei der Vorwarnung kein Hinweis darauf
+                ? loc("Soon this folder holds more than \(limit) files. We recommend starting a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder.")
+                : loc("We recommend no more than \(limit) files per folder in “Avid MediaFiles/MXF”. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder."),
+            // MediaFiles Check rebalanciert erst über der Grenze – bei der Vorwarnung kein Hinweis darauf
             note: early ? nil : loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
             dark: Store.shared.dark,
             showInFinder: { NSWorkspace.shared.selectFile(folder, inFileViewerRootedAtPath: "") },

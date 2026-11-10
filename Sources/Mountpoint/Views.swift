@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // Typografie und Farben wie MediaFiles Ferry (ui/app.slint dort).
 struct Theme {
@@ -148,3 +149,47 @@ struct SwitchRow: View {
     }
 }
 
+
+/// Rollbalken wie in MediaFiles Check (ScrollThumb dort): 6 pt, abgerundet, 2 pt vom Rand, ohne Spur,
+/// immer sichtbar, solange es etwas zu scrollen gibt – nicht der ausblendende Overlay-Balken des Systems.
+final class ThinScroller: NSScroller {
+    var dark = true { didSet { needsDisplay = true } }
+    override class var isCompatibleWithOverlayScrollers: Bool { false }
+    override class func scrollerWidth(for controlSize: NSControl.ControlSize, scrollerStyle: NSScroller.Style) -> CGFloat { 10 }
+    override func draw(_ dirtyRect: NSRect) { drawKnob() }
+    override func drawKnob() {
+        let knob = rect(for: .knob)
+        guard knob.height > 0 else { return }
+        let thumb = NSRect(x: bounds.maxX - 8, y: knob.minY + 2, width: 6, height: max(knob.height - 4, 20))
+        (dark ? NSColor.white : NSColor.black).withAlphaComponent(0.35).setFill()
+        NSBezierPath(roundedRect: thumb, xRadius: 3, yRadius: 3).fill()
+    }
+}
+
+extension View {
+    /// gibt der nächsten NSScrollView (ScrollView, TextEditor) den `ThinScroller`
+    func thinScroller(dark: Bool) -> some View { background(ThinScrollerHook(dark: dark)) }
+}
+
+private struct ThinScrollerHook: NSViewRepresentable {
+    let dark: Bool
+    func makeNSView(context: Context) -> NSView { NSView() }
+    func updateNSView(_ view: NSView, context: Context) {
+        // erst nach dem Einhängen gibt es die Nachbarn; die nächstgelegene Scrollfläche nehmen
+        DispatchQueue.main.async {
+            var ancestor = view.superview
+            while let a = ancestor, Self.find(in: a) == nil { ancestor = a.superview }
+            guard let s = ancestor.flatMap(Self.find) else { return }
+            if !(s.verticalScroller is ThinScroller) { s.verticalScroller = ThinScroller() }
+            (s.verticalScroller as? ThinScroller)?.dark = dark
+            s.scrollerStyle = .legacy
+            s.hasVerticalScroller = true
+            s.autohidesScrollers = true
+        }
+    }
+    private static func find(in view: NSView) -> NSScrollView? {
+        if let s = view as? NSScrollView { return s }
+        for sub in view.subviews { if let s = find(in: sub) { return s } }
+        return nil
+    }
+}

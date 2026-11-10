@@ -180,13 +180,18 @@ func buildMainMenu(_ actions: MenuActions) {
         i.target = target
         return i
     }
+    // ⌘W ohne eigenes „Fenster“-Menü (Nutzerwunsch): verstecktes Element, das Kürzel bleibt
+    let close = item(loc("Close"), #selector(NSWindow.performClose(_:)), "w")
+    close.isHidden = true
+    close.allowsKeyEquivalentWhenHidden = true
     menu("Mountpoint", [
         item(loc("About Mountpoint"), #selector(MenuActions.about), "", target: actions),
         .separator(),
         item(loc("Settings…"), #selector(MenuActions.settings), ",", target: actions),
         .separator(),
-        item(settingsMode ? loc("Hide Mountpoint Settings") : loc("Hide Mountpoint"), #selector(NSApplication.hide(_:)), "h"),
-        item(settingsMode ? loc("Quit Mountpoint Settings") : loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
+        item(settingsMode ? loc("Hide Settings") : loc("Hide Mountpoint"), #selector(NSApplication.hide(_:)), "h"),
+        item(settingsMode ? loc("Quit Settings") : loc("Quit Mountpoint"), #selector(NSApplication.terminate(_:)), "q"),
+        close,
     ])
     menu(loc("Edit"), [
         item(loc("Undo"), Selector(("undo:")), "z"),
@@ -197,6 +202,5 @@ func buildMainMenu(_ actions: MenuActions) {
         item(loc("Paste"), #selector(NSText.paste(_:)), "v"),
         item(loc("Select All"), #selector(NSText.selectAll(_:)), "a"),
     ])
-    menu(loc("Window"), [item(loc("Close"), #selector(NSWindow.performClose(_:)), "w")])
     NSApp.mainMenu = main
 }

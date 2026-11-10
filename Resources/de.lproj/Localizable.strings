@@ -169,10 +169,12 @@
 "“%@” is not responding. Check the connection to its drive or NAS – the message goes away as soon as it answers again." = "„%@“ reagiert nicht. Prüfe die Verbindung zu seinem Laufwerk oder NAS – die Meldung verschwindet, sobald es wieder antwortet.";
 "“%@” stopped responding and was ejected. Mountpoint mounts it again as soon as its drive is back." = "„%@“ reagierte nicht mehr und wurde ausgeworfen. Mountpoint hängt es wieder ein, sobald sein Laufwerk wieder da ist.";
 "Ejecting…" = "Werfe aus…";
-"Warn about MXF folders with more than 5000 files" = "Bei MXF-Ordnern mit mehr als 5000 Dateien warnen";
-"Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 4500 files." = "Prüft einmal pro Minute die Ordner in „Avid MediaFiles/MXF“ auf allen verbundenen Laufwerken, der Systemplatte und deinen Workspaces – wir empfehlen höchstens 5000 Dateien pro Ordner. Eine erste Warnung kommt bei 4500 Dateien.";
+"Warn about MXF folders with more than" = "Warnen bei MXF-Ordnern mit mehr als";
+"files" = "Dateien";
+"Files per folder" = "Dateien pro Ordner";
+"Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 90 %." = "Prüft einmal pro Minute die Ordner in „Avid MediaFiles/MXF“ auf allen verbundenen Laufwerken, der Systemplatte und deinen Workspaces – wir empfehlen höchstens 5000 Dateien pro Ordner. Eine erste Warnung kommt bei 90 %.";
 "“%@” on “%@” holds %lld files" = "„%@“ auf „%@“ enthält %lld Dateien";
-"We recommend no more than 5000 files per folder in “Avid MediaFiles/MXF”. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder." = "Wir empfehlen höchstens 5000 Dateien pro Ordner in „Avid MediaFiles/MXF“. Beende Media Composer und benenne den Ordner um, z. B. „1“ in „1a“: Die Medien bleiben online, und Media Composer legt einen neuen Ordner an.";
+"We recommend no more than %@ files per folder in “Avid MediaFiles/MXF”. Quit Media Composer and rename the folder, e.g. “1” to “1a”: the media stays online and Media Composer starts a new folder." = "Wir empfehlen höchstens %@ Dateien pro Ordner in „Avid MediaFiles/MXF“. Beende Media Composer und benenne den Ordner um, z. B. „1“ in „1a“: Die Medien bleiben online, und Media Composer legt einen neuen Ordner an.";
 "We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)" = "Wir empfehlen, den Ordner mit MediaFiles Check neu aufzuteilen (Rebalancing). Das GitHub-Repository findest du unter der folgenden URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)";
 "Mounted" = "Eingehängt";
 "Not mounted" = "Nicht eingehängt";
@@ -273,9 +275,8 @@
 "Copy" = "Kopieren";
 "Paste" = "Einsetzen";
 "Select All" = "Alles auswählen";
-"Window" = "Fenster";
-"Hide Mountpoint Settings" = "Mountpoint-Einstellungen ausblenden";
-"Quit Mountpoint Settings" = "Mountpoint-Einstellungen beenden";
+"Hide Settings" = "Einstellungen ausblenden";
+"Quit Settings" = "Einstellungen beenden";
 "A self-test is already running – in Mountpoint or in the settings. Wait until it is done." = "Es läuft schon ein Selbsttest – in Mountpoint oder in den Einstellungen. Warte, bis er fertig ist.";
 "Show in Mountpoint" = "In Mountpoint zeigen";
 "Mountpoint did not answer, so launch at login was not changed. Open Mountpoint and try again." = "Mountpoint hat nicht geantwortet, daher wurde „Beim Anmelden starten“ nicht geändert. Öffne Mountpoint und versuche es noch einmal.";
@@ -285,7 +286,7 @@
 "Your workspace list could not be read and was set aside as “%@” (in ~/Library/Application Support/Mountpoint). Mountpoint saved the list it had open." = "Deine Workspace-Liste konnte nicht gelesen werden und wurde als „%@“ beiseitegelegt (in ~/Library/Application Support/Mountpoint). Mountpoint hat die Liste gespeichert, die es geöffnet hatte.";
 "Your workspace list could not be read, so changes to protected volumes cannot be saved right now. Mountpoint repairs the list while it runs – open Mountpoint if it is not running. If this message stays, check the folder ~/Library/Application Support/Mountpoint." = "Deine Workspace-Liste konnte nicht gelesen werden, daher lassen sich Änderungen an geschützten Volumes gerade nicht speichern. Mountpoint repariert die Liste, während es läuft – öffne Mountpoint, falls es nicht läuft. Bleibt diese Meldung, sieh im Ordner ~/Library/Application Support/Mountpoint nach.";
 "Mountpoint could not be opened. Open it from the Applications folder." = "Mountpoint konnte nicht geöffnet werden. Öffne es aus dem Ordner „Programme“.";
-"Soon this folder holds more than 5000 files. We recommend starting a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder." = "Bald liegen in diesem Ordner mehr als 5000 Dateien. Wir empfehlen, jetzt einen neuen Ordner anzufangen: Media Composer beenden und diesen umbenennen, z. B. „1“ in „1a“. Die Medien bleiben online, und Media Composer legt einen neuen Ordner an.";
+"Soon this folder holds more than %@ files. We recommend starting a new folder now: quit Media Composer and rename this one, e.g. “1” to “1a”. The media stays online and Media Composer starts a new folder." = "Bald liegen in diesem Ordner mehr als %@ Dateien. Wir empfehlen, jetzt einen neuen Ordner anzufangen: Media Composer beenden und diesen umbenennen, z. B. „1“ in „1a“. Die Medien bleiben online, und Media Composer legt einen neuen Ordner an.";
 "Like Mountpoint?" = "Gefällt dir Mountpoint?";
 "Buy me a coffee" = "Spendier mir einen Kaffee";
 "If you use Mountpoint and like it, I would be glad if you bought me a coffee." = "Wenn du Mountpoint nutzt und es dir gefällt, freue ich mich, wenn du mir einen Kaffee spendierst.";

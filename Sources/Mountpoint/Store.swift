@@ -33,10 +33,20 @@ final class Store: ObservableObject {
     @Published var watchNetwork = defaults.bool(forKey: "watchNetwork") {
         didSet { defaults.set(watchNetwork, forKey: "watchNetwork"); logSetting("warn about “1” on network drives \(watchNetwork ? "on" : "off")"); notifyGuard(); announce() }
     }
-    /// MXF-Unterordner mit mehr als 5000 Dateien melden (alle Laufwerke, Systemplatte, Workspaces)
+    /// MXF-Unterordner mit mehr als `sizeLimit` Dateien melden (alle Laufwerke, Systemplatte, Workspaces)
     @Published var watchSize = defaults.bool(forKey: "watchSize") {
-        didSet { defaults.set(watchSize, forKey: "watchSize"); logSetting("warn about MXF folders over 5000 files \(watchSize ? "on" : "off")"); notifyGuard(); announce() }
+        didSet { defaults.set(watchSize, forKey: "watchSize"); logSetting("warn about full MXF folders \(watchSize ? "on" : "off")"); notifyGuard(); announce() }
     }
+    /// Grenze pro MXF-Unterordner wie in MediaFiles Check (100…50000, Standard 5000): Warnung ab einer Datei mehr, Vorwarnung ab 90 %
+    @Published var sizeLimit = Store.validLimit(defaults.integer(forKey: "sizeLimit")) {
+        didSet {
+            defaults.set(sizeLimit, forKey: "sizeLimit"); logSetting("MXF folder limit \(sizeLimit) files")
+            if isShared, !passive { VolumeGuard.shared.sizeLimit = sizeLimit }
+            notifyGuard(); announce()
+        }
+    }
+    static let limitRange = 100...50000
+    static func validLimit(_ n: Int) -> Int { limitRange.contains(n) ? n : 5000 }
     /// Auch Vorabversionen (Testversionen) als Update anbieten – nur für Tester
     @Published var betas = defaults.bool(forKey: "betas") {
         didSet { defaults.set(betas, forKey: "betas"); logSetting("test versions \(betas ? "on" : "off")"); announce() }
@@ -196,7 +206,8 @@ final class Store: ObservableObject {
 
     private func syncSidebar() {
         guard isShared, !passive else { return }   // Tests fassen die echte Seitenleiste nie an
-        Sidebar.sync(sidebar ? Set(library.workspaces.filter { mounted.contains($0.id) }.map(\.volumePath)) : [])
+        Sidebar.sync(sidebar ? Set(library.workspaces.filter { mounted.contains($0.id) }.map(\.volumePath)) : [],
+                     names: Set(library.workspaces.map(\.name)))
     }
 
     private func notifyGuard() {
@@ -462,6 +473,8 @@ final class Store: ObservableObject {
         if network != flag("network", true) { network = flag("network", true) }
         if watchNetwork != flag("watchNetwork", false) { watchNetwork = flag("watchNetwork", false) }
         if watchSize != flag("watchSize", false) { watchSize = flag("watchSize", false) }
+        let limit = Store.validLimit(defaults.integer(forKey: "sizeLimit"))
+        if sizeLimit != limit { sizeLimit = limit }
         if sidebar != flag("sidebar", true) { sidebar = flag("sidebar", true) }
         if dark != flag("dark", true) { dark = flag("dark", true) }
         if betas != flag("betas", false) { betas = flag("betas", false); if !passive { Updater.shared.check(manual: false) } }

@@ -92,4 +92,36 @@ struct SizeTests {
         try await check()
         #expect(alerts == [9, 11])
     }
+
+    /// Vorwarnung standardmäßig ab 90 %, aber genau an der Grenze nie (so voll füllt MediaFiles Check beim Rebalancing).
+    @Test func exactLimitNeverWarns() async throws {
+        let root = fm.temporaryDirectory.appendingPathComponent("mp-exact-\(UUID())")
+        let folder = root.appendingPathComponent("Avid MediaFiles/MXF/1")
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        func files(_ n: Int) throws {
+            for f in try fm.contentsOfDirectory(atPath: folder.path) { try fm.removeItem(atPath: folder.path + "/" + f) }
+            for i in 0..<n { fm.createFile(atPath: folder.path + "/f\(i).mxf", contents: nil) }
+        }
+        let guardian = VolumeGuard(names: { [] }, numbered: { [] }, sizeRoots: { [SizeRoot(name: "Test", root: root.path)] }, persist: false)
+        guardian.sizeLimit = 20   // Vorwarnung über 18
+        var alerts: [Int] = []
+        guardian.presentSize = { _, _, n in alerts.append(n) }
+        func check() async throws {
+            guardian.checkSizes()
+            for _ in 0..<50 where !guardian.sizeIdle { try await Task.sleep(nanoseconds: 20_000_000) }
+        }
+        try files(18)
+        try await check()
+        try files(20)
+        try await check()
+        #expect(alerts.isEmpty, "18 is not over 90 %, exactly 20 is not over the limit")
+        try files(19)
+        try await check()
+        #expect(alerts == [19], "early warning between 90 % and the limit")
+        guardian.acknowledgeSize(folder.path, early: true)
+        try files(21)
+        try await check()
+        #expect(alerts == [19, 21], "one file over the limit")
+    }
 }
