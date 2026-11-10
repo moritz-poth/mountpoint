@@ -413,3 +413,18 @@ would kill the mount helpers.
   "Open Anyway" again if asked) → app starts normally.
 - M5 Update (prerelease): in 1.2.2 switch on "Get test versions" → the in-app updater offers and installs 1.3.0 from
   the zip.
+
+### Results of the manual checks (2026-11-10, owner's Mac, macOS 15.5; released as 1.3.3)
+
+- M1 Settings app – passed (owner). Follow-ups shipped in 1.3.1–1.3.2: the settings app is called "Mountpoint" in the
+  menu bar, Dock and ⌘-Tab; its app menu has no "Settings…" item and says "Close Settings".
+- M2 Limit – passed (owner).
+- M3 Sidebar – **failed**: every launch of 1.3.0–1.3.3 logs "sidebar: list file missing or not readable, not cleaned".
+  Cause: macOS privacy protection – `~/Library/Application Support/com.apple.sharedfilelist/` can only be read by apps
+  with Full Disk Access (confirmed with a minimal ad-hoc signed app: "Operation not permitted"). The development tests
+  ran from a terminal that has Full Disk Access. Effect: the purge never runs, nothing is touched (G3.3 holds), hiding
+  (layer 1) works; the self-test check "Finder sidebar cleanup" fails for the same reason. Open decision.
+- M4 DMG – passed: start from a translocated copy showed the move dialog (log 21:28:47).
+- M5 Update – passed: 1.2.2 → 1.3.0 via the updater (log 21:20–21:21); later updates 1.3.0 → 1.3.1 → 1.3.2 → 1.3.3
+  also worked, the last one in 4 s (download 3.5 s – the earlier 46–57 s were slow GitHub downloads).
+- Self-test: 25 checks, 0 failed on 1.3.0 and 1.3.1.
