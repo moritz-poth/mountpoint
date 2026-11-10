@@ -61,11 +61,11 @@ cp .build/universal/Mountpoint "$SET/Contents/MacOS/Mountpoint Settings"
 cp -R Resources/fonts Resources/*.lproj "$SET/Contents/Resources/"
 cp "$APP/Contents/Resources/AppIcon.icns" "$SET/Contents/Resources/"
 cp LICENSE "$SET/Contents/Resources/LICENSE.txt"   # About in the settings app links to it
+# shown as just "Mountpoint" in the menu bar, Dock and ⌘-Tab (owner): users only know the menu bar app, a second name
+# confuses. The Dock shows the localized display name only while the unlocalized one equals the file name.
 for l in en de fr es; do
-  case $l in en) n="Mountpoint Settings";; de) n="Mountpoint-Einstellungen";; fr) n="Réglages Mountpoint";; es) n="Ajustes de Mountpoint";; esac
   mkdir -p "$SET/Contents/Resources/$l.lproj"
-  # CFBundleName = title of the app menu in the menu bar: just "Mountpoint" (owner); Dock and ⌘-Tab show the display name
-  printf '"CFBundleDisplayName" = "%s";\n"CFBundleName" = "Mountpoint";\n' "$n" > "$SET/Contents/Resources/$l.lproj/InfoPlist.strings"
+  printf '"CFBundleDisplayName" = "Mountpoint";\n"CFBundleName" = "Mountpoint";\n' > "$SET/Contents/Resources/$l.lproj/InfoPlist.strings"
 done
 cat > "$SET/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
