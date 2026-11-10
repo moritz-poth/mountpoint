@@ -290,16 +290,13 @@ struct SettingsPane: View {
                 }
             }
             SwitchRow(title: "Show in the Finder sidebar", on: store.sidebar, theme: t) { store.sidebar.toggle() }
-            // nur wenn Mountpoint beim Start keinen Zugriff auf die Liste hatte (Sidebar.accessKey); kein eigener Hinweis – die Seite scrollt nie
+            hint("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
+            // nur wenn Mountpoint beim Start keinen Zugriff auf die Liste hatte (Sidebar.accessKey); erklärt wird es beim
+            // ersten Start (SidebarAccess) – hier nur die Zeile, die Seite scrollt nie
             if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
-                hint("Mounted workspaces appear under “Locations”. Ejected ones come back when the Finder shows all external disks – unless Mountpoint has Full Disk Access (add it with +).", t)
-                row(Text("Remove old entries for good"), t) {
-                    Button("Allow…") {
-                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
-                    }.buttonStyle(FerryButtonStyle(theme: t))
+                row(Text("Remove old sidebar entries"), t) {
+                    Button("Allow…") { NSWorkspace.shared.open(SidebarAccess.settingsURL) }.buttonStyle(FerryButtonStyle(theme: t))
                 }
-            } else {
-                hint("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
             }
 
         case .mediaComposer:
@@ -311,7 +308,7 @@ struct SettingsPane: View {
             SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) { store.watchNetwork.toggle() }
             hint("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.", t)
             SizeLimitRow(store: store, theme: t)
-            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute. Use the same limit as in MediaFiles Check. A first warning comes above 90 %.", t)
+            hint("Use the same limit as in MediaFiles Check. A first warning comes above 90 %.", t)
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)

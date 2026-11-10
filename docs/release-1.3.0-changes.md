@@ -434,9 +434,12 @@ would kill the mount helpers.
 - On the first `sync` Mountpoint runs `Sidebar.inspect` (read-only) and records the result in the shared defaults
   (`sidebarList` = "ok: …" or the reason, `sidebarAccess` = false when macOS denied reading). The purge runs only when the
   inspection passed – so it also never runs when no entry carries the Finder's markers.
-- Settings → General: only when `sidebarAccess` is false, the sidebar hint says that ejected volumes come back unless
-  Mountpoint has Full Disk Access, and a row "Remove old entries for good" with "Allow…" opens System Settings →
-  Privacy & Security → Full Disk Access (the user adds Mountpoint with +; it takes effect at Mountpoint's next start).
+- First launch, and once on the update to 1.3.4 (`SidebarAccess.swift`, between the welcome panel and the self-test
+  question; UserDefaults `sidebarAccessAsked`): if the sidebar setting is on and Mountpoint cannot read the list, a panel
+  explains why Full Disk Access helps and opens System Settings → Privacy & Security → Full Disk Access ("Not now" asks
+  never again). The user adds Mountpoint with +; it takes effect at Mountpoint's next start.
+- Settings → General: only when `sidebarAccess` is false, one extra row "Remove old sidebar entries" with "Allow…" (no
+  extra hint – the pane must not scroll). The size-limit hint in the Media Composer pane is shortened to two lines.
 - The self-test check "Finder sidebar cleanup" shows Mountpoint's recorded result (the settings app has its own,
   different permissions): skipped without Full Disk Access or before Mountpoint checked, failed for any other reason.
 - Test: `SidebarTests.inspectList` (unreadable file → `noAccess`).

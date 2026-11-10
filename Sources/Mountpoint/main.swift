@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()
-        Welcome.showIfNeeded { Consent.showIfNeeded() }
+        Welcome.showIfNeeded { SidebarAccess.showIfNeeded { Consent.showIfNeeded() } }
         // Menü ohne sichtbare Menüleiste (reine Menüleisten-App): liefert ⌘, ⌘C/⌘V (Problem-Formular), ⌘W, ⌘Q
         buildMainMenu(actions)
         language = store.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in
