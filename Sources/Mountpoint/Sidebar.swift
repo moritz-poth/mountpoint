@@ -112,13 +112,13 @@ enum Sidebar {
                       exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
                       restart: () -> Bool = restartDaemon) -> Int? {
         let names = purgeNames(workspaceNames)
-        guard let data = try? Data(contentsOf: list) else { Log.write("sidebar: list file missing or not readable, not cleaned"); return nil }
-        guard let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { Log.write("sidebar: list file not readable, not cleaned"); return nil }
-        u.requiresSecureCoding = false
-        // ein Fehler (z. B. unbekannte Klasse in einem neuen Format) wirft einen Swift-Fehler statt die App abstürzen zu lassen
-        u.decodingFailurePolicy = .setErrorAndReturn
-        guard var root = (try? u.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)) as? [String: Any],
-              let items = root["items"] as? [[String: Any]] else { Log.write("sidebar: list file not readable, not cleaned"); return nil }
+        let read: (data: Data, root: [String: Any], items: [[String: Any]])
+        switch readList(list) {
+        case .failure(let problem): Log.write("sidebar: \(problem.reason), not cleaned"); return nil
+        case .success(let r): read = r
+        }
+        let (data, items) = (read.data, read.items)
+        var root = read.root
         let kept = items.filter { !isStale($0, names: names, exists: exists) }
         guard kept.count < items.count else { return 0 }
         root["items"] = kept
@@ -139,6 +139,37 @@ enum Sidebar {
         Log.write("sidebar: deleted \(items.count - kept.count) old entries from the list (\(items.count) → \(kept.count))"
                   + (restarted ? "" : ", sharedfilelistd not restarted (not running, or killall failed)"))
         return items.count - kept.count
+    }
+
+    struct ListProblem: Error { let reason: String }
+
+    /// Liest die sfl3-Datei wie `purge` – auch für den Selbsttest, der so prüft, ob das Aufräumen auf diesem macOS geht.
+    static func readList(_ list: URL = listFile) -> Result<(data: Data, root: [String: Any], items: [[String: Any]]), ListProblem> {
+        guard let data = try? Data(contentsOf: list) else { return .failure(ListProblem(reason: "list file missing or not readable")) }
+        guard let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { return .failure(ListProblem(reason: "list file not readable")) }
+        u.requiresSecureCoding = false
+        // ein Fehler (z. B. unbekannte Klasse in einem neuen Format) wirft einen Swift-Fehler statt die App abstürzen zu lassen
+        u.decodingFailurePolicy = .setErrorAndReturn
+        guard let root = (try? u.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)) as? [String: Any],
+              let items = root["items"] as? [[String: Any]] else { return .failure(ListProblem(reason: "list file not readable")) }
+        return .success((data, root, items))
+    }
+
+    /// Selbsttest, nur lesend: versteht Mountpoint die Liste, und trägt sie die Markierungen des Finders, an denen `isStale`
+    /// fremde Einträge erkennt? Ohne sie (anderes macOS) könnte das Aufräumen Einträge des Finders für eigene halten.
+    static func inspect(names workspaceNames: Set<String>, list: URL = listFile) -> Result<String, ListProblem> {
+        switch readList(list) {
+        case .failure(let problem): return .failure(problem)
+        case .success(let r):
+            let finders = r.items.filter {
+                $0["Name"] != nil || ($0["CustomItemProperties"] as? [String: Any])?["com.apple.LSSharedFileList.DateLastSeen"] != nil
+            }.count
+            guard r.items.isEmpty || finders > 0 else {
+                return .failure(ListProblem(reason: "\(r.items.count) entries, none with the Finder's markers – cleanup would not be safe"))
+            }
+            let stale = r.items.filter { isStale($0, names: purgeNames(workspaceNames)) }.count
+            return .success("\(r.items.count) entries readable, \(finders) from the Finder, \(stale) to clean at next launch")
+        }
     }
 
     /// Namen, deren Einträge `purge` löschen und `apply` ausblenden darf: alle je eingetragenen, alle eigenen Pfade

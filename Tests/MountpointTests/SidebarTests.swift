@@ -91,6 +91,31 @@ struct SidebarTests {
         #expect(!restarted)
     }
 
+    /// Selbsttest-Prüfung, nur lesend: lesbar mit Markierungen des Finders → ok; ohne jede Markierung oder ohne Datei → Fehler.
+    @Test func inspectList() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("mp-sfl-\(UUID())")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
+        let list = dir.appendingPathComponent("list.sfl3")
+        let name = try #require(try fm.contentsOfDirectory(atPath: "/Volumes").first { !$0.hasPrefix(".") })
+        let bookmark = try URL(fileURLWithPath: "/Volumes/" + name).bookmarkData()
+        let own: [String: Any] = ["Bookmark": bookmark, "uuid": "own"]
+        let finders: [String: Any] = ["Bookmark": bookmark, "uuid": "finder", "Name": name]
+        func write(_ items: [[String: Any]]) throws {
+            try NSKeyedArchiver.archivedData(withRootObject: ["items": items, "properties": [:]] as [String: Any], requiringSecureCoding: false).write(to: list)
+        }
+        try write([own, finders])
+        let before = try Data(contentsOf: list)
+        guard case .success(let summary) = Sidebar.inspect(names: [], list: list) else { Issue.record("readable list failed"); return }
+        #expect(summary.hasPrefix("2 entries readable, 1 from the Finder"))
+        #expect(try Data(contentsOf: list) == before)                    // nur lesend
+        try write([own])
+        guard case .failure = Sidebar.inspect(names: [], list: list) else { Issue.record("list without Finder markers passed"); return }
+        try fm.removeItem(at: list)
+        guard case .failure = Sidebar.inspect(names: [], list: list) else { Issue.record("missing list passed"); return }
+    }
+
     @Test func temporaryPlace() {
         #expect(runsFromTemporaryPlace(URL(fileURLWithPath: "/private/var/folders/x/AppTranslocation/ABC/d/Mountpoint.app")))
         #expect(!runsFromTemporaryPlace(FileManager.default.temporaryDirectory))   // beschreibbar

@@ -362,6 +362,15 @@ final class SelfTest: ObservableObject {
                 guard r.removed else { throw CheckFailed(reason: "entry could not be removed again (\(r.note))") }
                 return "added and removed under Locations"
             },
+            // nur lesend: zeigt auf einem neuen macOS, ob das Aufräumen der Seitenleiste dort funktionieren kann
+            Check(id: "sidebar.list", title: "Finder sidebar cleanup") { t in
+                let names = Set(Store.shared.library.workspaces.map(\.name))
+                // im Hintergrund: der Test fragt eingehängte Pfade ab (ein hängendes NAS darf den Selbsttest nicht einfrieren)
+                switch try await t.off({ Sidebar.inspect(names: names) }) {
+                case .success(let summary): return summary
+                case .failure(let problem): throw CheckFailed(reason: problem.reason)
+                }
+            },
             Check(id: "files.integrity", title: "Data integrity (64 files)") { t in
                 try t.needFUSE()
                 let src = try t.source("IO"), w = try await t.mount(src)
