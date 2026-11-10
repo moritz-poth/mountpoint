@@ -64,14 +64,15 @@ cp LICENSE "$SET/Contents/Resources/LICENSE.txt"   # About in the settings app l
 for l in en de fr es; do
   case $l in en) n="Mountpoint Settings";; de) n="Mountpoint-Einstellungen";; fr) n="Réglages Mountpoint";; es) n="Ajustes de Mountpoint";; esac
   mkdir -p "$SET/Contents/Resources/$l.lproj"
-  printf '"CFBundleDisplayName" = "%s";\n"CFBundleName" = "%s";\n' "$n" "$n" > "$SET/Contents/Resources/$l.lproj/InfoPlist.strings"
+  # CFBundleName = title of the app menu in the menu bar: just "Mountpoint" (owner); Dock and ⌘-Tab show the display name
+  printf '"CFBundleDisplayName" = "%s";\n"CFBundleName" = "Mountpoint";\n' "$n" > "$SET/Contents/Resources/$l.lproj/InfoPlist.strings"
 done
 cat > "$SET/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Mountpoint Settings</string>
+  <key>CFBundleName</key><string>Mountpoint</string>
   <key>CFBundleDisplayName</key><string>Mountpoint Settings</string>
   <key>LSHasLocalizedDisplayName</key><true/>
   <key>CFBundleExecutable</key><string>Mountpoint Settings</string>
