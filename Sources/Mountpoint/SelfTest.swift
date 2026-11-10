@@ -356,7 +356,7 @@ final class SelfTest: ObservableObject {
             Check(id: "sidebar", title: "Finder sidebar entry") { t in
                 try t.needFUSE()
                 let w = try await t.mount(try t.source("Side"))
-                let r = Sidebar.probe(w.volumePath)
+                let r = await Sidebar.probe(w.volumePath)
                 await t.eject(w)
                 guard r.added else { throw CheckFailed(reason: "could not add the volume under Locations (\(r.note))") }
                 guard r.removed else { throw CheckFailed(reason: "entry could not be removed again (\(r.note))") }

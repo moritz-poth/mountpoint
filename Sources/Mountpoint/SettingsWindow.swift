@@ -3,7 +3,7 @@ import Combine
 import SwiftUI
 
 /// Einstellungen in einem eigenen Fenster (macOS HIG „Settings“): Werkzeugleiste mit Reitern, die immer zeigt, welcher
-/// Reiter aktiv ist; Fenstertitel = Reiter; Minimieren/Zoomen ausgegraut; zuletzt benutzter Reiter beim Öffnen; ⌘,.
+/// Reiter aktiv ist; Fenstertitel immer „Mountpoint“; Minimieren/Zoomen ausgegraut; zuletzt benutzter Reiter beim Öffnen; ⌘,.
 /// 16:9 auf Wunsch des Nutzers (statt Höhe je Reiter); kein Reiter scrollt, nur die Liste der geschützten Volumes.
 /// Seit 1.2 läuft das Fenster in der Einstellungs-App (SettingsApp.swift); im Mountpoint-Prozess nur bei Entwicklungs-Builds.
 @MainActor
@@ -301,7 +301,7 @@ struct SettingsPane: View {
             SwitchRow(title: "Warn about a “1” folder on network drives", on: store.watchNetwork, theme: t) { store.watchNetwork.toggle() }
             hint("On every connected network drive with “Avid MediaFiles”: warns when a folder “1” appears in MXF – a sign that someone is working without the bin locking of Media Composer Enterprise.", t)
             SizeLimitRow(store: store, theme: t)
-            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute – we recommend no more than 5000 files per folder. A first warning comes at 90 %.", t)
+            hint("Checks the folders in “Avid MediaFiles/MXF” on all connected drives, the system volume and your workspaces once a minute. Use the same limit as in MediaFiles Check. A first warning comes above 90 %.", t)
 
         case .protected:
             hint("Warns as soon as Media Composer creates “Avid MediaFiles” on one of these volumes, e.g. LucidLink. “Workstation folder”: only when your Media Composer creates its folder in MXF – “1” on local drives, “<computer name>.1” on network drives with Media Composer Enterprise – not when others write. The system volume always watches the workstation folder.", t, fullWidth: true)

@@ -156,3 +156,11 @@ func guardName(_ name: String) -> String {
     guard name == systemGuard else { return (name as NSString).lastPathComponent }
     return (try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "Macintosh HD"
 }
+
+/// Aus dem Disk-Image (schreibgeschützt) oder von macOS an einen Zufallsort kopiert gestartet („App Translocation“, beim
+/// Start aus Downloads): dort kann sich die App nicht aktualisieren, und Auswerfen des Images beendet die Hilfsprogramme.
+func runsFromTemporaryPlace(_ url: URL = Bundle.main.bundleURL) -> Bool {
+    if url.path.contains("/AppTranslocation/") { return true }
+    var fs = statfs()
+    return statfs(url.path, &fs) == 0 && fs.f_flags & UInt32(MNT_RDONLY) != 0
+}

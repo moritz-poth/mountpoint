@@ -101,7 +101,8 @@ fi
 # the bundle is recreated at the same path: without this, Finder keeps showing a cached (blank or old) app icon
 touch "$APP"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
-rm -f "dist/Mountpoint-$RELEASE.zip"
+# old zip and signature go first: a run that fails later never leaves a new zip next to an old .sig
+rm -f "dist/Mountpoint-$RELEASE.zip" "dist/Mountpoint-$RELEASE.zip.sig"
 ditto -c -k --keepParent "$APP" "dist/Mountpoint-$RELEASE.zip"
 # download image: the classic window with the app next to an Applications link (the updater keeps using the zip)
 DMG="dist/Mountpoint-$RELEASE.dmg"
@@ -113,7 +114,8 @@ mkdir "$STAGE/.background"
 swift scripts/make-dmg-background.swift .build/dmg-bg.png 1
 swift scripts/make-dmg-background.swift .build/dmg-bg@2x.png 2
 tiffutil -cathidpicheck .build/dmg-bg.png .build/dmg-bg@2x.png -out "$STAGE/.background/background.tiff" 2>/dev/null
-hdiutil detach "/Volumes/Mountpoint" -quiet 2>/dev/null || true
+# never eject someone else's volume, and Finder's disk "Mountpoint" below must be ours: no other volume of that name
+if ls /Volumes | grep -Eq '^Mountpoint( [0-9]+)?$'; then echo "a volume \"Mountpoint\" is mounted – eject it first" >&2; exit 1; fi
 hdiutil create -quiet -volname Mountpoint -srcfolder "$STAGE" -fs HFS+ -format UDRW "$RW"
 hdiutil attach -quiet -noautoopen -mountpoint "/Volumes/Mountpoint" "$RW"
 # window layout is stored by Finder in .DS_Store (needs Finder automation for the terminal once)
@@ -127,7 +129,6 @@ tell application "Finder"
     open
     set current view of container window to icon view
     set toolbar visible of container window to false
-    set statusbar visible of container window to false
     set opts to icon view options of container window
     set arrangement of opts to not arranged
     set icon size of opts to 128
@@ -146,11 +147,11 @@ tell application "Finder"
 end tell
 OSA
 sync
-hdiutil detach "/Volumes/Mountpoint" -quiet
+# Finder or Spotlight may still hold the volume for a moment
+hdiutil detach "/Volumes/Mountpoint" -quiet || { sleep 2; hdiutil detach "/Volumes/Mountpoint" -quiet -force; }
 hdiutil convert -quiet "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG"
 rm -rf "$STAGE" "$RW"
 # update signature: installed apps only accept zips signed with the key in this Mac's Keychain
-rm -f "dist/Mountpoint-$RELEASE.zip.sig"
 if PUB=$(swift scripts/update-key.swift public 2>/dev/null) && grep -q "\"$PUB\"" Sources/Mountpoint/Updater.swift \
    && swift scripts/update-key.swift sign "dist/Mountpoint-$RELEASE.zip"; then
   echo "Done: $APP, $DMG, dist/Mountpoint-$RELEASE.zip (+ .sig – upload all three)"

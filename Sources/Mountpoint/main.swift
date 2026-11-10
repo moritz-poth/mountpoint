@@ -24,6 +24,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: "fonts") ?? [] {
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         }
+        // vom Disk-Image gestartet: nichts einhängen (die Hilfsprogramme lägen auf dem Image), erst in „Programme“ verschieben
+        if runsFromTemporaryPlace() {
+            Log.write("started from a temporary place (\(Bundle.main.bundlePath)), asking to move to Applications")
+            NSApp.activate(ignoringOtherApps: true)
+            let a = NSAlert()
+            a.messageText = loc("Move Mountpoint to the Applications folder")
+            a.informativeText = loc("Mountpoint was opened from the disk image or a temporary place. Drag Mountpoint into the Applications folder and open it from there – otherwise it cannot update itself, and your volumes would disappear when the disk image is ejected.")
+            a.addButton(withTitle: loc("Quit"))
+            a.runModal()
+            exit(0)   // nicht terminate: das Beenden würde Store und Seitenleiste erst anfassen
+        }
         // Einstellungs-App: Änderungen übernehmen, Aufträge ausführen. Erst zuhören, dann laden (Store.shared liest die
         // Datei): was eine offene Einstellungs-App währenddessen speichert, geht sonst verloren.
         IPC.listen { [weak self] what, info in

@@ -168,6 +168,7 @@ final class ThinScroller: NSScroller {
 
 extension View {
     /// gibt der nächsten NSScrollView (ScrollView, TextEditor) den `ThinScroller`
+    /// shortcut: nimmt die erste NSScrollView ab den Vorfahren – nur wo die Umgebung genau eine hat (Selbsttest, Problem melden); sonst gezielt suchen
     func thinScroller(dark: Bool) -> some View { background(ThinScrollerHook(dark: dark)) }
 }
 

@@ -28,7 +28,7 @@ enum Sidebar {
         known = names
         if applied == nil {
             // einmal pro Start: alte Einträge wirklich löschen, erst danach beobachten (der Neustart des Dienstes trennt Beobachter)
-            queue.async { purge(names: names); DispatchQueue.main.async { observe() } }
+            queue.async { _ = purge(names: names); DispatchQueue.main.async { observe() } }
         }
         guard wanted != applied else { return }
         applied = wanted
@@ -59,15 +59,20 @@ enum Sidebar {
     }
 
     /// Beim Beenden: alle eigenen Einträge entfernen, bevor der Prozess endet.
+    /// Höchstens 5 s: hängt die Warteschlange (Bereinigung beim Start, ein hängendes NAS), endet Mountpoint trotzdem –
+    /// übrig gebliebene Einträge löscht die Bereinigung beim nächsten Start.
     @MainActor static func removeAll() {
         applied = []
         let names = known
-        queue.sync { apply([], names: names) }
+        let done = DispatchSemaphore(value: 0)
+        queue.async { apply([], names: names); done.signal() }
+        if done.wait(timeout: .now() + 5) == .timedOut { Log.write("sidebar: entries not removed at quit (busy), cleaned at next launch") }
     }
 
     /// Selbsttest: einen Eintrag für `path` anlegen und wieder entfernen – ohne die Liste der eigenen Einträge zu berühren.
-    static func probe(_ path: String) -> (added: Bool, removed: Bool, note: String) {
-        queue.sync { probeNow(path) }
+    /// Wartet auf die Warteschlange, ohne den Haupt-Thread zu blockieren (beim ersten Start läuft dort die Bereinigung).
+    static func probe(_ path: String) async -> (added: Bool, removed: Bool, note: String) {
+        await withCheckedContinuation { done in queue.async { done.resume(returning: probeNow(path)) } }
     }
 
     @available(macOS, deprecated: 10.11)
@@ -91,41 +96,70 @@ enum Sidebar {
         return (true, find() == nil, "")
     }
 
-    private static let listFile = FileManager.default.homeDirectoryForCurrentUser
+    static let listFile = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.FavoriteVolumes.sfl3")
+    static let backupFile = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Mountpoint/FavoriteVolumes-backup.sfl3")
 
     /// Ausblenden allein lässt die Liste wachsen (ein Eintrag pro Einhängen), und „Externe Festplatten“ holt alle zurück.
     /// Darum beim Start die eigenen Einträge ausgeworfener Volumes aus der sfl3-Datei löschen und den Dienst neu starten
-    /// (er liest die Datei dann neu ein; getestet macOS 15, 2026-11-10). Vorher eine Sicherung in Application Support/Mountpoint.
-    /// Kann die Datei nicht gelesen werden (anderes Format, andere macOS-Version): nichts anfassen, Ausblenden bleibt.
-    private static func purge(names workspaceNames: Set<String>) {
-        let names = Set(defaults.stringArray(forKey: namesKey) ?? []).union(workspaceNames).union([probeName])
-        guard let data = try? Data(contentsOf: listFile),
-              let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { return }
+    /// (er liest die Datei dann neu ein und schreibt beim Beenden nichts zurück; getestet macOS 15, 2026-11-10).
+    /// Vorher Sicherungen: `backup` = die Liste vor dieser Bereinigung, `<backup>-first` einmalig = vor der allerersten.
+    /// Fehlt die Datei, ist sie nicht lesbar oder ändert sie sich währenddessen: nichts anfassen, Ausblenden bleibt.
+    /// Gibt die Zahl gelöschter Einträge zurück (nil: nicht bereinigt).
+    @discardableResult
+    static func purge(names workspaceNames: Set<String>, list: URL = listFile, backup: URL = backupFile,
+                      exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) },
+                      restart: () -> Bool = restartDaemon) -> Int? {
+        let names = purgeNames(workspaceNames)
+        guard let data = try? Data(contentsOf: list) else { Log.write("sidebar: list file missing or not readable, not cleaned"); return nil }
+        guard let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { Log.write("sidebar: list file not readable, not cleaned"); return nil }
         u.requiresSecureCoding = false
-        guard var root = u.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? [String: Any],
-              let items = root["items"] as? [[String: Any]] else { Log.write("sidebar: list file not readable, not cleaned"); return }
-        let kept = items.filter { !isStale($0, names: names) }
-        guard kept.count < items.count else { return }
+        // ein Fehler (z. B. unbekannte Klasse in einem neuen Format) wirft einen Swift-Fehler statt die App abstürzen zu lassen
+        u.decodingFailurePolicy = .setErrorAndReturn
+        guard var root = (try? u.decodeTopLevelObject(forKey: NSKeyedArchiveRootObjectKey)) as? [String: Any],
+              let items = root["items"] as? [[String: Any]] else { Log.write("sidebar: list file not readable, not cleaned"); return nil }
+        let kept = items.filter { !isStale($0, names: names, exists: exists) }
+        guard kept.count < items.count else { return 0 }
         root["items"] = kept
-        let backup = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Mountpoint/FavoriteVolumes-backup.sfl3")
         do {
             let out = try NSKeyedArchiver.archivedData(withRootObject: root, requiringSecureCoding: false)
-            try data.write(to: backup, options: .atomic)
-            try out.write(to: listFile, options: .atomic)
+            // inzwischen geändert (Finder, Nutzer): nichts schreiben, auch keine Sicherung – beim nächsten Start erneut
+            guard (try? Data(contentsOf: list)) == data else { Log.write("sidebar: list changed meanwhile, not cleaned"); return nil }
+            let first = backup.deletingPathExtension().appendingPathExtension("first.sfl3")
+            if !FileManager.default.fileExists(atPath: first.path) { try data.write(to: first, options: .atomic) }
+            try data.write(to: backup, options: .atomic)   // erst die Sicherungen; scheitern sie, bleibt die Liste unberührt
+            try out.write(to: list, options: .atomic)
         } catch {
             Log.write("sidebar: could not clean list: \(error.localizedDescription)")
-            return
+            return nil
         }
+        let restarted = restart()
+        // killall meldet auch „läuft gerade nicht“ als Fehler – dann liest der Dienst die neue Datei beim nächsten Start ohnehin
+        Log.write("sidebar: deleted \(items.count - kept.count) old entries from the list (\(items.count) → \(kept.count))"
+                  + (restarted ? "" : ", sharedfilelistd not restarted (not running, or killall failed)"))
+        return items.count - kept.count
+    }
+
+    /// Namen, deren Einträge `purge` löschen und `apply` ausblenden darf: alle je eingetragenen, alle eigenen Pfade
+    /// (auch von Versionen vor `sidebarNames`), alle Workspaces, der Selbsttest
+    static func purgeNames(_ workspaceNames: Set<String>) -> Set<String> {
+        Set(defaults.stringArray(forKey: namesKey) ?? [])
+            .union((defaults.stringArray(forKey: ownedKey) ?? []).map { ($0 as NSString).lastPathComponent })
+            .union(workspaceNames).union([probeName])
+    }
+
+    static func restartDaemon() -> Bool {
         let kill = Process()
         kill.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
         kill.arguments = ["sharedfilelistd"]
-        try? kill.run()
+        guard (try? kill.run()) != nil else { return false }
         kill.waitUntilExit()
-        Log.write("sidebar: deleted \(items.count - kept.count) old entries from the list (\(items.count) → \(kept.count))")
+        return kill.terminationStatus == 0
     }
 
+    /// shortcut: ein fremder Eintrag ohne Name/DateLastSeen direkt unter /Volumes mit einem unserer Namen würde gelöscht –
+    /// keiner gesehen (LucidLink 3 liegt eine Ebene tiefer, direkt eingehängtes LucidLink hat Name); bei Bedarf Bookmark-Herkunft prüfen.
     /// Eintrag, den Mountpoint angelegt hat (die Einträge des Finders haben Name und DateLastSeen), für ein Volume mit
     /// einem unserer Namen, das gerade nicht eingehängt ist.
     static func isStale(_ item: [String: Any], names: Set<String>, exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }) -> Bool {
@@ -141,8 +175,9 @@ enum Sidebar {
     @available(macOS, deprecated: 10.11, message: "LSSharedFileList ist veraltet, aber die einzige Schnittstelle zur Seitenleiste (getestet unter macOS 15)")
     private static func apply(_ wanted: Set<String>, names workspaceNames: Set<String>) {
         var owned = Set(defaults.stringArray(forKey: ownedKey) ?? [])
-        var names = Set(defaults.stringArray(forKey: namesKey) ?? [])
-        let oldNames = names
+        // eigene Pfade älterer Versionen (vor `sidebarNames`): Namen behalten, auch wenn der Pfad unten ausgetragen wird
+        var names = Set(defaults.stringArray(forKey: namesKey) ?? []).union(owned.map { ($0 as NSString).lastPathComponent })
+        let oldNames = Set(defaults.stringArray(forKey: namesKey) ?? [])
         guard let list = LSSharedFileListCreate(nil, kLSSharedFileListFavoriteVolumes.takeUnretainedValue(), nil)?.takeRetainedValue() else {
             Log.write("sidebar: list not available")
             return
@@ -163,7 +198,7 @@ enum Sidebar {
         }
         // Geister: ausgeworfen, der Eintrag löst sich nicht mehr auf, dann zählt der Name
         // shortcut: ein fremder, ebenfalls nicht auflösbarer Eintrag mit genau diesem Volume-Namen würde mit ausgeblendet – Pfad im Eintrag lesen, falls das je vorkommt
-        let ghostNames = names.union(workspaceNames).union(owned.map { ($0 as NSString).lastPathComponent }).union([probeName])
+        let ghostNames = purgeNames(workspaceNames).union(names)   // names: schon um die eigenen Pfade ergänzt
             .subtracting(wanted.map { ($0 as NSString).lastPathComponent })
         let ghosts = entries.filter { $0.path == nil && ghostNames.contains($0.name) }
         for e in ghosts { LSSharedFileListItemRemove(list, e.item) }

@@ -26,30 +26,22 @@ struct SizeRoot: Hashable {
     let root: String
 }
 
-/// Anzahl der Einträge eines Ordners. Wo das Dateisystem es kann (APFS, HFS) mit einem Aufruf (ATTR_DIR_ENTRYCOUNT),
-/// sonst (SMB, macFUSE) durch Zählen der Namen – ohne die Dateien selbst anzufassen.
-func entryCount(_ path: String, quick: Bool = true) -> Int? {
-    if quick {
-        var list = attrlist()
-        list.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
-        list.commonattr = attrgroup_t(ATTR_CMN_RETURNED_ATTRS)
-        list.dirattr = attrgroup_t(ATTR_DIR_ENTRYCOUNT)
-        var buf = [UInt8](repeating: 0, count: 64)
-        if getattrlist(path, &list, &buf, buf.count, 0) == 0 {
-            let n = buf.withUnsafeBytes { p -> Int? in
-                let returned = p.load(fromByteOffset: 4, as: attribute_set_t.self)
-                guard returned.dirattr & attrgroup_t(ATTR_DIR_ENTRYCOUNT) != 0 else { return nil }
-                return Int(p.load(fromByteOffset: 4 + MemoryLayout<attribute_set_t>.size, as: UInt32.self))
-            }
-            if let n { return n }
-        }
-    }
+/// Dateien wie MediaFiles Check sie zählt: sichtbare Dateien einschließlich der beiden Datenbankdateien, ohne versteckte
+/// (.DS_Store, ._*) und ohne Unterordner (Avids „Creating“). Liest nur die Namen, nicht die Dateien.
+func fileCount(_ path: String) -> Int? {
     guard let dir = opendir(path) else { return nil }
     defer { closedir(dir) }
     var n = 0
     while let e = readdir(dir) {
-        let dot = withUnsafeBytes(of: e.pointee.d_name) { $0[0] == 0x2E && ($0[1] == 0 || ($0[1] == 0x2E && $0[2] == 0)) }
-        if !dot { n += 1 }
+        let hidden = withUnsafeBytes(of: e.pointee.d_name) { $0[0] == 0x2E }
+        if hidden { continue }
+        var type = Int32(e.pointee.d_type)
+        if type == DT_UNKNOWN {   // manche Dateisysteme (macFUSE) liefern keinen Typ
+            let name = withUnsafeBytes(of: e.pointee.d_name) { String(cString: $0.bindMemory(to: CChar.self).baseAddress!) }
+            var st = stat()
+            type = lstat(path + "/" + name, &st) == 0 && st.st_mode & S_IFMT == S_IFDIR ? DT_DIR : DT_REG
+        }
+        if type != DT_DIR { n += 1 }
     }
     return n
 }
@@ -111,6 +103,8 @@ final class VolumeGuard {
     private let sizeIO = DispatchQueue(label: "Mountpoint.size")
     private let sizeCache = SizeCache()
     private var sizing = false
+    /// während einer Zählung angefordert (Einstellung geändert): danach gleich noch einmal
+    private var sizeRerun = false
     /// keine Größenprüfung unterwegs (für Tests)
     var sizeIdle: Bool { !sizing }
     /// mit „OK“ bestätigt: erst wieder, wenn der Ordner unter die Grenze fällt und erneut darüber steigt.
@@ -127,7 +121,7 @@ final class VolumeGuard {
             for key in active where key.hasPrefix("s:") { closeAlert(key) }   // ausgeschaltet
             return
         }
-        guard !sizing else { return }
+        guard !sizing else { sizeRerun = true; return }
         sizing = true
         let cache = sizeCache
         sizeIO.async {
@@ -144,7 +138,7 @@ final class VolumeGuard {
                     if let e = cache.entries[folder], e.changed.tv_sec == changed.tv_sec, e.changed.tv_nsec == changed.tv_nsec,
                        Date().timeIntervalSince(e.counted) < 600 {
                         found.append((r.name, folder, e.count))
-                    } else if let n = entryCount(folder) {
+                    } else if let n = fileCount(folder) {
                         cache.entries[folder] = (changed, Date(), n)
                         found.append((r.name, folder, n))
                     }
@@ -156,13 +150,19 @@ final class VolumeGuard {
 
     private func applySizes(_ found: [(String, String, Int)]) {
         sizing = false
+        defer { if sizeRerun { sizeRerun = false; checkSizes() } }
+        // während der Zählung ausgeschaltet: Ergebnis verwerfen (die Alarme hat checkSizes schon geschlossen)
+        guard !sizeRoots().isEmpty else { return }
         let early = self.early
         let over = found.filter { $0.2 > sizeLimit || ($0.2 > early && $0.2 < sizeLimit) }
         let overPaths = Set(over.map(\.1))
         // Bestätigungen, die noch gelten: Vorwarnung solange über earlyLimit, Warnung solange über sizeLimit
-        let valid = Set(over.flatMap { _, folder, n in n > sizeLimit ? ["~" + folder, folder] : ["~" + folder] })
+        // genau an der Grenze = absichtlich voll (Rebalancing): zählt wie eine bestätigte Vorwarnung, eine Datei weniger warnt nicht
+        let full = Set(found.filter { $0.2 == sizeLimit }.map { "~" + $0.1 })
+        let valid = Set(over.flatMap { _, folder, n in n > sizeLimit ? ["~" + folder, folder] : ["~" + folder] }).union(full)
         // wieder unter der Grenze (oder Laufwerk weg): vergessen, damit ein neues Überschreiten wieder warnt
         if !bigKnown.isSubset(of: valid) { bigKnown = bigKnown.intersection(valid) }
+        bigKnown.formUnion(full)
         for key in active where key.hasPrefix("s:") && !overPaths.contains(String(key.dropFirst(2))) { closeAlert(key) }
         for (volume, folder, n) in over where !bigKnown.contains(n > sizeLimit ? folder : "~" + folder) {
             let key = "s:" + folder
