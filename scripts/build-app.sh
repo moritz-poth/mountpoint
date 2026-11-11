@@ -91,7 +91,21 @@ cat > "$SET/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 # ad-hoc signed (no Apple Developer account): macOS needs "Open Anyway" once, see README
-codesign --force --deep --sign - "$APP"
+# hardened runtime: blocks DYLD_* code injection into the app that holds Full Disk Access.
+# Signed inside-out so --deep cannot strip mirror's entitlement.
+MIRROR_ENT="$(mktemp -t mirror-ent).plist"
+cat > "$MIRROR_ENT" <<'ENT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <!-- mirror links macFUSE's libfuse, signed by another team -->
+  <key>com.apple.security.cs.disable-library-validation</key><true/>
+</dict></plist>
+ENT
+codesign --force --sign - --options runtime --entitlements "$MIRROR_ENT" "$APP/Contents/MacOS/mirror"
+rm -f "$MIRROR_ENT"
+codesign --force --sign - --options runtime "$SET"
+codesign --force --sign - --options runtime "$APP"
 # what installed updaters check: the whole bundle incl. the nested settings app verifies, versions match
 codesign --verify --deep --strict "$APP"
 NESTED_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$SET/Contents/Info.plist")
