@@ -10,10 +10,15 @@ REPOS = '{"mountpoint": "moritz-poth/mountpoint-reports", "mediafiles-check": "m
 MAX_PER_DAY = "50"      # Berichte pro Tag insgesamt
 MAX_PER_HOUR_IP = "10"  # Berichte pro Stunde, Absender und App (5 für alle Apps zusammen reichte beim Testen nicht)
 
-# Zähler für die Limits (id nach `npx wrangler kv namespace create LIMITS` eintragen)
-[[kv_namespaces]]
-binding = "LIMITS"
-id = "efccd83f7f0b40bc84c2c38ea77948c2"
+# Zähler für die Limits: Durable Object `Limits` (src/index.js), prüft und zählt in einem Schritt – mit KV kamen
+# parallele Anfragen an den Limits vorbei. Free-Plan: nur SQLite-Durable-Objects.
+[[durable_objects.bindings]]
+name = "LIMITS"
+class_name = "Limits"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limits"]
 
 # Secret (nicht hier eintragen!): npx wrangler secret put GITHUB_TOKEN
 # Fine-grained token, nur die Repos aus REPOS, Rechte: Contents read/write, Issues read/write.

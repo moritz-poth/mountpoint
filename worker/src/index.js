@@ -3,7 +3,33 @@
 // (`product` → REPOS in wrangler.toml; reports without `product` come from Mountpoint).
 // Abuse protection: size limit, strict validation, per-IP and per-day limits. The GitHub token lives only here.
 
+import { DurableObject } from "cloudflare:workers";
+
 const MAX_BYTES = 1_000_000;
+
+// Rate-limit counters. A single instance runs one call at a time and take() is fully synchronous,
+// so no two requests can read the same old count (KV could not do this: separate get/put, eventually consistent).
+export class Limits extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL, expires INTEGER NOT NULL)");
+  }
+
+  // Returns the error text when a limit is reached, otherwise counts the report and returns null.
+  take(hourKey, dayKey) {
+    const sql = this.ctx.storage.sql;
+    const now = Date.now();
+    sql.exec("DELETE FROM counts WHERE expires < ?", now);
+    const count = (key) => sql.exec("SELECT n FROM counts WHERE key = ?", key).toArray()[0]?.n ?? 0;
+    if (count(hourKey) >= Number(this.env.MAX_PER_HOUR_IP)) return "rate limited";
+    if (count(dayKey) >= Number(this.env.MAX_PER_DAY)) return "daily limit reached";
+    const add = (key, ttlSeconds) => sql.exec(
+      "INSERT INTO counts (key, n, expires) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET n = n + 1", key, now + ttlSeconds * 1000);
+    add(hourKey, 3700);
+    add(dayKey, 90000);
+    return null;
+  }
+}
 
 export default {
   async fetch(request, env) {
@@ -23,19 +49,14 @@ export default {
     const repo = JSON.parse(env.REPOS)[report.product || "mountpoint"];
     if (!repo) return json({ error: "unknown product" }, 400);
 
-    // Limits (KV is eventually consistent – good enough to stop floods, nothing is billed on the free plan)
+    // Limits: one Durable Object checks and counts in a single step, so parallel or far-apart requests cannot all pass
     const ip = request.headers.get("cf-connecting-ip") || "unknown";
     const now = new Date();
     // per app: a tester who tries several apps in one hour must not lock himself out of the next one
     const hourKey = `ip:${ip}:${report.product || "mountpoint"}:${now.toISOString().slice(0, 13)}`;
     const dayKey = `day:${now.toISOString().slice(0, 10)}`;
-    const [perIp, perDay] = await Promise.all([env.LIMITS.get(hourKey), env.LIMITS.get(dayKey)]);
-    if (Number(perIp || 0) >= Number(env.MAX_PER_HOUR_IP)) return json({ error: "rate limited" }, 429);
-    if (Number(perDay || 0) >= Number(env.MAX_PER_DAY)) return json({ error: "daily limit reached" }, 429);
-    await Promise.all([
-      env.LIMITS.put(hourKey, String(Number(perIp || 0) + 1), { expirationTtl: 3700 }),
-      env.LIMITS.put(dayKey, String(Number(perDay || 0) + 1), { expirationTtl: 90000 }),
-    ]);
+    const limited = await env.LIMITS.get(env.LIMITS.idFromName("limits")).take(hourKey, dayKey);
+    if (limited) return json({ error: limited }, 429);
 
     const id = `${now.toISOString().replace(/[:.]/g, "-")}-${crypto.randomUUID().slice(0, 6)}`;
     const path = `reports/${now.toISOString().slice(0, 10)}/${report.kind}-${id}.json`;
