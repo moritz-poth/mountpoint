@@ -16,21 +16,7 @@ enum Consent {
 
     static func show() {
         guard panel == nil else { panel?.makeKeyAndOrderFront(nil); return }
-        let p = AlertPanel(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
-        let host = NSHostingController(rootView: ConsentView { close() }.environment(\.locale, Store.shared.locale))
-        host.sizingOptions = .preferredContentSize
-        p.contentViewController = host
-        p.isOpaque = false
-        p.backgroundColor = .clear
-        p.hasShadow = true
-        p.level = .floating
-        p.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist (Start nach Update, Systemabfrage)
-        p.isReleasedWhenClosed = false
-        p.setContentSize(host.view.fittingSize)
-        p.center()
-        NSApp.activate(ignoringOtherApps: true)
-        p.makeKeyAndOrderFront(nil)
-        panel = p
+        panel = showPanel(ConsentView { close() })
     }
 
     static func answered() { defaults.set(Updater.current, forKey: key) }

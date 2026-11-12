@@ -9,12 +9,18 @@ enum Setup {
     private static let key = "setupDone"
     private static var panel: NSPanel?
 
+    /// Gemeinsame Höhe von Willkommen und diesem Fenster in der gewählten Sprache: beide stehen exakt an derselben Stelle
+    static var height: CGFloat {
+        let fit = { (v: AnyView) in NSHostingController(rootView: v.environment(\.locale, Store.shared.locale)).view.fittingSize.height }
+        return max(fit(AnyView(SetupView(choice: SetupChoice()) {})), fit(AnyView(WelcomeView(dark: Store.shared.dark) {})))
+    }
+
     /// `fresh`: das Willkommen war bei diesem Start noch nicht bestätigt (erste Installation)
     static func showIfNeeded(fresh: Bool, then: @escaping @MainActor () -> Void) {
         guard !defaults.bool(forKey: key) else { then(); return }
         guard fresh else { defaults.set(true, forKey: key); then(); return }
         let choice = SetupChoice()
-        panel = showPanel(SetupView(choice: choice) {
+        panel = showPanel(SetupView(choice: choice, height: height) {
             defaults.set(true, forKey: key)
             panel?.close()
             panel = nil
@@ -37,6 +43,7 @@ final class SetupChoice: ObservableObject {
 
 struct SetupView: View {
     @ObservedObject var choice: SetupChoice
+    var height: CGFloat = 0
     let done: () -> Void
     @ObservedObject private var store = Store.shared
 
@@ -55,6 +62,7 @@ struct SetupView: View {
             note("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
             SwitchRow(title: "Mount as network drive", on: choice.network, theme: t) { choice.network.toggle() }
             note("For collaboration with Avid Media Composer Enterprise: it then creates a “<computer name>.1” folder instead of “1”. Turn off “filter network drives” in Media Composer’s Media Creation settings. Applies the next time a workspace is mounted.", t)
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button("Continue", action: done)
@@ -65,6 +73,7 @@ struct SetupView: View {
         }
         .padding(26)
         .frame(width: 520)
+        .frame(minHeight: height)
         .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
         .environment(\.colorScheme, store.dark ? .dark : .light)

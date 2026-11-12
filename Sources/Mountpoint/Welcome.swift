@@ -12,30 +12,20 @@ enum Welcome {
     /// `then`: danach (sofort, wenn schon bestätigt) – z. B. die Frage nach dem Selbsttest
     static func showIfNeeded(then: @escaping @MainActor () -> Void = {}) {
         guard !defaults.bool(forKey: key) else { then(); return }
-        let view = WelcomeView(dark: Store.shared.dark) {
+        let view = WelcomeView(dark: Store.shared.dark, height: Setup.height) {
             defaults.set(true, forKey: key)
             panel?.close()
             panel = nil
             then()
         }
-        let p = AlertPanel(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
-        p.contentViewController = NSHostingController(rootView: view.environment(\.locale, Store.shared.locale))
-        p.isOpaque = false
-        p.backgroundColor = .clear
-        p.hasShadow = true
-        p.level = .floating
-        p.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist (Start nach Update, Systemabfrage)
-        p.isReleasedWhenClosed = false
-        p.setContentSize(p.contentViewController!.view.fittingSize)
-        p.center()
-        NSApp.activate(ignoringOtherApps: true)
-        p.makeKeyAndOrderFront(nil)
-        panel = p
+        panel = showPanel(view)
     }
 }
 
 struct WelcomeView: View {
     let dark: Bool
+    /// Setup.height: so hoch wie das folgende Fenster „Empfohlene Einstellungen“
+    var height: CGFloat = 0
     let confirm: () -> Void
 
     var body: some View {
@@ -51,6 +41,7 @@ struct WelcomeView: View {
                     "What you delete on a Mountpoint volume is gone immediately – there is no Trash, even if the folder lies on a local drive. This applies to the Finder (its warning “will be deleted immediately” is right), Media Composer and every other app. Always keep a backup of your media.")
             section(t, "Use at your own risk",
                     "Mountpoint is free software and comes without any warranty. You use it at your own risk. The author is not liable for data loss or any other damage. Always keep a backup of your media.")
+            Spacer(minLength: 0)
             HStack {
                 Spacer()
                 Button("I understand", action: confirm)
@@ -58,8 +49,9 @@ struct WelcomeView: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(30)
+        .padding(26)
         .frame(width: 520)
+        .frame(minHeight: height)
         .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
         .environment(\.colorScheme, dark ? .dark : .light)

@@ -113,14 +113,10 @@ struct SidebarAccessView: View {
                 .font(.mono(11)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
                 .opacity(state.waiting ? 1 : 0)
                 .accessibilityHidden(!state.waiting)
-            HStack(spacing: 12) {
-                Button("Don’t show in the sidebar") { answer(false) }
-                    .buttonStyle(FerryButtonStyle(theme: t, height: 32))
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button("Open System Settings") { answer(true) }
-                    .buttonStyle(FerryButtonStyle(theme: t, primary: true, height: 32))
-                    .keyboardShortcut(.defaultAction)
+            // de/fr: beide Knöpfe nebeneinander sind breiter als das Fenster – dann untereinander
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { decline(t); Spacer(); allow(t) }
+                VStack(alignment: .trailing, spacing: 10) { allow(t); decline(t) }.frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(26)
@@ -128,5 +124,17 @@ struct SidebarAccessView: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
         .environment(\.colorScheme, store.dark ? .dark : .light)
+    }
+
+    private func decline(_ t: Theme) -> some View {
+        Button("Don’t show in the sidebar") { answer(false) }
+            .buttonStyle(FerryButtonStyle(theme: t, height: 32))
+            .keyboardShortcut(.cancelAction)
+    }
+
+    private func allow(_ t: Theme) -> some View {
+        Button("Open System Settings") { answer(true) }
+            .buttonStyle(FerryButtonStyle(theme: t, primary: true, height: 32))
+            .keyboardShortcut(.defaultAction)
     }
 }

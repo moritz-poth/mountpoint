@@ -86,7 +86,7 @@ struct MacFUSEView: View {
     }
 }
 
-/// Schwebendes Hinweisfenster in der Mitte des Bildschirms, wie Willkommen und Selbsttest-Frage
+/// Schwebendes Hinweisfenster genau in der Mitte des Bildschirms (Willkommen, Einstellungen, Freigabe, Selbsttest-Frage)
 @MainActor
 func showPanel<V: View>(_ view: V) -> NSPanel {
     let p = AlertPanel(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
@@ -100,7 +100,10 @@ func showPanel<V: View>(_ view: V) -> NSPanel {
     p.hidesOnDeactivate = false   // NSPanel verschwindet sonst, sobald eine andere App aktiv ist
     p.isReleasedWhenClosed = false
     p.setContentSize(host.view.fittingSize)
-    p.center()
+    // nicht center(): das setzt das Fenster ins obere Drittel, und jedes Fenster säße je nach Höhe woanders
+    if let screen = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame {
+        p.setFrameOrigin(NSPoint(x: (screen.midX - p.frame.width / 2).rounded(), y: (screen.midY - p.frame.height / 2).rounded()))
+    }
     NSApp.activate(ignoringOtherApps: true)
     p.makeKeyAndOrderFront(nil)
     return p
