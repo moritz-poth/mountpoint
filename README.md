@@ -25,9 +25,9 @@ Built for Avid Media Composer: Media Composer only finds media in an `Avid Media
 - **Warning about a `1` folder on network drives** – a setting: on every connected network drive with `Avid MediaFiles`, an alert as soon as a folder `1` appears in `Avid MediaFiles/MXF` – a sign that someone works without the bin locking of Media Composer Enterprise.
 - **Warning about big MXF folders** – a setting: an alert as soon as a folder in `Avid MediaFiles/MXF` holds more than 5000 files – or the limit you set, 100 to 50000 – (a first warning at 90 %, so you can start a new folder in time), on every connected drive, the system volume and your workspaces. Checked once a minute in the background; unchanged folders are not counted again.
 - **Updates from within the app:** Mountpoint checks GitHub for new versions, shows a notice and installs the update with one click – it replaces itself, restarts and mounts your workspaces again. You can also check by hand under Settings → Updates. Every update is signed; Mountpoint installs only updates with a valid signature.
-- **Finder sidebar** – mounted workspaces appear under *Locations*, like other drives, and disappear when ejected (can be switched off in the settings).
+- **Finder sidebar** – mounted workspaces appear under *Locations*, like other drives, and disappear when ejected (can be switched off in the settings). macOS keeps ejected volumes in that list; a small helper, *Mountpoint Cleanup*, deletes Mountpoint's own old entries at every start. Only this helper needs **Full Disk Access** – Mountpoint itself never gets it.
 - **Own volume icon** in the Finder and **plain-language error messages** that say what went wrong and what to do. A drive that stops responding never freezes Mountpoint. Settings → *Show log file* shows what happened – send it along when you report a problem.
-- **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Media Composer still has files open, the volume stays mounted.
+- **Safe** – Mountpoint never deletes, moves or overwrites files. It never force-ejects: if Media Composer still has files open, the volume stays mounted. A workspace never leads outside its folder (symbolic links are not followed), and folders inside `~/Library` cannot be mounted.
 - English, German, French and Spanish, light and dark appearance, launch at login.
 
 ## Good to know
@@ -38,6 +38,7 @@ Built for Avid Media Composer: Media Composer only finds media in an `Avid Media
 
 - **Changing settings** applies to volumes the next time they are mounted – eject and mount them once. Updates installed from within the app do this for you (from 1.0.0 beta 8 on).
 - **Use at your own risk:** Mountpoint comes without any warranty; the author is not liable for data loss or other damage. Always keep a backup of your media.
+- **Full Disk Access after updates:** Mountpoint is not signed with a paid Apple certificate, so macOS switches the access of *Mountpoint Cleanup* off after every update. Mountpoint then asks again – switch it on once more, or choose *Don’t show in the sidebar*.
 - **Media Composer’s drive filter:** turn off *filter network drives* under Media Creation → Drive Filtering on every system, otherwise Media Composer hides the workspaces.
 
 ## Requirements
@@ -66,7 +67,14 @@ Alternatively, in Terminal:
 xattr -dr com.apple.quarantine /Applications/Mountpoint.app
 ```
 
-The menu bar icon (a drive with a folder tab) appears at the top right. It is filled while at least one workspace is mounted, and a dot appears when something needs your attention. On the very first launch a short notice explains the Finder’s delete warning and that you use Mountpoint at your own risk – it appears until you click **I understand**.
+The menu bar icon (a drive with a folder tab) appears at the top right. It is filled while at least one workspace is mounted, and a dot appears when something needs your attention.
+
+On the very first launch Mountpoint guides you through a few windows in the middle of the screen:
+1. **macFUSE** – if it is missing, Mountpoint links to its website and waits; it continues by itself once macFUSE is installed.
+2. **Welcome** – deleting on Mountpoint volumes is permanent, and you use Mountpoint at your own risk. Appears until you click **I understand**.
+3. **Recommended settings** – launch at login, Finder sidebar and network drive, all preselected; change them any time in the settings.
+4. **Finder sidebar** – *Open System Settings* and switch on **Mountpoint Cleanup** under Privacy & Security → Full Disk Access; the window closes by itself once the access is there. Or choose *Don’t show in the sidebar*.
+5. **Self-test** – may Mountpoint run a short self-test and send the result anonymously? *Not now* asks again with the next version.
 
 ## Usage
 
@@ -93,7 +101,7 @@ Mountpoint does not scan your drives. macOS notifies it when something changes a
 
 ## Testing and reporting problems
 
-- **Self-test:** Settings → *Run self-test…* checks mounting, files, warnings and updates on a test disk of its own (your workspaces are not touched) and sends an anonymous report. Takes a few minutes, needs macFUSE. The Finder may ask once whether Mountpoint may control it – that tests copying with the Finder.
+- **Self-test:** Settings → *Run self-test…* checks mounting, files, warnings and updates on a test disk of its own (your workspaces are not touched) and sends an anonymous report. Takes a few minutes, needs macFUSE.
 - **Report a problem:** Settings → *Report…* – describe what happened, optionally with your email and the anonymized log file. No GitHub account needed.
 - **Test versions:** Settings → *Get test versions* also offers versions that are still being tested.
 
