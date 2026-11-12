@@ -7,6 +7,7 @@ enum Welcome {
     // new key whenever the text changes in substance, so everyone reads it once more (v2: no Trash any more)
     private static let key = "welcomeConfirmed2"
     private static var panel: NSPanel?
+    static var confirmed: Bool { defaults.bool(forKey: key) }
 
     /// `then`: danach (sofort, wenn schon bestätigt) – z. B. die Frage nach dem Selbsttest
     static func showIfNeeded(then: @escaping @MainActor () -> Void = {}) {

@@ -70,12 +70,26 @@ enum Sidebar {
     /// Ihr erster abgelehnter Zugriff trägt sie ausgeschaltet in die Liste ein. Mountpoint selbst und der Helfer
     /// `mirror` bekommen keinen Vollzugriff (Sicherheitsprüfung 2026-11-11, docs/plan-1.4.0-full-disk-access.md).
     @MainActor private static func startCleanup(_ names: Set<String>, then: @escaping @MainActor () -> Void) {
-        func finish() {
-            CFPreferencesAppSynchronize(mainBundleID as CFString)   // Ergebnis der Aufräum-App (record) lesen
+        launchCleanup(["--names"] + names.sorted()) {
             cleanupDone = true
             then()
             waiting.forEach { $0() }
             waiting = []
+        }
+    }
+
+    /// Hat Mountpoint Cleanup Festplattenvollzugriff? Startet sie nur zum Lesen (`--check`, löscht nichts).
+    /// Entwicklungs-Builds ohne Helfer-Bundle: ja (dort fragt niemand nach).
+    @MainActor static func checkAccess(_ done: @escaping @MainActor (Bool) -> Void) {
+        guard FileManager.default.fileExists(atPath: bundledCleanupURL.path) else { done(true); return }
+        launchCleanup(["--check"]) { done(defaults.object(forKey: accessKey) as? Bool == true) }
+    }
+
+    /// Kopie anlegen, starten (über LaunchServices, neue Instanz), auf ihr Ende warten (max. 30 s), ihr Ergebnis lesen
+    @MainActor private static func launchCleanup(_ arguments: [String], then: @escaping @MainActor () -> Void) {
+        func finish() {
+            CFPreferencesAppSynchronize(mainBundleID as CFString)   // Ergebnis der Aufräum-App (record) lesen
+            then()
         }
         // Entwicklungs-Builds ohne Helfer-Bundle: nicht aufräumen
         guard FileManager.default.fileExists(atPath: bundledCleanupURL.path) else { finish(); return }
@@ -83,11 +97,12 @@ enum Sidebar {
             Log.write("sidebar: cleanup could not be installed: \(error.localizedDescription)")
             finish(); return
         }
-        defaults.removeObject(forKey: accessKey)   // kein Ergebnis eines früheren Starts (oder von Mountpoint ≤ 1.3) verwenden
+        defaults.removeObject(forKey: accessKey)   // kein Ergebnis eines früheren Laufs (oder von Mountpoint ≤ 1.3) verwenden
         let config = NSWorkspace.OpenConfiguration()
         config.activates = false
         config.addsToRecentItems = false
-        config.arguments = ["--names"] + names.sorted()
+        config.createsNewApplicationInstance = true   // läuft sie schon (Aufräumen beim Start), nicht nur diese wecken
+        config.arguments = arguments
         NSWorkspace.shared.openApplication(at: cleanupURL, configuration: config) { app, error in
             if let error { Log.write("sidebar: cleanup could not be started: \(error.localizedDescription)") }
             let pid = app?.processIdentifier ?? 0
@@ -101,12 +116,16 @@ enum Sidebar {
     }
 
     /// Läuft in Mountpoint Cleanup.app (cleanupMode): prüfen, Ergebnis für Mountpoint, Einstellungen und Selbsttest
-    /// hinterlegen, aufräumen. `--names` kommt von Mountpoint; ein gefälschter Name kann höchstens weitere eigene
+    /// hinterlegen, aufräumen (mit `--check` nur prüfen). `--names` kommt von Mountpoint; ein gefälschter Name kann höchstens weitere eigene
     /// Einträge von Mountpoint löschen (isStale gilt weiter).
     static func runCleanup(arguments: [String]) {
         let names = Set(arguments.drop { $0 != "--names" }.dropFirst())
         let status = inspect(names: names)
         record(status)
+        if arguments.contains("--check") {   // nur prüfen, ob sie lesen darf (SidebarAccess)
+            CFPreferencesAppSynchronize(mainBundleID as CFString)
+            return
+        }
         switch status {
         case .success: _ = purge(names: names)
         case .failure(let problem): Log.write("sidebar: \(problem.reason), not cleaned")

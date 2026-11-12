@@ -89,12 +89,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appearance = store.$dark.sink { [weak self] dark in
             self?.popover.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         }
-        store.mountAtLaunch()
         Self.dropOldAccess()
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()
-        Welcome.showIfNeeded { SidebarAccess.showIfNeeded { Consent.showIfNeeded() } }
+        // Reihenfolge beim Start: macFUSE (ohne geht nichts, auch kein Einhängen) → Willkommen → empfohlene Einstellungen
+        // (nur nach der ersten Installation) → Vollzugriff für die Seitenleiste → erst dann die Frage nach dem Selbsttest
+        let fresh = !Welcome.confirmed
+        MacFUSE.require {
+            store.mountAtLaunch()
+            MacFUSE.watch()
+            Welcome.showIfNeeded { Setup.showIfNeeded(fresh: fresh) { SidebarAccess.showIfNeeded { Consent.showIfNeeded() } } }
+        }
         // Menü ohne sichtbare Menüleiste (reine Menüleisten-App): liefert ⌘, ⌘C/⌘V (Problem-Formular), ⌘W, ⌘Q
         buildMainMenu(actions)
         language = store.$language.dropFirst().receive(on: RunLoop.main).sink { [weak self] _ in

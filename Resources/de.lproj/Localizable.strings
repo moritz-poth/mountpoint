@@ -292,10 +292,19 @@
 "Move Mountpoint to the Applications folder" = "Mountpoint in den Programme-Ordner verschieben";
 "Mountpoint was opened from the disk image or a temporary place. Drag Mountpoint into the Applications folder and open it from there – otherwise it cannot update itself, and your volumes would disappear when the disk image is ejected." = "Mountpoint wurde vom Disk-Image oder von einem vorübergehenden Ort geöffnet. Zieh Mountpoint in den Programme-Ordner und öffne es von dort – sonst kann es sich nicht aktualisieren, und deine Volumes verschwinden, wenn das Disk-Image ausgeworfen wird.";
 "Finder sidebar cleanup" = "Aufräumen der Finder-Seitenleiste";
-"Allow…" = "Erlauben…";
-"Remove old sidebar entries" = "Alte Seitenleisten-Einträge entfernen";
 "Use the same limit as in MediaFiles Check. A first warning comes above 90 %." = "Stell dieselbe Grenze ein wie in MediaFiles Check. Eine erste Warnung kommt, sobald 90 % überschritten sind.";
 "Keep the Finder sidebar tidy" = "Finder-Seitenleiste aufgeräumt halten";
 "Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this." = "Ausgeworfene Volumes bleiben in der Liste der Finder-Seitenleiste und kommen zurück, wenn der Finder alle externen Festplatten zeigt. Ein kleiner Helfer, „Mountpoint Cleanup“, löscht dort bei jedem Start die alten Einträge von Mountpoint. Dafür braucht er Festplattenvollzugriff.";
 "In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list." = "In den Systemeinstellungen unter Datenschutz & Sicherheit → Festplattenvollzugriff „Mountpoint Cleanup“ einschalten. Nur dieser Helfer bekommt den Zugriff, und er ändert nichts außer dieser Liste.";
 "Open System Settings" = "Systemeinstellungen öffnen";
+
+/* Start: macFUSE, recommended settings, sidebar access (1.4.0) */
+"Mountpoint needs macFUSE" = "Mountpoint braucht macFUSE";
+"macFUSE lets Mountpoint mount folders as their own volumes. It is free, not included with Mountpoint and has its own license. Install it from its website – Mountpoint notices it and continues on its own." = "Mit macFUSE kann Mountpoint Ordner als eigene Volumes einhängen. Es ist kostenlos, nicht in Mountpoint enthalten und hat eine eigene Lizenz. Installiere es von seiner Website – Mountpoint bemerkt das und macht von selbst weiter.";
+"On Macs with Apple silicon, macOS may ask you to allow macFUSE’s system extension under System Settings → Privacy & Security and to restart the Mac." = "Auf Macs mit Apple-Chip bittet macOS eventuell darum, die Systemerweiterung von macFUSE unter Systemeinstellungen → Datenschutz & Sicherheit zu erlauben und den Mac neu zu starten.";
+"Open the macFUSE website" = "macFUSE-Website öffnen";
+"Waiting for the access – this window closes by itself." = "Warte auf den Zugriff – dieses Fenster schließt sich von selbst.";
+"Don’t show in the sidebar" = "Nicht in der Seitenleiste zeigen";
+"Recommended settings" = "Empfohlene Einstellungen";
+"Mountpoint works best with these settings. You can change them any time in the settings." = "Mit diesen Einstellungen arbeitet Mountpoint am besten. Du kannst sie jederzeit in den Einstellungen ändern.";
+"Continue" = "Weiter";

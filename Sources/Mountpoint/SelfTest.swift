@@ -367,7 +367,7 @@ final class SelfTest: ObservableObject {
             Check(id: "sidebar.list", title: "Finder sidebar cleanup") { _ in
                 guard let status = defaults.string(forKey: Sidebar.statusKey) else { throw SkipCheck(reason: "Mountpoint has not checked the list yet") }
                 if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
-                    throw SkipCheck(reason: "Mountpoint Cleanup needs Full Disk Access to clean the list (Settings → General)")
+                    throw SkipCheck(reason: "Mountpoint Cleanup needs Full Disk Access to clean the list (turn “Show in the Finder sidebar” on again in Settings → General)")
                 }
                 guard status.hasPrefix("ok: ") else { throw CheckFailed(reason: status) }
                 return String(status.dropFirst(4))

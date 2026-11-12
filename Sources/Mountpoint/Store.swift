@@ -475,7 +475,11 @@ final class Store: ObservableObject {
         if watchSize != flag("watchSize", false) { watchSize = flag("watchSize", false) }
         let limit = Store.validLimit(defaults.integer(forKey: "sizeLimit"))
         if sizeLimit != limit { sizeLimit = limit }
-        if sidebar != flag("sidebar", true) { sidebar = flag("sidebar", true) }
+        if sidebar != flag("sidebar", true) {
+            sidebar = flag("sidebar", true)
+            // in den Einstellungen eingeschaltet: nur mit Vollzugriff für Mountpoint Cleanup (sonst fragt Mountpoint)
+            if sidebar, !passive, isShared { SidebarAccess.require() }
+        }
         if dark != flag("dark", true) { dark = flag("dark", true) }
         if betas != flag("betas", false) { betas = flag("betas", false); if !passive { Updater.shared.check(manual: false) } }
         if let code = defaults.string(forKey: "language"), code != language { setLanguage(code) }

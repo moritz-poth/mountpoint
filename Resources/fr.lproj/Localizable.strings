@@ -292,10 +292,19 @@
 "Move Mountpoint to the Applications folder" = "Déplacer Mountpoint dans le dossier Applications";
 "Mountpoint was opened from the disk image or a temporary place. Drag Mountpoint into the Applications folder and open it from there – otherwise it cannot update itself, and your volumes would disappear when the disk image is ejected." = "Mountpoint a été ouvert depuis l’image disque ou un emplacement temporaire. Faites glisser Mountpoint dans le dossier Applications et ouvrez-le depuis là – sinon il ne peut pas se mettre à jour, et vos volumes disparaîtraient à l’éjection de l’image disque.";
 "Finder sidebar cleanup" = "Nettoyage de la barre latérale du Finder";
-"Allow…" = "Autoriser…";
-"Remove old sidebar entries" = "Supprimer les anciennes entrées";
 "Use the same limit as in MediaFiles Check. A first warning comes above 90 %." = "Utilisez la même limite que dans MediaFiles Check. Une première alerte arrive au-delà de 90 %.";
 "Keep the Finder sidebar tidy" = "Garder la barre latérale du Finder en ordre";
 "Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this." = "Les volumes éjectés restent dans la liste de la barre latérale du Finder et reviennent quand le Finder affiche tous les disques externes. Un petit assistant, « Mountpoint Cleanup », y supprime les anciennes entrées de Mountpoint à chaque démarrage. Pour cela, il a besoin de l’accès complet au disque.";
 "In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list." = "Dans Réglages Système → Confidentialité et sécurité → Accès complet au disque, activez « Mountpoint Cleanup ». Seul cet assistant reçoit l’accès, et il ne modifie rien d’autre que cette liste.";
 "Open System Settings" = "Ouvrir Réglages Système";
+
+/* Start: macFUSE, recommended settings, sidebar access (1.4.0) */
+"Mountpoint needs macFUSE" = "Mountpoint a besoin de macFUSE";
+"macFUSE lets Mountpoint mount folders as their own volumes. It is free, not included with Mountpoint and has its own license. Install it from its website – Mountpoint notices it and continues on its own." = "macFUSE permet à Mountpoint de monter des dossiers comme volumes distincts. Il est gratuit, n’est pas inclus dans Mountpoint et a sa propre licence. Installez-le depuis son site – Mountpoint le remarque et continue tout seul.";
+"On Macs with Apple silicon, macOS may ask you to allow macFUSE’s system extension under System Settings → Privacy & Security and to restart the Mac." = "Sur les Mac avec puce Apple, macOS peut vous demander d’autoriser l’extension système de macFUSE dans Réglages Système → Confidentialité et sécurité, puis de redémarrer le Mac.";
+"Open the macFUSE website" = "Ouvrir le site de macFUSE";
+"Waiting for the access – this window closes by itself." = "En attente de l’accès – cette fenêtre se ferme toute seule.";
+"Don’t show in the sidebar" = "Ne pas afficher dans la barre latérale";
+"Recommended settings" = "Réglages recommandés";
+"Mountpoint works best with these settings. You can change them any time in the settings." = "Mountpoint fonctionne au mieux avec ces réglages. Vous pouvez les modifier à tout moment dans les réglages.";
+"Continue" = "Continuer";

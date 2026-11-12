@@ -291,13 +291,6 @@ struct SettingsPane: View {
             }
             SwitchRow(title: "Show in the Finder sidebar", on: store.sidebar, theme: t) { store.sidebar.toggle() }
             hint("Mounted workspaces appear under “Locations”, like your other drives, and disappear again when they are ejected.", t)
-            // nur wenn Mountpoint beim Start keinen Zugriff auf die Liste hatte (Sidebar.accessKey); erklärt wird es beim
-            // ersten Start (SidebarAccess) – hier nur die Zeile, die Seite scrollt nie
-            if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
-                row(Text("Remove old sidebar entries"), t) {
-                    Button("Allow…") { SidebarAccess.openSettings() }.buttonStyle(FerryButtonStyle(theme: t))
-                }
-            }
 
         case .mediaComposer:
             SwitchRow(title: "Mount as network drive", on: store.network, theme: t) {
