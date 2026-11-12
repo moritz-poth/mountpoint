@@ -237,7 +237,6 @@
 "Unusual file names" = "Noms de fichiers inhabituels";
 "Extended attributes" = "Attributs étendus";
 "Overlong paths are never truncated" = "Les chemins trop longs ne sont jamais tronqués";
-"Copy with the Finder" = "Copie avec le Finder";
 "Eject with an open file" = "Éjecter avec un fichier ouvert";
 "10 mount/eject cycles" = "10 cycles montage/éjection";
 "4 parallel mounts" = "4 montages simultanés";

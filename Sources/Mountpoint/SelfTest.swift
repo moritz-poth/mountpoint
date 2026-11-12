@@ -476,19 +476,6 @@ final class SelfTest: ObservableObject {
                 guard !stray else { throw CheckFailed(reason: "a truncated folder name appeared in the source folder") }
                 return "\(depth) levels of 200 characters, no truncation"
             },
-            Check(id: "finder.copy", title: "Copy with the Finder") { t in
-                try t.needFUSE()
-                let src = try t.source("Finder"), w = try await t.mount(src)
-                let file = t.base.appendingPathComponent("finder-copy.mxf")
-                try SelfTest.random(256 * 1024).write(to: file)
-                let script = "tell application \"Finder\" to duplicate (POSIX file \"\(file.path)\" as alias) to (POSIX file \"\(w.volumePath)\" as alias) with replacing"
-                let (status, out) = try await t.off { try Mounter.run("/usr/bin/osascript", ["-e", script]) }
-                let ok = FileManager.default.fileExists(atPath: src.path + "/finder-copy.mxf")
-                await t.eject(w)
-                if out.contains("-1743") || out.contains("Not authorized") { throw SkipCheck(reason: "Finder access not allowed") }
-                guard status == 0, ok else { throw CheckFailed(reason: out.trimmingCharacters(in: .whitespacesAndNewlines)) }
-                return "Finder copy works (no error -50)"
-            },
             Check(id: "eject.busy", title: "Eject with an open file") { t in
                 try t.needFUSE()
                 let w = try await t.mount(try t.source("Busy"))

@@ -68,6 +68,25 @@ extension MountTests {
         }
     }
 
+    /// Finder-Kopie auf ein Volume (früher Fehler -50: der Finder setzt XATTR_NOSECURITY/NODEFAULT). Steuert den Finder
+    /// über das Terminal – die App selbst darf das nicht mehr (Sicherheit: ein ausgetauschter Helfer erbte es).
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
+    func finderCopy() throws {
+        let fm = FileManager.default
+        let src = fm.temporaryDirectory.appendingPathComponent("MPFinder\(getpid())").path
+        let file = fm.temporaryDirectory.appendingPathComponent("finder-copy-\(getpid()).mxf")
+        try fm.createDirectory(atPath: src, withIntermediateDirectories: true)
+        try Data(repeating: 7, count: 256 * 1024).write(to: file)
+        defer { try? fm.removeItem(atPath: src); try? fm.removeItem(at: file) }
+        let w = Workspace(path: src)
+        try Mounter.mount(w, helper: Self.helper)
+        defer { Thread.sleep(forTimeInterval: 1); try? Mounter.unmount(w) }
+        let script = "tell application \"Finder\" to duplicate (POSIX file \"\(file.path)\" as alias) to (POSIX file \"\(w.volumePath)\" as alias) with replacing"
+        let (status, out) = try Mounter.run("/usr/bin/osascript", ["-e", script])
+        #expect(status == 0, "\(out)")
+        #expect(fm.fileExists(atPath: src + "/" + file.lastPathComponent))
+    }
+
     /// Ordner in ~/Library hängt der Helfer nie ein – auch nicht über einen Link dorthin (library.json schreibt jeder)
     @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
     func libraryFolderIsRefused() throws {
