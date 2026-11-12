@@ -1,5 +1,5 @@
 import Foundation
-import CoreServices
+import AppKit
 
 /// Eingehängte Workspaces in der Finder-Seitenleiste unter „Orte“. Der Finder zeigt dort die Liste FavoriteVolumes
 /// (so trägt sich auch LucidLink ein); Netzlaufwerke ohne Server-Adresse – wie unsere – stehen sonst nirgends.
@@ -28,19 +28,91 @@ enum Sidebar {
         known = names
         if applied == nil {
             // einmal pro Start: alte Einträge wirklich löschen, erst danach beobachten (der Neustart des Dienstes trennt Beobachter)
-            queue.async {
-                let status = inspect(names: names)
-                record(status)
-                switch status {
-                case .success: _ = purge(names: names)
-                case .failure(let problem): Log.write("sidebar: \(problem.reason), not cleaned")
-                }
-                DispatchQueue.main.async { observe() }
-            }
+            startCleanup(names) { observe() }
         }
         guard wanted != applied else { return }
         applied = wanted
         queue.async { apply(wanted, names: names) }
+    }
+
+    static var bundledCleanupURL: URL { mainBundleURL.appendingPathComponent("Contents/Helpers/Mountpoint Cleanup.app") }
+    /// Gestartet wird eine Kopie außerhalb von Mountpoint.app: macOS rechnet Apps im Paket beim Vollzugriff der
+    /// äußeren App zu (tccd-Protokoll, 2026-11-12), eine Kopie hier hat eigene Rechte. Wer sie verändert, ändert ihre
+    /// Signatur – die Freigabe gilt dann nicht mehr.
+    static let cleanupURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Mountpoint/Mountpoint Cleanup.app")
+
+    /// Kopie anlegen oder ersetzen, wenn sie fehlt oder nicht dieselbe ist (Programmdatei samt Signatur gleich)
+    static func installCleanup(from source: URL = bundledCleanupURL, to target: URL = cleanupURL) throws {
+        let exe = "Contents/MacOS/Mountpoint Cleanup"
+        let new = try Data(contentsOf: source.appendingPathComponent(exe))
+        if (try? Data(contentsOf: target.appendingPathComponent(exe))) == new { return }
+        let fm = FileManager.default
+        try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let temp = target.deletingLastPathComponent().appendingPathComponent(".cleanup-\(UUID().uuidString).app")
+        try fm.copyItem(at: source, to: temp)
+        do {
+            // attributesOfItem folgt keinem Symlink: auch ein Link an dieser Stelle wird entfernt, nicht sein Ziel
+            if (try? fm.attributesOfItem(atPath: target.path)) != nil { try fm.removeItem(at: target) }
+            try fm.moveItem(at: temp, to: target)
+        } catch { try? fm.removeItem(at: temp); throw error }
+    }
+    @MainActor private static var cleanupDone = false
+    @MainActor private static var waiting: [@MainActor () -> Void] = []
+
+    /// Nach dem Aufräumen dieses Starts (sofort, wenn es schon lief) – SidebarAccess braucht dessen Ergebnis
+    @MainActor static func afterCleanup(_ f: @escaping @MainActor () -> Void) {
+        cleanupDone ? f() : waiting.append(f)
+    }
+
+    /// Die sfl3-Datei braucht Festplattenvollzugriff. Den hat nur die Kopie von Mountpoint Cleanup.app (cleanupURL) –
+    /// gestartet über LaunchServices, nicht als Kindprozess: nur so gilt sie für macOS als eigene App mit eigenen Rechten.
+    /// Ihr erster abgelehnter Zugriff trägt sie ausgeschaltet in die Liste ein. Mountpoint selbst und der Helfer
+    /// `mirror` bekommen keinen Vollzugriff (Sicherheitsprüfung 2026-11-11, docs/plan-1.4.0-full-disk-access.md).
+    @MainActor private static func startCleanup(_ names: Set<String>, then: @escaping @MainActor () -> Void) {
+        func finish() {
+            CFPreferencesAppSynchronize(mainBundleID as CFString)   // Ergebnis der Aufräum-App (record) lesen
+            cleanupDone = true
+            then()
+            waiting.forEach { $0() }
+            waiting = []
+        }
+        // Entwicklungs-Builds ohne Helfer-Bundle: nicht aufräumen
+        guard FileManager.default.fileExists(atPath: bundledCleanupURL.path) else { finish(); return }
+        do { try installCleanup() } catch {
+            Log.write("sidebar: cleanup could not be installed: \(error.localizedDescription)")
+            finish(); return
+        }
+        defaults.removeObject(forKey: accessKey)   // kein Ergebnis eines früheren Starts (oder von Mountpoint ≤ 1.3) verwenden
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = false
+        config.addsToRecentItems = false
+        config.arguments = ["--names"] + names.sorted()
+        NSWorkspace.shared.openApplication(at: cleanupURL, configuration: config) { app, error in
+            if let error { Log.write("sidebar: cleanup could not be started: \(error.localizedDescription)") }
+            let pid = app?.processIdentifier ?? 0
+            queue.async {
+                // der Dienst wird dort neu gestartet; erst danach beobachten
+                let deadline = Date().addingTimeInterval(30)
+                while pid > 0, kill(pid, 0) == 0, Date() < deadline { usleep(100_000) }
+                DispatchQueue.main.async { MainActor.assumeIsolated { finish() } }
+            }
+        }
+    }
+
+    /// Läuft in Mountpoint Cleanup.app (cleanupMode): prüfen, Ergebnis für Mountpoint, Einstellungen und Selbsttest
+    /// hinterlegen, aufräumen. `--names` kommt von Mountpoint; ein gefälschter Name kann höchstens weitere eigene
+    /// Einträge von Mountpoint löschen (isStale gilt weiter).
+    static func runCleanup(arguments: [String]) {
+        let names = Set(arguments.drop { $0 != "--names" }.dropFirst())
+        let status = inspect(names: names)
+        record(status)
+        switch status {
+        case .success: _ = purge(names: names)
+        case .failure(let problem): Log.write("sidebar: \(problem.reason), not cleaned")
+        }
+        CFPreferencesAppSynchronize(mainBundleID as CFString)
+        Log.flush()
     }
 
     /// Ändert jemand die Liste (der Finder beim Umschalten seiner Einstellungen, der Nutzer, wir selbst): erneut abgleichen.
@@ -135,8 +207,8 @@ enum Sidebar {
             // inzwischen geändert (Finder, Nutzer): nichts schreiben, auch keine Sicherung – beim nächsten Start erneut
             guard (try? Data(contentsOf: list)) == data else { Log.write("sidebar: list changed meanwhile, not cleaned"); return nil }
             let first = backup.deletingPathExtension().appendingPathExtension("first.sfl3")
-            if !FileManager.default.fileExists(atPath: first.path) { try data.write(to: first, options: .atomic) }
-            try data.write(to: backup, options: .atomic)   // erst die Sicherungen; scheitern sie, bleibt die Liste unberührt
+            if !FileManager.default.fileExists(atPath: first.path) { try writeNoFollow(data, to: first) }
+            try writeNoFollow(data, to: backup)   // erst die Sicherungen; scheitern sie, bleibt die Liste unberührt
             try out.write(to: list, options: .atomic)
         } catch {
             Log.write("sidebar: could not clean list: \(error.localizedDescription)")
@@ -147,6 +219,27 @@ enum Sidebar {
         Log.write("sidebar: deleted \(items.count - kept.count) old entries from the list (\(items.count) → \(kept.count))"
                   + (restarted ? "" : ", sharedfilelistd not restarted (not running, or killall failed)"))
         return items.count - kept.count
+    }
+
+    /// Schreibt `data` als `url`, ohne einem Symlink am Zielordner oder an der Datei zu folgen: die Aufräum-App hat
+    /// Festplattenvollzugriff, und `~/Library/Application Support/Mountpoint` darf jedes Programm des Nutzers ändern –
+    /// ein Symlink dort würde die Sicherung sonst in einen geschützten Ordner lenken. Der Ordner muss schon bestehen.
+    static func writeNoFollow(_ data: Data, to url: URL) throws {
+        func fail() -> Error { POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let dir = open(url.deletingLastPathComponent().path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard dir >= 0 else { throw fail() }
+        defer { close(dir) }
+        let name = url.lastPathComponent, temp = ".\(name).tmp"
+        let fd = openat(dir, temp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard fd >= 0 else { throw fail() }
+        let written = data.withUnsafeBytes { Foundation.write(fd, $0.baseAddress, $0.count) == $0.count }
+        let closed = close(fd) == 0
+        // renameat ersetzt einen Symlink am Ziel, statt ihm zu folgen
+        guard written, closed, renameat(dir, temp, dir, name) == 0 else {
+            let error = fail()
+            unlinkat(dir, temp, 0)
+            throw error
+        }
     }
 
     struct ListProblem: Error {

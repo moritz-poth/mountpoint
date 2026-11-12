@@ -19,6 +19,65 @@ struct SidebarTests {
         #expect(!Sidebar.isStale(["uuid": "x"], names: [name], exists: gone))           // ohne Lesezeichen
     }
 
+    /// Sicherungen folgen keinem Symlink: weder am Ordner (Ziel bleibt leer) noch an der Datei (der Link wird ersetzt,
+    /// sein Ziel bleibt unberührt) – die Aufräum-App hat Festplattenvollzugriff.
+    @Test func backupsNeverFollowSymlinks() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("mp-nofollow-\(UUID())")
+        let real = dir.appendingPathComponent("real"), outside = dir.appendingPathComponent("outside")
+        try fm.createDirectory(at: real, withIntermediateDirectories: true)
+        try fm.createDirectory(at: outside, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
+        let data = Data("backup".utf8)
+
+        try Sidebar.writeNoFollow(data, to: real.appendingPathComponent("b.sfl3"))
+        #expect(try Data(contentsOf: real.appendingPathComponent("b.sfl3")) == data)
+
+        let linkDir = dir.appendingPathComponent("linkdir")
+        try fm.createSymbolicLink(at: linkDir, withDestinationURL: outside)
+        #expect(throws: (any Error).self) { try Sidebar.writeNoFollow(data, to: linkDir.appendingPathComponent("b.sfl3")) }
+        #expect(try fm.contentsOfDirectory(atPath: outside.path).isEmpty)
+
+        let victim = outside.appendingPathComponent("victim")
+        try Data("keep".utf8).write(to: victim)
+        try fm.createSymbolicLink(at: real.appendingPathComponent("c.sfl3"), withDestinationURL: victim)
+        try Sidebar.writeNoFollow(data, to: real.appendingPathComponent("c.sfl3"))
+        #expect(try Data(contentsOf: victim) == Data("keep".utf8))
+        let c = real.appendingPathComponent("c.sfl3")
+        #expect(try fm.attributesOfItem(atPath: c.path)[.type] as? FileAttributeType == .typeRegular)
+        #expect(try Data(contentsOf: c) == data)
+    }
+
+    /// Kopie der Aufräum-App: angelegt, unverändert gelassen wenn gleich, ersetzt wenn anders, ein Link wird ersetzt statt gefolgt
+    @Test func installCleanupCopy() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("mp-install-\(UUID())")
+        defer { try? fm.removeItem(at: dir) }
+        let source = dir.appendingPathComponent("src/Mountpoint Cleanup.app"), target = dir.appendingPathComponent("dst/Mountpoint Cleanup.app")
+        let exe = "Contents/MacOS/Mountpoint Cleanup"
+        try fm.createDirectory(at: source.appendingPathComponent("Contents/MacOS"), withIntermediateDirectories: true)
+        try Data("v1".utf8).write(to: source.appendingPathComponent(exe))
+
+        try Sidebar.installCleanup(from: source, to: target)
+        #expect(try Data(contentsOf: target.appendingPathComponent(exe)) == Data("v1".utf8))
+        let marker = target.appendingPathComponent("marker")
+        try Data().write(to: marker)
+        try Sidebar.installCleanup(from: source, to: target)            // gleich: nicht angefasst
+        #expect(fm.fileExists(atPath: marker.path))
+        try Data("v2".utf8).write(to: source.appendingPathComponent(exe))
+        try Sidebar.installCleanup(from: source, to: target)            // anders: ersetzt
+        #expect(try Data(contentsOf: target.appendingPathComponent(exe)) == Data("v2".utf8) && !fm.fileExists(atPath: marker.path))
+
+        let elsewhere = dir.appendingPathComponent("elsewhere")
+        try fm.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+        try fm.removeItem(at: target)
+        try fm.createSymbolicLink(at: target, withDestinationURL: elsewhere)
+        try Sidebar.installCleanup(from: source, to: target)
+        #expect(try fm.attributesOfItem(atPath: target.path)[.type] as? FileAttributeType == .typeDirectory)
+        #expect(try fm.contentsOfDirectory(atPath: elsewhere.path).isEmpty)
+        #expect(try fm.contentsOfDirectory(atPath: target.deletingLastPathComponent().path) == ["Mountpoint Cleanup.app"])   // kein Rest
+    }
+
     /// Bereinigung an einer Kopie: Sicherung = alte Datei, nur der eigene Eintrag fehlt, alles andere bleibt, Neustart nur bei Änderung.
     @Test func purgeOnFixture() throws {
         let fm = FileManager.default

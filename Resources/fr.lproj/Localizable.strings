@@ -115,7 +115,7 @@
 "Launch at login could not be turned off. Remove Mountpoint under System Settings → General → Login Items." = "Impossible de désactiver l’ouverture à la connexion. Retirez Mountpoint dans Réglages Système → Général → Ouverture.";
 "macOS asks you to approve Mountpoint: System Settings → General → Login Items." = "macOS vous demande d’autoriser Mountpoint : Réglages Système → Général → Ouverture.";
 "Your changes could not be saved. Check the free space on your Mac." = "Vos modifications n’ont pas pu être enregistrées. Vérifiez l’espace libre sur votre Mac.";
-"Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access)." = "Mountpoint n’a pas le droit d’ouvrir ce dossier. Autorisez l’accès dans Réglages Système → Confidentialité et sécurité → Fichiers et dossiers (ou Accès complet au disque).";
+"Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders." = "Mountpoint n’a pas le droit d’ouvrir ce dossier. Autorisez l’accès dans Réglages Système → Confidentialité et sécurité → Fichiers et dossiers.";
 "This folder cannot be read: %@" = "Ce dossier ne peut pas être lu : %@";
 "Close" = "Fermer";
 "Some volumes stay mounted" = "Certains volumes restent montés";
@@ -296,6 +296,8 @@
 "Remove old sidebar entries" = "Supprimer les anciennes entrées";
 "Use the same limit as in MediaFiles Check. A first warning comes above 90 %." = "Utilisez la même limite que dans MediaFiles Check. Une première alerte arrive au-delà de 90 %.";
 "Keep the Finder sidebar tidy" = "Garder la barre latérale du Finder en ordre";
-"Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. With Full Disk Access, Mountpoint deletes its own old entries there at every start." = "Les volumes éjectés restent dans la liste de la barre latérale du Finder et reviennent quand le Finder affiche tous les disques externes. Avec l’accès complet au disque, Mountpoint y supprime ses propres anciennes entrées à chaque démarrage.";
-"In System Settings → Privacy & Security → Full Disk Access, add Mountpoint with + and switch it on. It takes effect at Mountpoint's next start. Mountpoint only changes this list, never your files." = "Dans Réglages Système → Confidentialité et sécurité → Accès complet au disque, ajoutez Mountpoint avec + et activez-le. Cela prend effet au prochain démarrage de Mountpoint. Mountpoint ne modifie que cette liste, jamais vos fichiers.";
+"Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this." = "Les volumes éjectés restent dans la liste de la barre latérale du Finder et reviennent quand le Finder affiche tous les disques externes. Un petit assistant, « Mountpoint Cleanup », y supprime les anciennes entrées de Mountpoint à chaque démarrage. Pour cela, il a besoin de l’accès complet au disque.";
+"In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list." = "Dans Réglages Système → Confidentialité et sécurité → Accès complet au disque, activez « Mountpoint Cleanup ». Seul cet assistant reçoit l’accès, et il ne modifie rien d’autre que cette liste.";
+"Mountpoint itself no longer needs Full Disk Access. Please switch it off for “Mountpoint” in the same list." = "Mountpoint lui-même n’a plus besoin de l’accès complet au disque. Désactivez-le pour « Mountpoint » dans la même liste.";
+"Full Disk Access is no longer needed" = "L’accès complet au disque n’est plus nécessaire";
 "Open System Settings" = "Ouvrir Réglages Système";

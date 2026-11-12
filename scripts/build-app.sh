@@ -90,6 +90,32 @@ cat > "$SET/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+# sidebar cleanup app: the same binary, background only; the only part that gets Full Disk Access (cleanupMode,
+# docs/plan-1.4.0-full-disk-access.md). Mountpoint copies it to Application Support and starts the copy through
+# LaunchServices – inside the bundle macOS would charge it to Mountpoint's own permissions.
+CLEAN="$APP/Contents/Helpers/Mountpoint Cleanup.app"
+mkdir -p "$CLEAN/Contents/MacOS" "$CLEAN/Contents/Resources"
+cp .build/universal/Mountpoint "$CLEAN/Contents/MacOS/Mountpoint Cleanup"
+cp "$APP/Contents/Resources/AppIcon.icns" "$CLEAN/Contents/Resources/"   # shown in the Full Disk Access list
+cat > "$CLEAN/Contents/Info.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Mountpoint Cleanup</string>
+  <key>CFBundleExecutable</key><string>Mountpoint Cleanup</string>
+  <key>CFBundleIdentifier</key><string>io.github.moritz-poth.mountpoint.cleanup</string>
+  <key>CFBundleVersion</key><string>$BUILD</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>MountpointRelease</key><string>$RELEASE</string>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Moritz Poth. GPL-3.0-or-later.</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>LSBackgroundOnly</key><true/>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+</dict>
+</plist>
+PLIST
 # ad-hoc signed (no Apple Developer account): macOS needs "Open Anyway" once, see README
 # hardened runtime: blocks DYLD_* code injection into the app that holds Full Disk Access.
 # Signed inside-out so --deep cannot strip mirror's entitlement.
@@ -105,6 +131,7 @@ ENT
 codesign --force --sign - --options runtime --entitlements "$MIRROR_ENT" "$APP/Contents/MacOS/mirror"
 rm -f "$MIRROR_ENT"
 codesign --force --sign - --options runtime "$SET"
+codesign --force --sign - --options runtime "$CLEAN"
 codesign --force --sign - --options runtime "$APP"
 # what installed updaters check: the whole bundle incl. the nested settings app verifies, versions match
 codesign --verify --deep --strict "$APP"
@@ -112,6 +139,11 @@ NESTED_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$SET/Content
 NESTED_REL=$(/usr/libexec/PlistBuddy -c "Print :MountpointRelease" "$SET/Contents/Info.plist")
 if [ "$NESTED_ID" != "io.github.moritz-poth.mountpoint.settings" ] || [ "$NESTED_REL" != "$RELEASE" ]; then
   echo "settings app bundle is wrong: $NESTED_ID $NESTED_REL" >&2; exit 1
+fi
+CLEAN_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$CLEAN/Contents/Info.plist")
+CLEAN_REL=$(/usr/libexec/PlistBuddy -c "Print :MountpointRelease" "$CLEAN/Contents/Info.plist")
+if [ "$CLEAN_ID" != "io.github.moritz-poth.mountpoint.cleanup" ] || [ "$CLEAN_REL" != "$RELEASE" ]; then
+  echo "cleanup app bundle is wrong: $CLEAN_ID $CLEAN_REL" >&2; exit 1
 fi
 # the bundle is recreated at the same path: without this, Finder keeps showing a cached (blank or old) app icon
 touch "$APP"

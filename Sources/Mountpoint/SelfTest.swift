@@ -363,11 +363,11 @@ final class SelfTest: ObservableObject {
                 return "added and removed under Locations"
             },
             // nur lesend: zeigt auf einem neuen macOS, ob das Aufräumen der Seitenleiste dort funktionieren kann
-            // was Mountpoint beim letzten Start über die Liste herausfand (die Einstellungs-App hat andere Rechte als Mountpoint)
+            // was Mountpoint Cleanup beim letzten Start über die Liste herausfand (nur sie hat Festplattenvollzugriff)
             Check(id: "sidebar.list", title: "Finder sidebar cleanup") { _ in
                 guard let status = defaults.string(forKey: Sidebar.statusKey) else { throw SkipCheck(reason: "Mountpoint has not checked the list yet") }
                 if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
-                    throw SkipCheck(reason: "Mountpoint needs Full Disk Access to clean the list (Settings → General)")
+                    throw SkipCheck(reason: "Mountpoint Cleanup needs Full Disk Access to clean the list (Settings → General)")
                 }
                 guard status.hasPrefix("ok: ") else { throw CheckFailed(reason: status) }
                 return String(status.dropFirst(4))

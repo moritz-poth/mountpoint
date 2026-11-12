@@ -16,12 +16,15 @@ enum Log {
 
     /// Zwei Prozesse (App und Einstellungs-App) schreiben dieselbe Datei: O_APPEND (eine Zeile = ein write, nichts
     /// überschreibt sich), Rotation unter einer Dateisperre; Zeilen der Einstellungs-App tragen „[settings]“.
+    /// Wartet, bis alle Zeilen geschrieben sind – vor exit() der Aufräum-App
+    static func flush() { queue.sync {} }
+
     static func write(_ message: String) {
         guard enabled else { return }
         let now = Date()
         queue.async {
             // DateFormatter nur in dieser Warteschlange: er ist nicht thread-sicher
-            let tag = settingsMode ? " [settings]" : ""
+            let tag = settingsMode ? " [settings]" : cleanupMode ? " [cleanup]" : ""
             let line = "\(stamp.string(from: now))\(tag) \(message.replacingOccurrences(of: "\n", with: " | "))\n"
             let fm = FileManager.default
             try? fm.createDirectory(at: folder, withIntermediateDirectories: true)

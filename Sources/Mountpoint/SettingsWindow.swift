@@ -295,7 +295,7 @@ struct SettingsPane: View {
             // ersten Start (SidebarAccess) – hier nur die Zeile, die Seite scrollt nie
             if defaults.object(forKey: Sidebar.accessKey) as? Bool == false {
                 row(Text("Remove old sidebar entries"), t) {
-                    Button("Allow…") { NSWorkspace.shared.open(SidebarAccess.settingsURL) }.buttonStyle(FerryButtonStyle(theme: t))
+                    Button("Allow…") { SidebarAccess.openSettings() }.buttonStyle(FerryButtonStyle(theme: t))
                 }
             }
 

@@ -92,9 +92,13 @@ func createAvidFolders(in folder: URL) throws {
 /// ist derselbe Code; sie zeigt nur das Einstellungsfenster (SettingsApp.swift).
 let mainBundleID = "io.github.moritz-poth.mountpoint"
 let settingsMode = Bundle.main.bundleIdentifier == mainBundleID + ".settings"
-/// Einstellungen beider Programme in einer Domäne – der der App (die Einstellungs-App schreibt in sie hinein)
-let defaults: UserDefaults = settingsMode ? (UserDefaults(suiteName: mainBundleID) ?? .standard) : .standard
-/// Mountpoint.app – auch aus der Einstellungs-App heraus (Helfer, Volume-Symbol)
+/// Mountpoint Cleanup.app (Kopie in Application Support, Sidebar.cleanupURL): räumt nur die Finder-Seitenleiste auf
+/// (Sidebar.runCleanup) – der einzige Teil mit Festplattenvollzugriff, damit Mountpoint und der Helfer ihn nicht haben
+/// (docs/plan-1.4.0-full-disk-access.md)
+let cleanupMode = Bundle.main.bundleIdentifier == mainBundleID + ".cleanup"
+/// Einstellungen aller Programme in einer Domäne – der der App (Einstellungs- und Aufräum-App schreiben in sie hinein)
+let defaults: UserDefaults = settingsMode || cleanupMode ? (UserDefaults(suiteName: mainBundleID) ?? .standard) : .standard
+/// Mountpoint.app – auch aus der Einstellungs-App heraus (Helfer, Volume-Symbol); die Aufräum-App braucht es nicht
 let mainBundleURL: URL = settingsMode
     ? Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     : Bundle.main.bundleURL

@@ -240,7 +240,7 @@ struct FolderBrowser: View {
             } catch let e as NSError {
                 let denied = e.code == NSFileReadNoPermissionError || (e.userInfo[NSUnderlyingErrorKey] as? NSError)?.code == Int(EPERM)
                 return ([], denied
-                    ? loc("Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders (or Full Disk Access).")
+                    ? loc("Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders.")
                     : loc("This folder cannot be read: \(e.localizedDescription)"))
             }
             urls = entries

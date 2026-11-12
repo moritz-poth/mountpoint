@@ -228,6 +228,13 @@ func menuBarIcon(mounted: Bool, problem: Bool = false) -> NSImage {
 // Sprache der App (Standard Englisch) – muss vor dem ersten übersetzten Text gesetzt sein.
 UserDefaults.standard.set([defaults.string(forKey: "language") ?? "en"], forKey: "AppleLanguages")
 
+// Aufräum-App: nur die Finder-Seitenleiste, dann Ende – kein Store, kein Einhängen, keine Oberfläche
+if cleanupMode {
+    _ = NSApplication.shared   // bei LaunchServices angemeldet, sonst wartet openApplication auf sie
+    Sidebar.runCleanup(arguments: CommandLine.arguments)
+    exit(0)
+}
+
 MainActor.assumeIsolated {
     let app = NSApplication.shared
     if settingsMode {
