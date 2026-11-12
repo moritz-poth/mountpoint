@@ -6,7 +6,7 @@ main = "src/index.js"
 compatibility_date = "2026-10-01"
 
 [vars]
-REPOS = '{"mountpoint": "moritz-poth/mountpoint-reports", "mediafiles-check": "moritz-poth/mediafiles-check-reports"}'
+REPOS = '{"mountpoint": "moritz-poth/mountpoint-reports", "mediafiles-check": "moritz-poth/mediafiles-check-reports", "fona": "moritz-poth/fona-reports"}'
 MAX_PER_DAY = "50"      # Berichte pro Tag insgesamt
 MAX_PER_HOUR_IP = "10"  # Berichte pro Stunde, Absender und App (5 für alle Apps zusammen reichte beim Testen nicht)
 

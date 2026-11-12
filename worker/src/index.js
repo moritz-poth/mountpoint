@@ -50,7 +50,8 @@ export default {
     if (!repo) return json({ error: "unknown product" }, 400);
 
     // Limits: one Durable Object checks and counts in a single step, so parallel or far-apart requests cannot all pass
-    const ip = request.headers.get("cf-connecting-ip") || "unknown";
+    // raw IPs are never stored: the rate-limit key is a salted hash (Fona review M12)
+    const ip = await hashIP(request.headers.get("cf-connecting-ip") || "unknown", env.IP_SALT || "");
     const now = new Date();
     // per app: a tester who tries several apps in one hour must not lock himself out of the next one
     const hourKey = `ip:${ip}:${report.product || "mountpoint"}:${now.toISOString().slice(0, 13)}`;
@@ -98,9 +99,23 @@ function validate(r) {
   return null;
 }
 
+// Text from a report is untrusted: invisible/bidi/tag characters removed, never rendered as Markdown (Fona review M12).
+function clean(s) {
+  return String(s).replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\u2028\u2029\uFEFF]|[\u{E0000}-\u{E007F}]/gu, "");
+}
+
+function codeBlock(s) {
+  return "```text\n" + clean(s).replace(/`/g, "ˋ") + "\n```";
+}
+
+async function hashIP(ip, salt) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${salt}|${ip}`));
+  return [...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function title(r) {
   const os = (r.system.macOS || "").replace(/^Version /, "macOS ").replace(/ \(Build.*\)/, "");
-  if (r.kind === "problem") return `[problem] ${r.app} · ${os || "no system info"} · ${r.note.trim().split("\n")[0].slice(0, 60)}`;
+  if (r.kind === "problem") return `[problem] ${r.app} · ${os || "no system info"} · ${clean(r.note.trim().split("\n")[0]).slice(0, 60)}`;
   const pass = r.results.filter((c) => c.status === "pass").length;
   const fail = r.results.filter((c) => c.status === "fail").length;
   return `[selftest] ${r.app} · ${os} · ${r.system.arch || ""} · ${pass}/${r.results.length} passed${fail ? ` · ${fail} failed` : ""}`;
@@ -113,10 +128,10 @@ function labels(r) {
 }
 
 function body(r, path) {
-  const esc = (s) => String(s).replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const esc = (s) => clean(s).replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/`/g, "ˋ");
   const lines = [];
   if (r.kind === "problem") {
-    lines.push("### Description", "", r.note.trim(), "");
+    lines.push("### Description", "", codeBlock(r.note.trim()), "");
     if (r.contact) lines.push(`**Contact:** ${esc(r.contact)}`, "");
   }
   const sys = Object.entries(r.system).sort(([a], [b]) => a.localeCompare(b));
