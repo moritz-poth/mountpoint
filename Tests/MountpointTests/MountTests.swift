@@ -67,6 +67,45 @@ extension MountTests {
             try Mounter.unmount(w)
         }
     }
+
+    /// Ein Ordner, der am Volume vorbei gegen eine Verknüpfung getauscht wird, führt nicht aus dem Quellordner
+    /// (der Helfer erbt Mountpoints Freigaben). chown auf der Volume-Wurzel geht weiter (chgrp, rsync -a).
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
+    func swappedFolderNeverLeavesSource() throws {
+        let fm = FileManager.default
+        let src = fm.temporaryDirectory.appendingPathComponent("MPSwap\(getpid())").path
+        let outside = fm.temporaryDirectory.appendingPathComponent("MPSwapOut\(getpid())").path
+        defer { try? fm.removeItem(atPath: src); try? fm.removeItem(atPath: outside) }
+        try fm.createDirectory(atPath: src + "/d/Messages", withIntermediateDirectories: true)
+        try fm.createDirectory(atPath: outside + "/Messages", withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: URL(fileURLWithPath: src + "/d/Messages/chat.db"))
+        try Data("SECRET".utf8).write(to: URL(fileURLWithPath: outside + "/Messages/chat.db"))
+        #expect(setxattr(outside + "/Messages/chat.db", "user.secret", "1", 1, 0, 0) == 0)
+        let w = Workspace(path: src)
+        try Mounter.mount(w, helper: Self.helper)
+        defer { Thread.sleep(forTimeInterval: 2); try? Mounter.unmount(w) }
+
+        #expect(chown(w.volumePath, getuid(), getgid()) == 0)
+        let dir = open(w.volumePath + "/d", O_RDONLY | O_DIRECTORY), file = open(w.volumePath + "/d/Messages/chat.db", O_RDONLY)
+        defer { close(dir); close(file) }
+        #expect(dir >= 0 && file >= 0)
+        // libfuse kennt "d" danach weiter als Ordner
+        try fm.moveItem(atPath: src + "/d", toPath: src + "/d2")
+        try fm.createSymbolicLink(atPath: src + "/d", withDestinationPath: outside)
+
+        let escaped = openat(dir, "Messages/chat.db", O_RDONLY)
+        #expect(escaped == -1)
+        if escaped >= 0 { close(escaped) }   // sonst bliebe das Volume nach einem Fehlschlag eingehängt
+        if #available(macOS 15, *) {   // darunter folgen xattrs einem getauschten Ordner noch (shortcut in mirror.c)
+            #expect(fgetxattr(file, "user.secret", nil, 0, 0, 0) == -1)
+            #expect(fsetxattr(file, "user.planted", "1", 1, 0, 0) == -1)
+        }
+        #expect(mkdirat(dir, "Messages/new", 0o755) == -1)
+        #expect(unlinkat(dir, "Messages/chat.db", 0) == -1)
+        if #available(macOS 15, *) { #expect(getxattr(outside + "/Messages/chat.db", "user.planted", nil, 0, 0, 0) == -1) }
+        #expect(fm.fileExists(atPath: outside + "/Messages/chat.db"))
+        #expect(!fm.fileExists(atPath: outside + "/Messages/new"))
+    }
 }
 
 /// macOS entfernt den leeren Mountpunkt erst kurz nach dem Auswerfen.
