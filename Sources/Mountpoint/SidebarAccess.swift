@@ -2,12 +2,12 @@ import AppKit
 import SwiftUI
 
 /// Einmal: fehlt Mountpoint Cleanup der Festplattenvollzugriff, den das Aufräumen der Finder-Seitenleiste braucht
-/// (Sidebar.runCleanup), erklären und die Systemeinstellung öffnen. Hat Mountpoint selbst noch Vollzugriff (bis 1.3.4
-/// erbeten), einmal bitten, ihn auszuschalten – eine App kann ihn sich nicht selbst entziehen. Läuft zwischen dem
-/// Willkommens-Fenster und der Frage nach dem Selbsttest.
+/// (Sidebar.runCleanup), erklären und die Systemeinstellung öffnen. Mountpoint selbst liest die geschützte Liste nie –
+/// sonst stünde es (ausgeschaltet) mit in der Liste; seinen Vollzugriff aus 1.3.4 entfernt AppDelegate.dropOldAccess.
+/// Läuft zwischen dem Willkommens-Fenster und der Frage nach dem Selbsttest.
 @MainActor
 enum SidebarAccess {
-    private static let key = "cleanupAccessAsked", ownKey = "ownAccessRevokeAsked"
+    private static let key = "cleanupAccessAsked"
     private static var panel: NSPanel?
     static let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
 
@@ -29,14 +29,10 @@ enum SidebarAccess {
     private static func show(then: @escaping @MainActor () -> Void) {
         // einmal pro Version: jedes Update ändert die Signatur des Helfers, macOS schaltet seine Freigabe dann aus
         let grant = defaults.object(forKey: Sidebar.accessKey) as? Bool == false && defaults.string(forKey: key) != Updater.current
-        // läuft in Mountpoint: gelingt das Lesen, hat Mountpoint selbst noch Vollzugriff
-        let revoke: Bool
-        if case .success = Sidebar.readList() { revoke = !defaults.bool(forKey: ownKey) } else { revoke = false }
-        guard grant || revoke else { then(); return }
-        let view = SidebarAccessView(grant: grant, revoke: revoke) { allow in
-            if grant { defaults.set(Updater.current, forKey: key) }
-            if revoke { defaults.set(true, forKey: ownKey) }
-            Log.write("sidebar access " + (allow ? "settings opened" : "declined") + (grant ? ", helper" : "") + (revoke ? ", revoke own" : ""))
+        guard grant else { then(); return }
+        let view = SidebarAccessView { allow in
+            defaults.set(Updater.current, forKey: key)
+            Log.write("sidebar access " + (allow ? "settings opened" : "declined"))
             if allow { openSettings() }
             panel?.close()
             panel = nil
@@ -61,8 +57,6 @@ enum SidebarAccess {
 }
 
 struct SidebarAccessView: View {
-    /// Mountpoint Cleanup fehlt der Zugriff / Mountpoint selbst hat ihn noch
-    let grant: Bool, revoke: Bool
     let answer: (Bool) -> Void
     @ObservedObject private var store = Store.shared
 
@@ -71,20 +65,14 @@ struct SidebarAccessView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 48, height: 48)
-                Text(grant ? "Keep the Finder sidebar tidy" : "Full Disk Access is no longer needed")
+                Text("Keep the Finder sidebar tidy")
                     .font(.mono(15, semibold: true)).foregroundColor(t.text)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if grant {
-                Text("Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this.")
-                    .font(.mono(12)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
-                Text("In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list.")
-                    .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
-            }
-            if revoke {
-                Text("Mountpoint itself no longer needs Full Disk Access. Please switch it off for “Mountpoint” in the same list.")
-                    .font(.mono(grant ? 11 : 12)).foregroundColor(grant ? t.faint : t.muted).fixedSize(horizontal: false, vertical: true)
-            }
+            Text("Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this.")
+                .font(.mono(12)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
+            Text("In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list.")
+                .font(.mono(11)).foregroundColor(t.faint).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 12) {
                 Button("Not now") { answer(false) }
                     .buttonStyle(FerryButtonStyle(theme: t, height: 32))

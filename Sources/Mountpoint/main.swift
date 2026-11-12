@@ -16,14 +16,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelBeforeDeactivate = false
     private let actions = MenuActions()
 
-    /// Bis 1.3 bat der Selbsttest um die Fernsteuerung des Finders (Kopier-Prüfung, jetzt MountTests.finderCopy). Ein
-    /// ausgetauschter Helfer `mirror` erbte sie – einmal zurücksetzen; Mountpoint fragt nie wieder danach.
-    static func dropFinderAccess() {
-        guard Updater.current != "dev", !defaults.bool(forKey: "finderAccessDropped") else { return }
-        DispatchQueue.global().async {
-            let (status, out) = (try? Mounter.run("/usr/bin/tccutil", ["reset", "AppleEvents", mainBundleID])) ?? (-1, "not started")
-            Log.write("finder access reset: " + (status == 0 ? "ok" : "failed (\(status)) \(out)"))
-            if status == 0 { defaults.set(true, forKey: "finderAccessDropped") }
+    /// Freigaben älterer Versionen einmal zurücksetzen (tccutil, geht ohne Administratorrechte für die eigene App):
+    /// die Fernsteuerung des Finders (bis 1.3 für die Kopier-Prüfung im Selbsttest, jetzt MountTests.finderCopy) und den
+    /// Festplattenvollzugriff (1.3.4; jetzt nur Mountpoint Cleanup). Ein ausgetauschter Helfer `mirror` erbte beides;
+    /// zurückgesetzt verschwindet Mountpoint auch aus der Liste, und Mountpoint fragt nie wieder danach.
+    static func dropOldAccess() {
+        guard Updater.current != "dev" else { return }
+        for (service, key) in [("AppleEvents", "finderAccessDropped"), ("SystemPolicyAllFiles", "fullDiskAccessDropped")]
+        where !defaults.bool(forKey: key) {
+            DispatchQueue.global().async {
+                let (status, out) = (try? Mounter.run("/usr/bin/tccutil", ["reset", service, mainBundleID])) ?? (-1, "not started")
+                Log.write("\(service) reset: " + (status == 0 ? "ok" : "failed (\(status)) \(out)"))
+                if status == 0 { defaults.set(true, forKey: key) }
+            }
         }
     }
 
@@ -85,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.popover.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         }
         store.mountAtLaunch()
-        Self.dropFinderAccess()
+        Self.dropOldAccess()
         VolumeGuard.shared.hold = { [weak self] on in self?.hold(on) }
         SettingsWindow.shared.hold = { [weak self] on in self?.hold(on) }
         VolumeGuard.shared.start()

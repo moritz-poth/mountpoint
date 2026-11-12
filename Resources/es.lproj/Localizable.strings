@@ -298,6 +298,4 @@
 "Keep the Finder sidebar tidy" = "Mantener ordenada la barra lateral del Finder";
 "Ejected volumes stay in the Finder's sidebar list and come back when the Finder shows all external disks. A small helper, “Mountpoint Cleanup”, deletes Mountpoint's own old entries there at every start. It needs Full Disk Access for this." = "Los volúmenes expulsados se quedan en la lista de la barra lateral del Finder y vuelven cuando el Finder muestra todos los discos externos. Un pequeño ayudante, «Mountpoint Cleanup», borra allí las entradas antiguas de Mountpoint en cada inicio. Para ello necesita acceso total al disco.";
 "In System Settings → Privacy & Security → Full Disk Access, switch on “Mountpoint Cleanup”. Only this helper gets the access, and it changes nothing but this list." = "En Ajustes del Sistema → Privacidad y seguridad → Acceso total al disco, activa «Mountpoint Cleanup». Solo este ayudante recibe el acceso, y no cambia nada más que esta lista.";
-"Mountpoint itself no longer needs Full Disk Access. Please switch it off for “Mountpoint” in the same list." = "Mountpoint ya no necesita acceso total al disco. Desactívalo para «Mountpoint» en la misma lista.";
-"Full Disk Access is no longer needed" = "El acceso total al disco ya no es necesario";
 "Open System Settings" = "Abrir Ajustes del Sistema";

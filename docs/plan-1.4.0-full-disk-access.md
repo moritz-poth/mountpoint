@@ -23,8 +23,9 @@ Full Disk Access is only needed for one thing: `Sidebar.purge` reads and rewrite
    Full Disk Access and `~/Library/Application Support/Mountpoint` is writable by every program of the user.
 4. Asking for access (`SidebarAccess`): waits for the cleanup result; asks to switch on “Mountpoint Cleanup” – its
    first denied read lists it switched off (checked with a probe app, 2026-11-12). Ad-hoc signature: every update
-   switches the existing entry off (checked 2026-11-12), so the notice comes once per version. Upgraders whose Mountpoint itself still has Full Disk Access are
-   asked once to switch it off (an app cannot revoke its own grant). Settings → General “Allow…” does the same.
+   switches the existing entry off (checked 2026-11-12), so the notice comes once per version. Mountpoint's own grant from 1.3.4 is removed at start
+   (`tccutil reset SystemPolicyAllFiles` for its own id, no admin rights needed); Mountpoint never reads the list itself,
+   so it never shows up there. Settings → General “Allow…” does the same.
 5. Error text for unreadable workspace folders no longer suggests Full Disk Access for Mountpoint.
 
 ## Not in this step
