@@ -98,6 +98,7 @@
 "Another drive named “%@” is already connected. Eject it first – two volumes cannot have the same name." = "Ya hay otro disco llamado «%@» conectado. Expúlsalo primero – dos volúmenes no pueden llamarse igual.";
 "macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again." = "No se ha podido cargar macFUSE. Permite su extensión del sistema en Ajustes del Sistema → Privacidad y seguridad, reinicia el Mac y vuelve a intentarlo.";
 "Mountpoint is not allowed to read the folder of “%@”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders." = "Mountpoint no tiene permiso para leer la carpeta de «%@». Revisa los permisos de la carpeta o permite Mountpoint en Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.";
+"“%@” is in the Library folder of your user account. Mountpoint does not mount folders from there – it holds the data of Mail, Messages and other apps. Move the folder somewhere else." = "«%@» está en la carpeta «Librería» de tu cuenta. Mountpoint no monta carpetas de ahí: contiene los datos de Mail, Mensajes y otras apps. Mueve la carpeta a otro lugar.";
 "Details: %@" = "Detalles: %@";
 "“%@” could not be ejected." = "No se ha podido expulsar «%@».";
 "Mountpoint’s helper program could not be started. Please reinstall Mountpoint." = "No se ha podido iniciar el programa auxiliar de Mountpoint. Vuelve a instalar Mountpoint.";

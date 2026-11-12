@@ -68,6 +68,23 @@ extension MountTests {
         }
     }
 
+    /// Ordner in ~/Library hängt der Helfer nie ein – auch nicht über einen Link dorthin (library.json schreibt jeder)
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))
+    func libraryFolderIsRefused() throws {
+        let fm = FileManager.default
+        let lib = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/MPLibTest\(getpid())").path
+        let link = fm.temporaryDirectory.appendingPathComponent("MPLibLink\(getpid())").path
+        try fm.createDirectory(atPath: lib, withIntermediateDirectories: true)
+        try fm.createSymbolicLink(atPath: link, withDestinationPath: lib)
+        defer { try? fm.removeItem(atPath: lib); try? fm.removeItem(atPath: link) }
+        for path in [lib, link] {
+            let w = Workspace(path: path)
+            #expect { try Mounter.mount(w, helper: Self.helper) } throws: { ($0 as? MountError)?.message.contains("Library folder") == true }
+            #expect(!Mounter.isMounted(w))
+            try? Mounter.unmount(w)
+        }
+    }
+
     /// Ein Ordner, der am Volume vorbei gegen eine Verknüpfung getauscht wird, führt nicht aus dem Quellordner
     /// (der Helfer erbt Mountpoints Freigaben). chown auf der Volume-Wurzel geht weiter (chgrp, rsync -a).
     @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1"))

@@ -83,6 +83,8 @@ enum Mounter {
         let text: String
         if o.contains("not available") || o.contains("load") && o.contains("fuse") || o.contains("extension") {
             text = loc("macFUSE could not be loaded. Allow its system extension under System Settings → Privacy & Security, restart the Mac and try again.")
+        } else if o.contains("library folder") {
+            text = loc("“\(name)” is in the Library folder of your user account. Mountpoint does not mount folders from there – it holds the data of Mail, Messages and other apps. Move the folder somewhere else.")
         } else if o.contains("permission denied") || o.contains("operation not permitted") {
             text = loc("Mountpoint is not allowed to read the folder of “\(name)”. Check the folder’s permissions or allow Mountpoint under System Settings → Privacy & Security → Files and Folders.")
         } else {

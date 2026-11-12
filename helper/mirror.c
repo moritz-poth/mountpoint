@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -166,6 +167,28 @@ static struct fuse_operations ops = {
     .setxattr = m_setxattr, .getxattr = m_getxattr, .listxattr = m_listxattr, .removexattr = m_removexattr,
 };
 
+// Liegt der Ordner in ~/Library (Mail, Nachrichten, Daten anderer Apps)? Verglichen wird über Gerät + Knoten jedes
+// übergeordneten Ordners: Schreibweise, Groß-/Kleinschreibung und Firmlinks spielen keine Rolle. library.json kann
+// jedes Programm des Nutzers schreiben – über Mountpoint soll keins an diese Daten kommen (Sicherheitsprüfung F2).
+static int inside_library(const char *dir) {
+    struct passwd *pw = getpwuid(getuid());
+    char lib[PATH_MAX];
+    struct stat l, st;
+    if (!pw || snprintf(lib, sizeof lib, "%s/Library", pw->pw_dir) >= (int)sizeof lib || stat(lib, &l) == -1) return 0;
+    int fd = open(dir, O_SEARCH | O_DIRECTORY | O_CLOEXEC);
+    if (fd == -1) return 1;   // nicht prüfbar: lieber nicht einhängen
+    for (;;) {
+        if (fstat(fd, &st) == -1) { close(fd); return 1; }
+        if (st.st_dev == l.st_dev && st.st_ino == l.st_ino) { close(fd); return 1; }
+        int up = openat(fd, "..", O_SEARCH | O_DIRECTORY | O_CLOEXEC);
+        struct stat u;
+        if (up == -1 || fstat(up, &u) == -1) { close(fd); if (up != -1) close(up); return 1; }
+        close(fd);
+        if (u.st_dev == st.st_dev && u.st_ino == st.st_ino) { close(up); return 0; }   // Wurzel erreicht
+        fd = up;
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "usage: mirror <source folder> <mount point> [-o volname=Name]\n");
@@ -173,6 +196,10 @@ int main(int argc, char *argv[]) {
     }
     if (!realpath(argv[1], root)) {
         fprintf(stderr, "source folder not found or not readable: %s\n", argv[1]);
+        return 1;
+    }
+    if (inside_library(root)) {
+        fprintf(stderr, "source folder is inside the user's Library folder: refused\n");
         return 1;
     }
     // Quellordner aus den Argumenten nehmen, den Rest bekommt libfuse

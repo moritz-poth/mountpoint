@@ -24,6 +24,7 @@ struct ErrorMessageTests {
     @Test func helperOutputIsTranslated() {
         #expect(Mounter.explainMountFailure("mount_macfuse: the file system is not available (1)", name: "A").contains("macFUSE could not be loaded"))
         #expect(Mounter.explainMountFailure("fuse: Permission denied", name: "A").contains("not allowed to read"))
+        #expect(Mounter.explainMountFailure("source folder is inside the user's Library folder: refused", name: "A").contains("Library folder of your user account"))
         let other = Mounter.explainMountFailure("something odd", name: "A")
         #expect(other.contains("could not be mounted") && other.contains("Details: something odd"))
         #expect(!Mounter.explainMountFailure("", name: "A").contains("Details"))
