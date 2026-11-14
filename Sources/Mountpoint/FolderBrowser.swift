@@ -25,6 +25,7 @@ struct FolderBrowser: View {
     @State private var error: String?
     @State private var newFolder: String?
     @State private var withAvid = true
+    @FocusState private var nameFocused: Bool
 
     init(theme: Theme, start: URL?, hold: @escaping (Bool) -> Void, onChoose: @escaping (URL) -> Void, onCancel: @escaping () -> Void) {
         self.theme = theme
@@ -172,6 +173,9 @@ struct FolderBrowser: View {
                     .padding(.horizontal, 8)
                     .frame(height: 26)
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(t.line, lineWidth: 1))
+                    .focused($nameFocused)
+                    // next run loop: the field must be in the window before it can take focus
+                    .onAppear { DispatchQueue.main.async { nameFocused = true } }
                     .onSubmit { create(trimmed) }
                 Button("Create") { create(trimmed) }
                     .buttonStyle(FerryButtonStyle(theme: t))
