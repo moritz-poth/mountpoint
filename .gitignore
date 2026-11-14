@@ -3,3 +3,5 @@
 .omc/
 .DS_Store
 /assets/ref/
+worker/.wrangler/
+/goldfish_review_report.md

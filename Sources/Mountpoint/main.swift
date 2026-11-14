@@ -74,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let host = NSHostingController(rootView: Panel(store: store, hold: { [weak self] on in self?.hold(on) }))
         host.sizingOptions = .preferredContentSize
+        host.view.addSubview(FocusSink(frame: .zero))
         popover.contentViewController = host
         popover.behavior = .transient
 
@@ -129,31 +130,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Ein laufender Selbsttest (nach der Zustimmungsfrage) räumt erst auf – sonst blieben Testvolumes zurück.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard SelfTest.shared.phase == .running else { quit(); return .terminateNow }
+        guard SelfTest.shared.phase == .running else { return quit() ? .terminateNow : .terminateCancel }
         Log.write("quit waits for the self-test")
         waitForTest = SelfTest.shared.$phase.filter { $0 != .running }.first().sink { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.quit()
-                NSApp.reply(toApplicationShouldTerminate: true)
-            }
+            DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: self?.quit() ?? true) }
         }
         return .terminateLater
     }
 
-    /// Beim Beenden auswerfen; was noch benutzt wird, bleibt eingehängt – und das sagen wir.
-    private func quit() {
+    /// Alles auswerfen, dann die Seitenleiste abräumen. Ist ein Volume noch belegt, bleibt Mountpoint offen (Regel des
+    /// Besitzers 2026-11-13): sonst liefe das Volume ohne App weiter. false = nicht beenden.
+    private func quit() -> Bool {
+        let still = Store.shared.ejectAllForQuit()
+        guard still.isEmpty else {
+            Log.write("quit cancelled, still in use: \(still.joined(separator: ", "))")
+            Message.show(loc("Mountpoint stays open"), loc("These volumes are still in use:"), list: still,
+                         footer: loc("Quit the apps that use them (e.g. Media Composer) and try again."))
+            return false
+        }
         Log.write("quit")
         SettingsLauncher.terminateRunning()
-        let still = Store.shared.unmountAllOnQuit()
-        Sidebar.removeAll()   // der nächste Start trägt noch eingehängte Volumes wieder ein
-        if !still.isEmpty {
-            NSApp.activate(ignoringOtherApps: true)
-            let a = NSAlert()
-            a.icon = NSApp.applicationIconImage
-            a.messageText = loc("Some volumes stay mounted")
-            a.informativeText = loc("These volumes are still in use and stay mounted: \(still.joined(separator: ", ")). Quit Media Composer and eject them in the Finder.")
-            a.runModal()
-        }
+        Sidebar.removeAll()
+        return true
     }
 
     func showPanel() {
@@ -164,14 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func togglePanel() {
-        guard let button = item.button else { return }
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
-        }
+        popover.isShown ? popover.performClose(nil) : showPanel()
     }
 
     /// Solange etwas außerhalb des Panels offen ist, schließt es sich nicht bei Klicks daneben.
@@ -272,4 +263,11 @@ MainActor.assumeIsolated {
         app.setActivationPolicy(.accessory)
         app.run()
     }
+}
+
+/// Takes first responder when the popover opens, so AppKit never asks SwiftUI to pick a first key view:
+/// SwiftUI's focus navigation can loop forever there (hang on opening the panel, macOS 15.5, 2026-11-13).
+private final class FocusSink: NSView {
+    override var acceptsFirstResponder: Bool { true }
+    override func viewDidMoveToWindow() { window?.initialFirstResponder = self }
 }

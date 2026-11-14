@@ -97,25 +97,31 @@ enum Mounter {
     static func unmount(_ w: Workspace) throws {
         guard isMounted(w) else { return }
         // /sbin/umount statt unmount(2): nur so entfernt macOS danach den leeren Ordner in /Volumes
-        let (status, msg) = try run("/sbin/umount", [w.volumePath])
+        var (status, msg) = try run("/sbin/umount", [w.volumePath])
+        // belegt: noch einmal über DiskArbitration wie der Finder – die fragt die Programme, und z. B. die Finder-Vorschau
+        // (QuickLook) gibt ihre Datei frei; echt geöffnete Dateien blockieren weiter (getestet 2026-11-13). Nie mit Gewalt.
+        if status != 0, msg.localizedCaseInsensitiveContains("busy") {
+            status = try run("/usr/sbin/diskutil", ["unmount", w.volumePath]).0
+        }
         guard status == 0 else {
             throw MountError(message: msg.localizedCaseInsensitiveContains("busy")
-                ? loc("“\(w.name)” is in use. Quit Media Composer and try again.")
+                ? loc("“\(w.name)” is still in use – an app has files on it open (e.g. Media Composer). Close them and try again.")
                 : loc("“\(w.name)” could not be ejected.") + (msg.isEmpty ? "" : "\n" + loc("Details: \(msg)")))
         }
     }
 
-    static func run(_ exe: String, _ args: [String]) throws -> (Int32, String) {
+    /// Startet ein Programm und wartet. Gibt Status und Fehlerausgabe zurück, mit `output` die Standardausgabe (sonst verworfen).
+    static func run(_ exe: String, _ args: [String], output: Bool = false) throws -> (Int32, String) {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: exe)
         p.arguments = args
-        let err = Pipe()
-        p.standardError = err
+        let pipe = Pipe()
+        if output { p.standardOutput = pipe } else { p.standardOutput = FileHandle.nullDevice; p.standardError = pipe }
         do { try p.run() } catch {
             throw MountError(message: loc("Mountpoint’s helper program could not be started. Please reinstall Mountpoint.") + "\n" + loc("Details: \(error.localizedDescription)"))
         }
         p.waitUntilExit()
-        let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let msg = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         return (p.terminationStatus, msg.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 

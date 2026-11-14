@@ -113,18 +113,16 @@ struct SidebarAccessView: View {
                 .font(.mono(11)).foregroundColor(t.muted).fixedSize(horizontal: false, vertical: true)
                 .opacity(state.waiting ? 1 : 0)
                 .accessibilityHidden(!state.waiting)
-            // de/fr: beide Knöpfe nebeneinander sind breiter als das Fenster – dann untereinander
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { decline(t); Spacer(); allow(t) }
-                VStack(alignment: .trailing, spacing: 10) { allow(t); decline(t) }.frame(maxWidth: .infinity, alignment: .trailing)
-            }
+            HStack(spacing: 12) { decline(t); Spacer(); allow(t) }
         }
         .padding(26)
-        .frame(width: 520)
-        .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+        .frame(width: SidebarAccessView.width)
+        .cardFrame(t)
         .environment(\.colorScheme, store.dark ? .dark : .light)
     }
+
+    /// breiter als die anderen Fenster: beide Knöpfe nebeneinander auch in fr (längste Beschriftungen)
+    static let width: CGFloat = 640
 
     private func decline(_ t: Theme) -> some View {
         Button("Don’t show in the sidebar") { answer(false) }

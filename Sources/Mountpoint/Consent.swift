@@ -92,8 +92,7 @@ struct ConsentView: View {
         }
         .padding(26)
         .frame(width: 520)
-        .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+        .cardFrame(t)
         .environment(\.colorScheme, store.dark ? .dark : .light)
     }
 

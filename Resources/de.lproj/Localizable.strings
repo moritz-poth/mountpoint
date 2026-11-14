@@ -33,7 +33,7 @@
 
 /* Einhängen */
 "“%@” could not be mounted." = "„%@“ konnte nicht eingehängt werden.";
-"“%@” is in use. Quit Media Composer and try again." = "„%@“ wird noch benutzt. Beende Media Composer und versuche es erneut.";
+"“%@” is still in use – an app has files on it open (e.g. Media Composer). Close them and try again." = "„%@“ wird noch benutzt – ein Programm hat Dateien darauf geöffnet (z. B. Media Composer). Schließe sie und versuche es erneut.";
 
 /* Projekt löschen */
 "Create" = "Anlegen";
@@ -119,8 +119,9 @@
 "Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders." = "Mountpoint darf diesen Ordner nicht öffnen. Erlaube den Zugriff unter Systemeinstellungen → Datenschutz & Sicherheit → Dateien und Ordner.";
 "This folder cannot be read: %@" = "Dieser Ordner kann nicht gelesen werden: %@";
 "Close" = "Schließen";
-"Some volumes stay mounted" = "Einige Volumes bleiben eingehängt";
-"These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Diese Volumes werden noch benutzt und bleiben eingehängt: %@. Beende Media Composer und wirf sie im Finder aus.";
+"Mountpoint stays open" = "Mountpoint bleibt geöffnet";
+"These volumes are still in use:" = "Diese Volumes werden noch benutzt:";
+"Quit the apps that use them (e.g. Media Composer) and try again." = "Beende die Programme, die sie benutzen (z. B. Media Composer), und versuche es erneut.";
 
 /* Warnung bei nummerierten Ordnern */
 

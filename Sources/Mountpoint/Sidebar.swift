@@ -319,14 +319,7 @@ enum Sidebar {
             .union(workspaceNames).union([probeName])
     }
 
-    static func restartDaemon() -> Bool {
-        let kill = Process()
-        kill.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        kill.arguments = ["sharedfilelistd"]
-        guard (try? kill.run()) != nil else { return false }
-        kill.waitUntilExit()
-        return kill.terminationStatus == 0
-    }
+    static func restartDaemon() -> Bool { (try? Mounter.run("/usr/bin/killall", ["sharedfilelistd"]))?.0 == 0 }
 
     /// shortcut: ein fremder Eintrag ohne Name/DateLastSeen direkt unter /Volumes mit einem unserer Namen würde gelöscht –
     /// keiner gesehen (LucidLink 3 liegt eine Ebene tiefer, direkt eingehängtes LucidLink hat Name); bei Bedarf Bookmark-Herkunft prüfen.

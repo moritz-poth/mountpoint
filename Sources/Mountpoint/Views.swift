@@ -17,7 +17,6 @@ struct Theme {
     var primary: Color { c(0xe6e7e8, 0x2e3236) }
     var onPrimary: Color { c(0x1f2225, 0xf5f5f3) }
     var online: Color { c(0x3fb950, 0x1a7f37) }   // hell 4.9:1, auch als Text („AVID“)
-    var warning: Color { c(0xd29922, 0x8a5a00) }
     // Punkt „nicht alle eingehängt / Problem“
     var partial: Color { c(0xf0883e, 0xb4530f) }   // hell 4.6:1 (vorher 3.0:1) – auch Text der Update-Meldungen
     var error: Color { c(0xf85149, 0xc62828) }
@@ -74,6 +73,44 @@ struct Dropdown<Content: View>: View {
         .buttonStyle(FerryButtonStyle(theme: theme, height: height))
         .menuIndicator(.hidden)
         .fixedSize()
+    }
+}
+
+/// Kleines ×: Hinweis schließen, Fehler wegklicken, Eintrag entfernen
+struct CloseButton: View {
+    let label: Text
+    let theme: Theme
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(theme.muted)
+                .frame(width: 18, height: 18).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+}
+
+/// App-weiter Hinweis (`Store.notice`) mit ×; den Rahmen setzt der Aufrufer
+struct NoticeBanner: View {
+    let text: String
+    let theme: Theme
+    let close: () -> Void
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(theme.partial)
+            Text(text).font(.mono(11)).foregroundColor(theme.text).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            CloseButton(label: Text("Close"), theme: theme, action: close)
+        }
+    }
+}
+
+extension View {
+    /// Rahmen der Karten und schwebenden Fenster: abgerundeter Hintergrund mit Linie
+    func cardFrame(_ t: Theme) -> some View {
+        background(RoundedRectangle(cornerRadius: 10).fill(t.background))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
     }
 }
 

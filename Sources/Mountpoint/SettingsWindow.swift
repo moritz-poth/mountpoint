@@ -199,17 +199,7 @@ struct SettingsPane: View {
         VStack(alignment: .leading, spacing: 14) {
             // Fehler der Einstellungs-App (Speichern, unlesbare Liste, Anmeldeobjekt) – sonst wären sie unsichtbar
             if let notice = store.notice {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(t.partial)
-                    Text(notice).font(.mono(11)).foregroundColor(t.text).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 4)
-                    Button { store.notice = nil } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                            .frame(width: 18, height: 18).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Close"))
-                }
+                NoticeBanner(text: notice, theme: t) { store.notice = nil }
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 8).fill(t.partial.opacity(0.12)))
             }
@@ -245,8 +235,7 @@ struct SettingsPane: View {
             }
             .padding(18)
             .frame(width: 420)
-            .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+            .cardFrame(t)
             .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
         }
     }
@@ -323,13 +312,8 @@ struct SettingsPane: View {
                                     Button("Workstation folder") { store.setGuardOwn(name, true) }.disabled(own)
                                 }
                             }
-                            Button { store.removeGuard(name) } label: {
-                                Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                                    .frame(width: 18, height: 18).contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(Text("Remove"))
-                            .accessibilityLabel(Text("Remove \(name)"))
+                            CloseButton(label: Text("Remove \(name)"), theme: t) { store.removeGuard(name) }
+                                .help(Text("Remove"))
                         }
                     }
                 }
@@ -353,7 +337,7 @@ struct SettingsPane: View {
             }
             if let release = updater.available, settingsMode {
                 // installieren kann nur Mountpoint selbst – Panel mit dem Update-Hinweis öffnen
-                row(Text("Mountpoint \(release.tag.hasPrefix("v") ? String(release.tag.dropFirst()) : release.tag) is available."), t) {
+                row(Text("Mountpoint \(release.version) is available."), t) {
                     Button("Show in Mountpoint") { SettingsLauncher.showUpdateInMountpoint() }
                         .buttonStyle(FerryButtonStyle(theme: t, primary: true))
                 }

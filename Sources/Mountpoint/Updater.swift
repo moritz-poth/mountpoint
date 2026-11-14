@@ -47,6 +47,9 @@ struct Release {
     /// Only this marker comes from outside – the text and the link are fixed in the app, nothing is downloaded or run.
     let manual: Bool
 
+    /// "1.4.0" aus dem Tag "v1.4.0"
+    var version: String { tag.hasPrefix("v") ? String(tag.dropFirst()) : tag }
+
     static let releasesPage = URL(string: "https://github.com/moritz-poth/mountpoint/releases")!
 
     /// Release page, but only on this project's GitHub – otherwise the list of releases.
@@ -158,7 +161,7 @@ final class Updater: ObservableObject {
             result = Result { try Self.unpack(file, expecting: release.tag, signature: signature) }
             Log.write(String(format: "update checked and unpacked in %.1f s", Date().timeIntervalSince(started)))
         } else {
-            result = .failure(UpdateError(loc("The update could not be downloaded. Check the internet connection and try again.")))
+            result = .failure(MountError(message: loc("The update could not be downloaded. Check the internet connection and try again.")))
         }
         Task { @MainActor in
             switch result {
@@ -179,26 +182,20 @@ final class Updater: ObservableObject {
         return key.isValidSignature(sig, for: zip)
     }
 
-    struct UpdateError: LocalizedError {
-        let message: String
-        init(_ message: String) { self.message = message }
-        var errorDescription: String? { message }
-    }
-
     /// Unzips into a temporary folder and checks that it really is the expected, intact Mountpoint version.
     nonisolated static func unpack(_ zip: URL, expecting tag: String, signature: Data?, publicKey: String = Updater.publicKey,
                                    bundleID: String? = Bundle.main.bundleIdentifier) throws -> URL {
-        let damaged = UpdateError(loc("The downloaded update is damaged. Please try again later or download it from GitHub."))
+        let damaged = MountError(message: loc("The downloaded update is damaged. Please try again later or download it from GitHub."))
         guard let data = try? Data(contentsOf: zip, options: .mappedIfSafe), signatureValid(data, signature, publicKey: publicKey) else { throw damaged }
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("mountpoint-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        guard run("/usr/bin/ditto", ["-x", "-k", zip.path, dir.path]) else { throw damaged }
+        guard (try? Mounter.run("/usr/bin/ditto", ["-x", "-k", zip.path, dir.path]))?.0 == 0 else { throw damaged }
         let app = dir.appendingPathComponent("Mountpoint.app")
         guard let info = Bundle(url: app)?.infoDictionary,
               info["CFBundleIdentifier"] as? String == bundleID,
               let release = info["MountpointRelease"] as? String,
               AppVersion(release) == AppVersion(tag),
-              run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path])
+              (try? Mounter.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path]))?.0 == 0
         else { throw damaged }
         return app
     }
@@ -207,7 +204,13 @@ final class Updater: ObservableObject {
 
     private func swapAndRestart(with app: URL) throws {
         // inzwischen gestartet? Dann nicht: der Test bräche ab und die Einstellungs-App müsste hart beendet werden
-        guard !SelfTest.runningAnywhere else { throw UpdateError(Self.waitForSelfTest) }
+        guard !SelfTest.runningAnywhere else { throw MountError(message: Self.waitForSelfTest) }
+        // belegte Volumes: nicht austauschen und nicht beenden (wie beim Beenden von Hand)
+        let still = Store.shared.ejectAllForQuit()
+        guard still.isEmpty else {
+            Log.write("update stopped, still in use: \(still.joined(separator: ", "))")
+            throw MountError(message: Store.inUseText(still))
+        }
         // die eingebettete Einstellungs-App liegt im Bundle, das gleich in den Papierkorb geht – vorher beenden
         let started = Date()
         SettingsLauncher.terminateRunning(wait: true)
@@ -215,16 +218,15 @@ final class Updater: ObservableObject {
         let fm = FileManager.default
         let current = Bundle.main.bundleURL
         var trashed: NSURL?
-        do {
-            try fm.trashItem(at: current, resultingItemURL: &trashed)
-        } catch {
-            throw UpdateError(loc("Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + loc("Details: \(error.localizedDescription)"))
+        func cannotReplace(_ error: Error) -> Error {
+            MountError(message: loc("Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + loc("Details: \(error.localizedDescription)"))
         }
+        do { try fm.trashItem(at: current, resultingItemURL: &trashed) } catch { throw cannotReplace(error) }
         do {
             try fm.moveItem(at: app, to: current)
         } catch {
             if let trashed = trashed as URL? { try? fm.moveItem(at: trashed, to: current) }
-            throw UpdateError(loc("Mountpoint could not replace itself. Move it to the Applications folder, or download the update from GitHub.") + "\n\n" + loc("Details: \(error.localizedDescription)"))
+            throw cannotReplace(error)
         }
         // start the new version once this one has quit
         let p = Process()
@@ -235,19 +237,7 @@ final class Updater: ObservableObject {
             state = .failed(loc("The update is installed. Quit Mountpoint and open it again to finish."))
             return
         }
-        Store.shared.rememberMountedForUpdate()
         Log.write(String(format: "update in place after %.1f s, restarting", Date().timeIntervalSince(started)))
         NSApp.terminate(nil)   // ejects the volumes; the new version mounts them again
-    }
-
-    nonisolated private static func run(_ tool: String, _ args: [String]) -> Bool {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: tool)
-        p.arguments = args
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        do { try p.run() } catch { return false }
-        p.waitUntilExit()
-        return p.terminationStatus == 0
     }
 }

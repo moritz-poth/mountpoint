@@ -52,8 +52,7 @@ struct WelcomeView: View {
         .padding(26)
         .frame(width: 520)
         .frame(minHeight: height)
-        .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+        .cardFrame(t)
         .environment(\.colorScheme, dark ? .dark : .light)
     }
 

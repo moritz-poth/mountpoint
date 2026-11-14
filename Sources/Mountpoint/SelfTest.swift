@@ -188,15 +188,9 @@ final class SelfTest: ObservableObject {
         }
     }
 
-    /// Prozess des Helfers über seine eindeutige fsname-Kennung (Mounter.run liefert nur stderr, pgrep schreibt nach stdout)
+    /// Prozess des Helfers über seine eindeutige fsname-Kennung
     nonisolated static func helperPID(_ w: Workspace) -> pid_t? {
-        let p = Process(), out = Pipe()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-        p.arguments = ["-f", "fsname=" + Mounter.fsname(w)]
-        p.standardOutput = out
-        guard (try? p.run()) != nil else { return nil }
-        p.waitUntilExit()
-        return String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+        (try? Mounter.run("/usr/bin/pgrep", ["-f", "fsname=" + Mounter.fsname(w)], output: true))?.1
             .split(separator: "\n").first.flatMap { pid_t($0.trimmingCharacters(in: .whitespaces)) }
     }
 

@@ -149,3 +149,74 @@ func gone(_ path: String) -> Bool {
     for _ in 0..<50 where FileManager.default.fileExists(atPath: path) { Thread.sleep(forTimeInterval: 0.1) }
     return !FileManager.default.fileExists(atPath: path)
 }
+
+extension MountTests {
+    /// Entfernen eines eingehängten Workspaces wirft im Hintergrund aus und trägt ihn erst danach aus;
+    /// ist das Volume belegt, bleibt der Workspace mit Fehler stehen.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1")) @MainActor
+    func removeEjectsInTheBackground() async throws {
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("MP Remove \(getpid())")
+        try FileManager.default.createDirectory(at: src.appendingPathComponent("Avid MediaFiles/MXF"), withIntermediateDirectories: true)
+        try Data("x".utf8).write(to: src.appendingPathComponent("Avid MediaFiles/MXF/a.mxf"))
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("mp-store-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: src); try? FileManager.default.removeItem(at: dir) }
+        let store = Store(directory: dir)
+        store.add(src, to: nil)
+        let w = store.library.workspaces[0]
+        try Mounter.mount(w, helper: Self.helper)
+        defer { try? Mounter.unmount(w) }
+        try await Task.sleep(nanoseconds: 2_000_000_000)   // wie oben: erst registriert, dann auswerfen
+        store.refresh()
+        #expect(store.mounted.contains(w.id))
+
+        // belegt: bleibt, mit Fehler
+        let handle = try FileHandle(forReadingFrom: URL(fileURLWithPath: w.volumePath + "/Avid MediaFiles/MXF/a.mxf"))
+        store.remove(w)
+        for _ in 0..<100 where store.busy.contains(w.id) { try await Task.sleep(nanoseconds: 100_000_000) }
+        #expect(store.library.workspaces.count == 1)
+        #expect(store.errors[w.id] != nil)
+        try handle.close()
+
+        store.remove(w)
+        for _ in 0..<100 where !store.library.workspaces.isEmpty { try await Task.sleep(nanoseconds: 100_000_000) }
+        #expect(store.library.workspaces.isEmpty)
+        #expect(!Mounter.isMounted(w))
+    }
+}
+
+extension MountTests {
+    /// Beenden mit einem belegten Volume: es bleibt, das schon ausgeworfene kommt zurück, der Name wird gemeldet.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["MOUNTPOINT_IT"] == "1")) @MainActor
+    func quitStopsWhileAVolumeIsInUse() async throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("mp-quit-\(UUID())")
+        let dir = base.appendingPathComponent("store")
+        defer { try? FileManager.default.removeItem(at: base) }
+        let store = Store(directory: dir)
+        for name in ["MP Busy \(getpid())", "MP Free \(getpid())"] {
+            let src = base.appendingPathComponent(name)
+            try FileManager.default.createDirectory(at: src.appendingPathComponent("Avid MediaFiles/MXF"), withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: src.appendingPathComponent("Avid MediaFiles/MXF/a.mxf"))
+            store.add(src, to: nil)
+        }
+        let (busy, free) = (store.library.workspaces[0], store.library.workspaces[1])
+        for w in [busy, free] { try Mounter.mount(w, helper: Self.helper) }
+        defer { for w in [busy, free] { try? Mounter.unmount(w) } }
+        try await Task.sleep(nanoseconds: 2_000_000_000)   // erst registriert, dann auswerfen
+        store.refresh()
+
+        let handle = try FileHandle(forReadingFrom: URL(fileURLWithPath: busy.volumePath + "/Avid MediaFiles/MXF/a.mxf"))
+        // Store.mount braucht den Helfer im App-Bundle; im Test hängt der Test selbst wieder ein
+        defer { defaults.removeObject(forKey: "remountAfterUpdate") }
+        #expect(store.ejectAllForQuit() == [busy.volumePath])
+        #expect(Mounter.isMounted(busy))
+        #expect(!Mounter.isMounted(free))
+        #expect(defaults.stringArray(forKey: "remountAfterUpdate") == nil)   // nicht beendet: nichts gemerkt
+        try handle.close()
+        try await Task.sleep(nanoseconds: 2_000_000_000)   // der Test hat „free“ selbst ausgeworfen: Stand neu lesen
+        store.refresh()
+        #expect(store.ejectAllForQuit().isEmpty)
+        #expect(!Mounter.isMounted(busy))
+        // beendet: der nächste Start hängt „busy“ wieder ein
+        #expect(defaults.stringArray(forKey: "remountAfterUpdate") == [busy.id.uuidString])
+    }
+}

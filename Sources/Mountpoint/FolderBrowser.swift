@@ -176,12 +176,7 @@ struct FolderBrowser: View {
                 Button("Create") { create(trimmed) }
                     .buttonStyle(FerryButtonStyle(theme: t))
                     .disabled(trimmed.isEmpty)
-                Button { newFolder = nil } label: {
-                    Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                        .frame(width: 18, height: 18).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Cancel"))
+                CloseButton(label: Text("Cancel"), theme: t) { newFolder = nil }
             }
             SwitchRow(title: "With “Avid MediaFiles/MXF” inside", on: withAvid, theme: t) { withAvid.toggle() }
         }

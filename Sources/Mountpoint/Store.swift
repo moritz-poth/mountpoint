@@ -139,11 +139,15 @@ final class Store: ObservableObject {
         save()
     }
 
+    /// Eingehängt: erst im Hintergrund auswerfen (ein hängendes NAS darf die App nicht einfrieren), dann austragen.
+    /// Lässt es sich nicht auswerfen, bleibt der Workspace mit dem Fehler stehen.
     func remove(_ w: Workspace) {
+        guard !mounted.contains(w.id) else { unmount(w) { self.drop(w) }; return }
+        drop(w)
+    }
+
+    private func drop(_ w: Workspace) {
         reconnect[w.id] = nil
-        if mounted.contains(w.id) {
-            do { try Mounter.unmount(w) } catch { errors[w.id] = error.localizedDescription; return }
-        }
         library.workspaces.removeAll { $0.id == w.id }
         Log.write("workspace removed: \(w.path)")
         errors[w.id] = nil
@@ -185,7 +189,8 @@ final class Store: ObservableObject {
     func clearErrors(in project: UUID?) { workspaces(in: project).forEach(clearError) }
 
     /// Im Hintergrund wie das Einhängen: hängt das Laufwerk dahinter, wartet umount – die App nicht.
-    func unmount(_ w: Workspace) {
+    /// `then`: nach erfolgreichem Auswerfen
+    func unmount(_ w: Workspace, then: (@MainActor () -> Void)? = nil) {
         guard !passive else { return }   // Einstellungs-App: nie einhängen, auswerfen oder prüfen
         reconnect[w.id] = nil
         guard !busy.contains(w.id) else { return }
@@ -200,6 +205,7 @@ final class Store: ObservableObject {
                 self.busy.remove(w.id)
                 self.errors[w.id] = message
                 self.refresh()
+                if message == nil { then?() }
             }
         }
     }
@@ -253,27 +259,40 @@ final class Store: ObservableObject {
     }
 
     func mountAll(_ project: UUID?) { workspaces(in: project).forEach(mount) }
-    func unmountAll(_ project: UUID?) { workspaces(in: project).filter { mounted.contains($0.id) }.forEach(unmount) }
+    func unmountAll(_ project: UUID?) { workspaces(in: project).filter { mounted.contains($0.id) }.forEach { unmount($0) } }
 
     func mountAtLaunch() {
         for p in library.projects where p.mountAtLaunch { mountAll(p.id) }
-        // after an update: mount again what was mounted before
+        // nach Beenden oder Update: wieder einhängen, was eingehängt war (Schlüssel heißt aus älteren Versionen so)
         let again = Set((defaults.stringArray(forKey: "remountAfterUpdate") ?? []).compactMap(UUID.init))
         defaults.removeObject(forKey: "remountAfterUpdate")
-        for w in library.workspaces where again.contains(w.id) && !mounted.contains(w.id) { mount(w) }
+        for w in library.workspaces where again.contains(w.id) && !mounted.contains(w.id) {
+            // erreichbar: gleich; sonst still, sobald das Laufwerk oder NAS wieder da ist (reconnectWhenBack, ohne Dialog)
+            if FileManager.default.fileExists(atPath: w.path) { mount(w) } else { reconnect[w.id] = .distantPast }
+        }
     }
 
-    func rememberMountedForUpdate() {
+    /// Beenden/Update: merken, was eingehängt ist (der nächste Start hängt es wieder ein), und alles auswerfen (nie mit
+    /// Gewalt). Ist ein Volume noch belegt, wird das schon Ausgeworfene wieder eingehängt, nichts gemerkt, und die
+    /// belegten Volumes kommen zurück – dann darf Mountpoint nicht beenden.
+    func ejectAllForQuit() -> [String] {
         defaults.set(mounted.map(\.uuidString), forKey: "remountAfterUpdate")
-    }
-
-    /// Beim Beenden auswerfen, was sich auswerfen lässt (nie mit Gewalt). Gibt die Namen zurück, die eingehängt bleiben.
-    func unmountAllOnQuit() -> [String] {
-        var still: [String] = []
+        var still: [String] = [], ejected: [Workspace] = []
         for w in library.workspaces where mounted.contains(w.id) {
-            do { try Mounter.unmount(w) } catch { still.append(w.name) }
+            do { try Mounter.unmount(w); ejected.append(w) } catch { still.append(w.volumePath) }
+        }
+        refresh()
+        if !still.isEmpty {
+            defaults.removeObject(forKey: "remountAfterUpdate")
+            ejected.forEach(mount)
         }
         return still
+    }
+
+    /// „Diese Volumes werden noch benutzt:“, je Volume eine Zeile mit Punkt, dann als eigener Absatz, was zu tun ist
+    static func inUseText(_ volumes: [String]) -> String {
+        loc("These volumes are still in use:") + "\n" + volumes.map { "• " + $0 }.joined(separator: "\n") + "\n\n"
+            + loc("Quit the apps that use them (e.g. Media Composer) and try again.")
     }
 
     // MARK: Geschützte Volumes

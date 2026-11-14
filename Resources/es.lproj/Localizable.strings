@@ -33,7 +33,7 @@
 
 /* Montaje */
 "“%@” could not be mounted." = "No se ha podido montar «%@».";
-"“%@” is in use. Quit Media Composer and try again." = "«%@» está en uso. Sal de Media Composer y vuelve a intentarlo.";
+"“%@” is still in use – an app has files on it open (e.g. Media Composer). Close them and try again." = "«%@» sigue en uso: una app tiene archivos abiertos en él (p. ej., Media Composer). Ciérralos y vuelve a intentarlo.";
 
 /* Eliminar proyecto */
 "Create" = "Crear";
@@ -119,8 +119,9 @@
 "Mountpoint is not allowed to open this folder. Allow access under System Settings → Privacy & Security → Files and Folders." = "Mountpoint no puede abrir esta carpeta. Permite el acceso en Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.";
 "This folder cannot be read: %@" = "No se puede leer esta carpeta: %@";
 "Close" = "Cerrar";
-"Some volumes stay mounted" = "Algunos volúmenes siguen montados";
-"These volumes are still in use and stay mounted: %@. Quit Media Composer and eject them in the Finder." = "Estos volúmenes siguen en uso y permanecen montados: %@. Sal de Media Composer y expúlsalos en el Finder.";
+"Mountpoint stays open" = "Mountpoint sigue abierto";
+"These volumes are still in use:" = "Estos volúmenes siguen en uso:";
+"Quit the apps that use them (e.g. Media Composer) and try again." = "Cierra las apps que los usan (p. ej., Media Composer) y vuelve a intentarlo.";
 
 /* Aviso de carpetas numeradas */
 

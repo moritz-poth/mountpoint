@@ -10,14 +10,6 @@ struct FolderWatch {
     let mxf: String
     let kind: Kind
     let matches: (String) -> Bool
-
-    init(key: String, name: String, mxf: String, kind: Kind, matches: @escaping (String) -> Bool) {
-        self.key = key
-        self.name = name
-        self.mxf = mxf
-        self.kind = kind
-        self.matches = matches
-    }
 }
 
 /// Ordner, in dessen „Avid MediaFiles/MXF“ die Unterordner gezählt werden (Volume, Systemplatte, Workspace-Quelle).
@@ -166,10 +158,7 @@ final class VolumeGuard {
         for key in active where key.hasPrefix("s:") && !overPaths.contains(String(key.dropFirst(2))) { closeAlert(key) }
         for (volume, folder, n) in over where !bigKnown.contains(n > sizeLimit ? folder : "~" + folder) {
             let key = "s:" + folder
-            if let until = snoozed[key] {
-                if until > Date() { continue }
-                snoozed[key] = nil
-            }
+            if isSnoozed(key) { continue }
             guard !active.contains(key) else { continue }
             active.insert(key)
             Log.write("alert: \(n) files in \(folder)")
@@ -197,11 +186,7 @@ final class VolumeGuard {
             note: early ? nil : loc("We recommend rebalancing the folder with MediaFiles Check. You can find its GitHub repository at the following URL: [https://github.com/moritz-poth/mediafiles-check](https://github.com/moritz-poth/mediafiles-check)"),
             dark: Store.shared.dark,
             showInFinder: { NSWorkspace.shared.selectFile(folder, inFileViewerRootedAtPath: "") },
-            snooze: { [weak self] choice in
-                self?.snoozed[key] = snoozeEnd(choice)
-                Log.write("alert snoozed until \(snoozeEnd(choice)): \(key)")
-                self?.closeAlert(key)
-            },
+            snooze: snoozeAction(key),
             dismiss: { [weak self] in self?.acknowledgeSize(folder, early: early) })
         presentPanel(view, key: key)
     }
@@ -342,10 +327,7 @@ final class VolumeGuard {
         if known.count != before.count { knownNumbered[w.key] = known.sorted() }
         let new = current.filter { !known.contains($0) }
         guard !new.isEmpty else { return }
-        if let until = snoozed[key] {
-            if until > Date() { return }
-            snoozed[key] = nil
-        }
+        if isSnoozed(key) { return }
         guard !active.contains(key) else { return }
         active.insert(key)
         Log.write("alert: \(new.joined(separator: ", ")) in \(w.mxf)")
@@ -363,21 +345,16 @@ final class VolumeGuard {
             acknowledged.remove(name)
             return
         }
-        if let until = snoozed[name] {
-            if until > Date() { return }
-            snoozed[name] = nil
-        }
+        if isSnoozed(name) { return }
         guard !acknowledged.contains(name), !active.contains(name) else { return }
         active.insert(name)
         Log.write("alert: “Avid MediaFiles” on \(guardRoot(name))")
         if let present { present(name) } else { showAlert(name) }
     }
 
-    private func path(_ name: String) -> String { guardRoot(name) }
-
     /// Nur echte eingehängte Volumes, kein leerer Ordner in /Volumes. Das Systemvolume ist immer da.
     private func isVolume(_ name: String) -> Bool {
-        name == systemGuard || Mounter.isMountPoint(path(name))
+        name == systemGuard || Mounter.isMountPoint(guardRoot(name))
     }
 
     // MARK: Alarmfenster
@@ -386,15 +363,8 @@ final class VolumeGuard {
         let view = GuardAlert(title: loc("Media Composer is writing to “\(guardName(name))”"),
             message: loc("An “Avid MediaFiles” folder was created on this volume. Check your import or render target."),
             dark: Store.shared.dark,
-            showInFinder: { [weak self] in
-                guard let self else { return }
-                NSWorkspace.shared.selectFile(self.path(name) + "/Avid MediaFiles", inFileViewerRootedAtPath: "")
-            },
-            snooze: { [weak self] choice in
-                self?.snoozed[name] = snoozeEnd(choice)
-                Log.write("alert snoozed until \(snoozeEnd(choice)): \(name)")
-                self?.closeAlert(name)
-            },
+            showInFinder: { NSWorkspace.shared.selectFile(guardRoot(name) + "/Avid MediaFiles", inFileViewerRootedAtPath: "") },
+            snooze: snoozeAction(name),
             dismiss: { [weak self] in
                 self?.acknowledged.insert(name)
                 self?.closeAlert(name)
@@ -420,11 +390,7 @@ final class VolumeGuard {
                 guard let first = folders.first else { return }
                 NSWorkspace.shared.selectFile(w.mxf + "/" + first, inFileViewerRootedAtPath: "")
             },
-            snooze: { [weak self] choice in
-                self?.snoozed[key] = snoozeEnd(choice)
-                Log.write("alert snoozed until \(snoozeEnd(choice)): \(key)")
-                self?.closeAlert(key)
-            },
+            snooze: snoozeAction(key),
             dismiss: { [weak self] in self?.acknowledgeNumbered(w, folders) })
         presentPanel(view, key: key)
     }
@@ -451,6 +417,22 @@ final class VolumeGuard {
         hold?(true)
         NSSound.beep()
         alerts[key] = panel
+    }
+
+    /// Pause läuft noch; abgelaufene wird vergessen
+    private func isSnoozed(_ key: String) -> Bool {
+        guard let until = snoozed[key] else { return false }
+        if until > Date() { return true }
+        snoozed[key] = nil
+        return false
+    }
+
+    private func snoozeAction(_ key: String) -> (Snooze) -> Void {
+        { [weak self] choice in
+            self?.snoozed[key] = snoozeEnd(choice)
+            Log.write("alert snoozed until \(snoozeEnd(choice)): \(key)")
+            self?.closeAlert(key)
+        }
     }
 
     private func closeAlert(_ name: String) {
@@ -522,8 +504,7 @@ struct GuardAlert: View {
         }
         .padding(26)
         .frame(width: 520)
-        .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+        .cardFrame(t)
         .environment(\.colorScheme, dark ? .dark : .light)
     }
 

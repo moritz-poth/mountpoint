@@ -8,7 +8,6 @@ enum Dialog {
     case removeWorkspace(Workspace)
     case noAvidFolder(URL, UUID?)
     case error(String)
-    case networkInfo
 }
 
 private let titleCapHeight = NSFont(name: "HelveticaNeue-Light", size: 26)?.capHeight ?? 18.6
@@ -53,17 +52,7 @@ struct Panel: View {
             }
 
             if let notice = store.notice {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)).foregroundColor(t.partial)
-                    Text(notice).font(.mono(11)).foregroundColor(t.text).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    Button { store.notice = nil } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                            .frame(width: 18, height: 18).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Close"))
-                }
+                NoticeBanner(text: notice, theme: t) { store.notice = nil }
                 .padding(12)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(t.line, lineWidth: 1))
             }
@@ -123,7 +112,7 @@ struct Panel: View {
 
             HStack {
                 Dropdown(title: Text("Add…"), theme: t) {
-                    Button("Add workspace…") { addWorkspace(to: nil) }
+                    Button("Add workspace…") { picking = .some(nil) }
                     Button("New project…") { show(.newProject) }
                 }
                 Spacer()
@@ -133,12 +122,11 @@ struct Panel: View {
     }
 
     private func updateBanner(_ release: Release, _ t: Theme) -> some View {
-        let version = String(release.tag.dropFirst(release.tag.hasPrefix("v") ? 1 : 0))
-        return VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "arrow.down.circle.fill").font(.system(size: 12)).foregroundColor(t.online)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mountpoint \(version) is available.").font(.mono(11, semibold: true)).foregroundColor(t.text)
+                    Text("Mountpoint \(release.version) is available.").font(.mono(11, semibold: true)).foregroundColor(t.text)
                     Text(release.manual
                          ? "This update has to be installed by hand: download it from GitHub, quit Mountpoint and replace the app in the Applications folder."
                          : "Installing restarts Mountpoint. Mounted volumes are ejected and mounted again – quit Media Composer first.")
@@ -149,12 +137,7 @@ struct Panel: View {
                 }
                 Spacer(minLength: 0)
                 if updater.state != .installing {
-                    Button { updater.dismissed = true } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                            .frame(width: 18, height: 18).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Close"))
+                    CloseButton(label: Text("Close"), theme: t) { updater.dismissed = true }
                 }
             }
             HStack(spacing: 10) {
@@ -213,7 +196,7 @@ struct Panel: View {
 
                 MoreMenu(theme: t) {
                     Toggle("Mount at app launch", isOn: Binding(get: { p.mountAtLaunch }, set: { _ in store.toggleMountAtLaunch(p) }))
-                    Button("Add workspace…") { addWorkspace(to: p.id) }
+                    Button("Add workspace…") { picking = .some(p.id) }
                     Button("Clear error messages") { store.clearErrors(in: p.id) }
                         .disabled(!items.contains { store.errors[$0.id] != nil })
                     Divider()
@@ -276,13 +259,8 @@ struct Panel: View {
             }
             Spacer(minLength: 8)
             if error != nil {
-                Button { store.clearError(w) } label: {
-                    Image(systemName: "xmark").font(.system(size: 10, weight: .semibold)).foregroundColor(t.muted)
-                        .frame(width: 18, height: 18).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(Text("Clear error message"))
-                .accessibilityLabel(Text("Clear error message"))
+                CloseButton(label: Text("Clear error message"), theme: t) { store.clearError(w) }
+                    .help(Text("Clear error message"))
             }
             MoreMenu(theme: t) {
                 Menu("Move to project") {
@@ -305,10 +283,6 @@ struct Panel: View {
             .disabled(isBusy)
         }
         .padding(.leading, 18)
-    }
-
-    private func addWorkspace(to project: UUID?) {
-        picking = .some(project)
     }
 
     private func chosen(_ url: URL, for project: UUID?) {
@@ -364,10 +338,6 @@ struct Panel: View {
         case .error(let message):
             title = message
             cancel = false
-        case .networkInfo:
-            title = loc("Mounted as network drive")
-            info = loc("The Finder will warn that deleted items “will be deleted immediately” – that is right: Mountpoint volumes have no Trash. Applies the next time a workspace is mounted.")
-            cancel = false
         }
         let name = text.trimmingCharacters(in: .whitespaces)
 
@@ -411,8 +381,7 @@ struct Panel: View {
             }
         }
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(t.line, lineWidth: 1))
+        .cardFrame(t)
         .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
     }
 
@@ -435,7 +404,7 @@ struct Panel: View {
                 }
             }
             store.add(url, to: project)
-        case .error, .networkInfo:
+        case .error:
             break
         }
     }
