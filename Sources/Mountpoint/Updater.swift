@@ -11,7 +11,8 @@ struct AppVersion: Comparable, Equatable {
         var s = text.trimmingCharacters(in: .whitespaces)
         if s.hasPrefix("v") { s.removeFirst() }
         let parts = s.split(separator: "-", maxSplits: 1)
-        let nums = parts[0].split(separator: ".").map { Int($0) }
+        guard let first = parts.first else { return nil }   // "" oder "v"
+        let nums = first.split(separator: ".").map { Int($0) }
         guard !nums.isEmpty, !nums.contains(nil) else { return nil }
         numbers = nums.map { $0! }
         if parts.count == 2 {
